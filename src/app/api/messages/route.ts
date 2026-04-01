@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import { verifyToken } from "@/lib/auth";
 
 async function authenticate(req: NextRequest) {
@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
 
-  let query = supabaseAdmin.from("contact_messages").select("*").order("created_at", { ascending: false });
+  let query = getSupabaseAdmin().from("contact_messages").select("*").order("created_at", { ascending: false });
   if (status) query = query.eq("status", status);
 
   const { data, error } = await query;
@@ -36,7 +36,7 @@ export async function PATCH(req: NextRequest) {
     updates.status = "replied";
   }
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdmin()
     .from("contact_messages")
     .update(updates)
     .eq("id", id)

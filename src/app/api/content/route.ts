@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import { verifyToken } from "@/lib/auth";
 
 async function authenticate(req: NextRequest) {
@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const page = searchParams.get("page");
 
-  let query = supabaseAdmin.from("site_content").select("*").order("section").order("content_key");
+  let query = getSupabaseAdmin().from("site_content").select("*").order("section").order("content_key");
   if (page) query = query.eq("page", page);
 
   const { data, error } = await query;
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { data, error } = await supabaseAdmin.from("site_content").insert({
+  const { data, error } = await getSupabaseAdmin().from("site_content").insert({
     ...body,
     updated_by: admin.username,
     updated_at: new Date().toISOString(),
@@ -47,7 +47,7 @@ export async function PATCH(req: NextRequest) {
 
   if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdmin()
     .from("site_content")
     .update({ ...updates, updated_by: admin.username, updated_at: new Date().toISOString() })
     .eq("id", id)
