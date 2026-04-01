@@ -8,6 +8,28 @@ async function authenticate(req: NextRequest) {
   return verifyToken(token);
 }
 
+// Convert schema_markup from DB (jsonb object) to string for client
+function serializeSeo(data: Record<string, unknown> | null) {
+  if (!data) return data;
+  if (data.schema_markup && typeof data.schema_markup === "object") {
+    return { ...data, schema_markup: JSON.stringify(data.schema_markup, null, 2) };
+  }
+  return data;
+}
+
+// Convert schema_markup from client (string) to JSON object for DB
+function deserializeUpdates(updates: Record<string, unknown>) {
+  if (updates.schema_markup && typeof updates.schema_markup === "string") {
+    try {
+      updates.schema_markup = JSON.parse(updates.schema_markup as string);
+    } catch {
+      // If invalid JSON, store as empty object
+      updates.schema_markup = {};
+    }
+  }
+  return updates;
+}
+
 export async function GET(req: NextRequest) {
   const admin = await authenticate(req);
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -27,12 +49,12 @@ export async function GET(req: NextRequest) {
   if (page) {
     const { data, error } = await getSupabaseAdmin().from("seo_settings").select("*").eq("page", page).single();
     if (error && error.code !== "PGRST116") return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ data });
+    return NextResponse.json({ data: serializeSeo(data) });
   }
 
   const { data, error } = await getSupabaseAdmin().from("seo_settings").select("*");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ data });
+  return NextResponse.json({ data: data?.map(serializeSeo) });
 }
 
 export async function PATCH(req: NextRequest) {
@@ -40,7 +62,8 @@ export async function PATCH(req: NextRequest) {
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { id, page, ...updates } = body;
+  const { id, page, ...rawUpdates } = body;
+  const updates = deserializeUpdates(rawUpdates);
 
   if (id) {
     const { data, error } = await getSupabaseAdmin()
@@ -50,7 +73,7 @@ export async function PATCH(req: NextRequest) {
       .select()
       .single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ data });
+    return NextResponse.json({ data: serializeSeo(data) });
   }
 
   if (page) {
@@ -63,7 +86,7 @@ export async function PATCH(req: NextRequest) {
         .select()
         .single();
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-      return NextResponse.json({ data });
+      return NextResponse.json({ data: serializeSeo(data) });
     } else {
       const { data, error } = await getSupabaseAdmin()
         .from("seo_settings")
@@ -71,7 +94,7 @@ export async function PATCH(req: NextRequest) {
         .select()
         .single();
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-      return NextResponse.json({ data });
+      return NextResponse.json({ data: serializeSeo(data) });
     }
   }
 

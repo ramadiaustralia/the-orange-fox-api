@@ -1,99 +1,56 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 
-const EN_TO_ID: Record<string, string> = {
-  "home": "beranda", "about": "tentang", "about us": "tentang kami",
-  "services": "layanan", "our services": "layanan kami", "contact": "kontak",
-  "contact us": "hubungi kami", "pricing": "harga", "process": "proses",
-  "our process": "proses kami", "faq": "pertanyaan umum",
-  "frequently asked questions": "pertanyaan yang sering diajukan",
-  "get started": "mulai sekarang", "learn more": "pelajari lebih lanjut",
-  "read more": "baca selengkapnya", "see more": "lihat selengkapnya",
-  "view all": "lihat semua", "submit": "kirim", "send": "kirim",
-  "name": "nama", "email": "surel", "phone": "telepon", "message": "pesan",
-  "subject": "subjek", "address": "alamat", "company": "perusahaan",
-  "website": "situs web", "portfolio": "portofolio", "blog": "blog",
-  "team": "tim", "our team": "tim kami", "careers": "karier",
-  "privacy policy": "kebijakan privasi", "terms of service": "syarat layanan",
-  "terms and conditions": "syarat dan ketentuan",
-  "welcome": "selamat datang", "hello": "halo", "thank you": "terima kasih",
-  "thanks": "terima kasih", "yes": "ya", "no": "tidak",
-  "web design": "desain web", "web development": "pengembangan web",
-  "mobile app": "aplikasi seluler", "mobile app development": "pengembangan aplikasi seluler",
-  "ui/ux design": "desain ui/ux", "branding": "pencitraan merek",
-  "digital marketing": "pemasaran digital", "seo optimization": "optimasi seo",
-  "social media": "media sosial", "social media marketing": "pemasaran media sosial",
-  "content creation": "pembuatan konten", "graphic design": "desain grafis",
-  "e-commerce": "e-commerce", "e-commerce development": "pengembangan e-commerce",
-  "custom software": "perangkat lunak kustom",
-  "we build digital experiences": "kami membangun pengalaman digital",
-  "your vision, our craft": "visi anda, keahlian kami",
-  "premium web solutions": "solusi web premium",
-  "crafting digital excellence": "menciptakan keunggulan digital",
-  "innovative solutions": "solusi inovatif",
-  "creative agency": "agensi kreatif", "web agency": "agensi web",
-  "digital agency": "agensi digital",
-  "discovery": "penemuan", "planning": "perencanaan", "design": "desain",
-  "development": "pengembangan", "testing": "pengujian", "launch": "peluncuran",
-  "support": "dukungan", "maintenance": "pemeliharaan",
-  "starter": "pemula", "professional": "profesional", "enterprise": "perusahaan",
-  "basic": "dasar", "premium": "premium", "custom": "kustom",
-  "per month": "per bulan", "per year": "per tahun",
-  "free consultation": "konsultasi gratis",
-  "schedule a call": "jadwalkan panggilan",
-  "book a meeting": "pesan pertemuan",
-  "our clients": "klien kami", "testimonials": "testimoni",
-  "case studies": "studi kasus", "results": "hasil",
-  "years of experience": "tahun pengalaman",
-  "projects completed": "proyek selesai",
-  "happy clients": "klien puas",
-  "awards won": "penghargaan diraih",
-  "footer": "footer", "header": "header",
-  "navigation": "navigasi", "menu": "menu",
-  "copyright": "hak cipta", "all rights reserved": "hak cipta dilindungi",
-  "follow us": "ikuti kami", "stay connected": "tetap terhubung",
-  "newsletter": "buletin", "subscribe": "berlangganan",
-  "search": "cari", "filter": "filter", "sort": "urutkan",
-  "save": "simpan", "cancel": "batal", "delete": "hapus",
-  "edit": "ubah", "update": "perbarui", "create": "buat",
-  "back": "kembali", "next": "selanjutnya", "previous": "sebelumnya",
-  "loading": "memuat", "error": "kesalahan", "success": "berhasil",
-  "warning": "peringatan", "info": "informasi",
+// Common phrase dictionary for instant results on known terms
+const PHRASE_DICT: Record<string, Record<string, string>> = {
+  "en-id": {
+    "home": "Beranda", "about": "Tentang", "about us": "Tentang Kami",
+    "services": "Layanan", "our services": "Layanan Kami", "contact": "Kontak",
+    "contact us": "Hubungi Kami", "pricing": "Harga", "process": "Proses",
+    "faq": "Pertanyaan Umum", "get started": "Mulai Sekarang",
+    "learn more": "Pelajari Lebih Lanjut", "read more": "Baca Selengkapnya",
+    "submit": "Kirim", "send": "Kirim", "save": "Simpan",
+    "cancel": "Batal", "delete": "Hapus", "edit": "Ubah",
+    "name": "Nama", "email": "Surel", "phone": "Telepon", "message": "Pesan",
+    "subject": "Subjek", "address": "Alamat", "search": "Cari",
+  },
+  "id-en": {
+    "beranda": "Home", "tentang": "About", "tentang kami": "About Us",
+    "layanan": "Services", "layanan kami": "Our Services", "kontak": "Contact",
+    "hubungi kami": "Contact Us", "harga": "Pricing", "proses": "Process",
+    "pertanyaan umum": "FAQ", "mulai sekarang": "Get Started",
+    "kirim": "Send", "simpan": "Save", "batal": "Cancel",
+    "hapus": "Delete", "ubah": "Edit", "nama": "Name",
+    "surel": "Email", "telepon": "Phone", "pesan": "Message",
+    "subjek": "Subject", "alamat": "Address", "cari": "Search",
+  },
 };
 
-const ID_TO_EN: Record<string, string> = {};
-for (const [en, id] of Object.entries(EN_TO_ID)) {
-  ID_TO_EN[id] = en;
-}
+async function translateWithMyMemory(text: string, from: string, to: string): Promise<string> {
+  const langPair = `${from === "en" ? "en" : "id"}|${to === "en" ? "en" : "id"}`;
+  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${langPair}&de=theorgfox@outlook.com`;
 
-function translateText(text: string, from: string, to: string): string {
-  const dict = from === "en" ? EN_TO_ID : ID_TO_EN;
-  const lower = text.toLowerCase().trim();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
 
-  // Direct match
-  if (dict[lower]) {
-    const result = dict[lower];
-    if (text[0] === text[0].toUpperCase()) {
-      return result.charAt(0).toUpperCase() + result.slice(1);
-    }
-    return result;
-  }
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    const data = await res.json();
+    clearTimeout(timeout);
 
-  // Try to translate word by word for longer texts
-  let result = text;
-  // Sort by length descending so longer phrases match first
-  const entries = Object.entries(dict).sort((a, b) => b[0].length - a[0].length);
-  for (const [source, target] of entries) {
-    const regex = new RegExp(`\\b${source.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
-    result = result.replace(regex, (match) => {
-      if (match[0] === match[0].toUpperCase()) {
-        return target.charAt(0).toUpperCase() + target.slice(1);
+    if (data.responseStatus === 200 && data.responseData?.translatedText) {
+      let translated = data.responseData.translatedText;
+      // MyMemory sometimes returns ALL CAPS for short text — fix casing
+      if (translated === translated.toUpperCase() && translated.length < 100) {
+        translated = translated.charAt(0).toUpperCase() + translated.slice(1).toLowerCase();
       }
-      return target;
-    });
+      return translated;
+    }
+    return text;
+  } catch {
+    clearTimeout(timeout);
+    return text;
   }
-
-  return result;
 }
 
 export async function POST(req: NextRequest) {
@@ -107,6 +64,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "text, from, and to are required" }, { status: 400 });
   }
 
-  const translated = translateText(text, from, to);
+  // 1. Check phrase dictionary first (instant)
+  const dictKey = `${from}-${to}`;
+  const dict = PHRASE_DICT[dictKey] || {};
+  const lower = text.toLowerCase().trim();
+  if (dict[lower]) {
+    const result = dict[lower];
+    // Preserve original casing
+    if (text[0] === text[0].toUpperCase()) {
+      return NextResponse.json({ translated: result.charAt(0).toUpperCase() + result.slice(1) });
+    }
+    return NextResponse.json({ translated: result });
+  }
+
+  // 2. Use MyMemory API for real translation (free, no key needed)
+  const translated = await translateWithMyMemory(text, from, to);
   return NextResponse.json({ translated });
 }
