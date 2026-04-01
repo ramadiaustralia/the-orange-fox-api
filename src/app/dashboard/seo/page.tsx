@@ -54,6 +54,7 @@ const mockKeywordData = [
 ];
 
 export default function SeoPage() {
+  const [mounted, setMounted] = useState(false);
   const [activePage, setActivePage] = useState("home");
   const [seo, setSeo] = useState<SeoData>(emptySeo("home"));
   const [loading, setLoading] = useState(true);
@@ -68,7 +69,24 @@ export default function SeoPage() {
       const res = await fetch(`/api/seo?page=${activePage}`);
       const json = await res.json();
       if (json.data) {
-        setSeo({ ...emptySeo(activePage), ...json.data });
+        // Sanitize null values to empty strings to prevent null.length crashes
+        const empty = emptySeo(activePage);
+        const raw = json.data as Record<string, unknown>;
+        const sanitized: SeoData = {
+          ...empty,
+          id: (raw.id as string) || empty.id,
+          page: (raw.page as string) || empty.page,
+          title: (raw.title as string) ?? empty.title,
+          description: (raw.description as string) ?? empty.description,
+          keywords: (raw.keywords as string) ?? empty.keywords,
+          og_title: (raw.og_title as string) ?? empty.og_title,
+          og_description: (raw.og_description as string) ?? empty.og_description,
+          og_image: (raw.og_image as string) ?? empty.og_image,
+          canonical_url: (raw.canonical_url as string) ?? empty.canonical_url,
+          robots: (raw.robots as string) ?? empty.robots,
+          schema_markup: (raw.schema_markup as string) ?? empty.schema_markup,
+        };
+        setSeo(sanitized);
       } else {
         setSeo(emptySeo(activePage));
       }
@@ -79,6 +97,7 @@ export default function SeoPage() {
     }
   }, [activePage]);
 
+  useEffect(() => { setMounted(true); }, []);
   useEffect(() => { loadSeo(); }, [loadSeo]);
 
   const saveSeo = async () => {
@@ -438,7 +457,7 @@ export default function SeoPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-dark-400 border border-dark-50/50 rounded-2xl p-6">
               <h3 className="text-sm font-semibold text-white mb-4">Traffic Overview</h3>
-              <ResponsiveContainer width="100%" height={250}>
+              {mounted && <ResponsiveContainer width="100%" height={250}>
                 <AreaChart data={analyticsData}>
                   <defs>
                     <linearGradient id="colorVisitors" x1="0" y1="0" x2="0" y2="1">
@@ -455,12 +474,12 @@ export default function SeoPage() {
                   />
                   <Area type="monotone" dataKey="visitors" stroke="#D4692A" fillOpacity={1} fill="url(#colorVisitors)" strokeWidth={2} />
                 </AreaChart>
-              </ResponsiveContainer>
+              </ResponsiveContainer>}
             </div>
 
             <div className="bg-dark-400 border border-dark-50/50 rounded-2xl p-6">
               <h3 className="text-sm font-semibold text-white mb-4">Page Views</h3>
-              <ResponsiveContainer width="100%" height={250}>
+              {mounted && <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={analyticsData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#222" />
                   <XAxis dataKey="name" stroke="#555" fontSize={12} />
@@ -471,7 +490,7 @@ export default function SeoPage() {
                   />
                   <Bar dataKey="pageViews" fill="#D4692A" radius={[6, 6, 0, 0]} />
                 </BarChart>
-              </ResponsiveContainer>
+              </ResponsiveContainer>}
             </div>
           </div>
 
