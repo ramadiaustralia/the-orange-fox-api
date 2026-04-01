@@ -2,19 +2,6 @@
 import { useState, useEffect } from "react";
 import { Save, User, Lock, Globe, Shield, CheckCircle2 } from "lucide-react";
 
-function getCookie(name: string): string | null {
-  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-  return match ? decodeURIComponent(match[2]) : null;
-}
-
-function parseJwt(token: string) {
-  try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    return JSON.parse(atob(base64));
-  } catch { return null; }
-}
-
 export default function SettingsPage() {
   const [admin, setAdmin] = useState({ username: "", display_name: "" });
   const [password, setPassword] = useState({ current: "", new_password: "", confirm: "" });
@@ -31,13 +18,20 @@ export default function SettingsPage() {
   const [successMsg, setSuccessMsg] = useState("");
 
   useEffect(() => {
-    const token = getCookie("fox_admin_token");
-    if (token) {
-      const payload = parseJwt(token);
-      if (payload) {
-        setAdmin({ username: payload.username || "", display_name: payload.display_name || "" });
+    async function loadAdmin() {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.authenticated && data.admin) {
+            setAdmin({ username: data.admin.username || "", display_name: data.admin.display_name || "" });
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load admin info", e);
       }
     }
+    loadAdmin();
   }, []);
 
   const showSuccess = (msg: string) => {
@@ -58,7 +52,6 @@ export default function SettingsPage() {
 
     setChangingPw(true);
     try {
-      // First verify current password
       const verifyRes = await fetch("/api/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -70,8 +63,6 @@ export default function SettingsPage() {
         return;
       }
 
-      // Note: In production, you'd have a dedicated password change endpoint
-      // For now, we'll show success since auth was verified
       showSuccess("Password verification successful. Contact system admin to update password hash.");
       setPassword({ current: "", new_password: "", confirm: "" });
     } catch (e) {
@@ -85,7 +76,6 @@ export default function SettingsPage() {
   const handleSaveSiteSettings = async () => {
     setSaveSiteSettings(true);
     try {
-      // Save site settings as content items under 'global' page
       const settings = [
         { key: "site_name", value: siteSettings.site_name },
         { key: "site_url", value: siteSettings.site_url },
