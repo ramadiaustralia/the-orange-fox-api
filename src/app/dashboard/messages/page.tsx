@@ -92,7 +92,7 @@ export default function MessagesPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-white flex items-center gap-3">
+          <h1 className="font-heading text-2xl font-bold text-gray-900 flex items-center gap-3">
             Messages
             {unreadCount > 0 && (
               <span className="px-2.5 py-1 text-xs rounded-full bg-orange/10 text-orange border border-orange/20">
@@ -104,7 +104,7 @@ export default function MessagesPage() {
         </div>
         <button
           onClick={loadMessages}
-          className="flex items-center gap-2 px-4 py-2 text-sm rounded-xl bg-dark-200 border border-dark-50/50 text-gray-400 hover:text-white hover:border-orange/30 transition-all"
+          className="flex items-center gap-2 px-4 py-2 text-sm rounded-xl bg-gray-50 border border-gray-200 text-gray-500 hover:text-gray-900 hover:border-orange/30 transition-all"
         >
           <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
           Refresh
@@ -121,7 +121,7 @@ export default function MessagesPage() {
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all capitalize ${
               filter === f
                 ? "bg-orange/10 text-orange border border-orange/20"
-                : "text-gray-500 hover:text-white hover:bg-dark-200 border border-transparent"
+                : "text-gray-500 hover:text-gray-900 hover:bg-gray-50 border border-transparent"
             }`}
           >
             {f}
@@ -132,12 +132,12 @@ export default function MessagesPage() {
       {/* Messages List */}
       {loading ? (
         <div className="space-y-3">
-          {[1, 2, 3].map((i) => <div key={i} className="h-20 bg-dark-400 rounded-2xl animate-pulse" />)}
+          {[1, 2, 3].map((i) => <div key={i} className="h-20 bg-white rounded-2xl animate-pulse" />)}
         </div>
       ) : messages.length === 0 ? (
-        <div className="text-center py-20 bg-dark-400 border border-dark-50/50 rounded-2xl">
+        <div className="text-center py-20 bg-white border border-gray-200 rounded-2xl">
           <MessageSquare size={40} className="mx-auto text-gray-600 mb-3" />
-          <p className="text-lg font-medium text-gray-400">No messages</p>
+          <p className="text-lg font-medium text-gray-500">No messages</p>
           <p className="text-sm text-gray-600 mt-1">{filter !== "all" ? "Try a different filter" : "Messages will appear here"}</p>
         </div>
       ) : (
@@ -145,12 +145,12 @@ export default function MessagesPage() {
           {messages.map((msg) => {
             const isExpanded = expandedId === msg.id;
             return (
-              <div key={msg.id} className={`bg-dark-400 border rounded-2xl transition-all duration-200 ${
-                msg.status === "unread" ? "border-orange/20" : "border-dark-50/50"
+              <div key={msg.id} className={`bg-white border rounded-2xl transition-all duration-200 ${
+                msg.status === "unread" ? "border-orange/20" : "border-gray-200"
               }`}>
                 {/* Header Row */}
                 <div
-                  className="px-6 py-4 flex items-center gap-4 cursor-pointer hover:bg-dark-300/20 transition-colors rounded-2xl"
+                  className="px-6 py-4 flex items-center gap-4 cursor-pointer hover:bg-gray-50/20 transition-colors rounded-2xl"
                   onClick={() => toggleExpand(msg)}
                 >
                   <div className="flex-shrink-0">
@@ -163,7 +163,7 @@ export default function MessagesPage() {
                         <Send size={16} className="text-emerald-400" />
                       </div>
                     ) : (
-                      <div className="w-10 h-10 rounded-xl bg-dark-200 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center">
                         <MailOpen size={16} className="text-gray-500" />
                       </div>
                     )}
@@ -171,10 +171,10 @@ export default function MessagesPage() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-sm font-semibold text-white truncate">{msg.name}</span>
+                      <span className="text-sm font-semibold text-gray-900 truncate">{msg.name}</span>
                       {statusBadge(msg.status)}
                     </div>
-                    <p className="text-sm text-gray-400 truncate">{msg.subject || "No subject"}</p>
+                    <p className="text-sm text-gray-500 truncate">{msg.subject || "No subject"}</p>
                     <div className="flex items-center gap-3 mt-1 text-xs text-gray-600">
                       <span>{msg.email}</span>
                       <span className="flex items-center gap-1"><Clock size={10} /> {new Date(msg.created_at).toLocaleDateString()}</span>
@@ -188,26 +188,26 @@ export default function MessagesPage() {
 
                 {/* Expanded Content */}
                 {isExpanded && (
-                  <div className="px-6 pb-6 animate-fade-in border-t border-dark-50/30 mt-0 pt-4">
+                  <div className="px-6 pb-6 animate-fade-in border-t border-gray-100 mt-0 pt-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <div className="space-y-2 text-sm">
-                        <div className="flex items-center gap-2 text-gray-400">
-                          <User size={12} /> <span className="text-white">{msg.name}</span>
+                        <div className="flex items-center gap-2 text-gray-500">
+                          <User size={12} /> <span className="text-gray-900">{msg.name}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-gray-400">
-                          <Mail size={12} /> <span className="text-white">{msg.email}</span>
+                        <div className="flex items-center gap-2 text-gray-500">
+                          <Mail size={12} /> <span className="text-gray-900">{msg.email}</span>
                         </div>
                         {msg.package && (
-                          <div className="flex items-center gap-2 text-gray-400">
-                            <Package size={12} /> <span className="text-white">{msg.package}</span>
+                          <div className="flex items-center gap-2 text-gray-500">
+                            <Package size={12} /> <span className="text-gray-900">{msg.package}</span>
                           </div>
                         )}
                       </div>
                     </div>
 
                     {/* Message Body */}
-                    <div className="bg-dark-200 rounded-xl p-4 mb-4">
-                      <p className="text-sm text-gray-300 whitespace-pre-wrap">{msg.message}</p>
+                    <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                      <p className="text-sm text-gray-500 whitespace-pre-wrap">{msg.message}</p>
                     </div>
 
                     {/* Previous Reply */}
@@ -220,20 +220,20 @@ export default function MessagesPage() {
                             <span className="text-xs text-gray-600">{new Date(msg.replied_at).toLocaleString()}</span>
                           )}
                         </div>
-                        <p className="text-sm text-gray-300 whitespace-pre-wrap">{msg.admin_reply}</p>
+                        <p className="text-sm text-gray-500 whitespace-pre-wrap">{msg.admin_reply}</p>
                       </div>
                     )}
 
                     {/* Reply Form */}
                     <div>
-                      <label className="block text-xs font-medium text-gray-400 mb-1.5">
+                      <label className="block text-xs font-medium text-gray-500 mb-1.5">
                         {msg.admin_reply ? "Update Reply" : "Write Reply"}
                       </label>
                       <textarea
                         value={replyText[msg.id] || ""}
                         onChange={(e) => setReplyText((prev) => ({ ...prev, [msg.id]: e.target.value }))}
                         placeholder="Type your reply..."
-                        className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange focus:ring-1 focus:ring-orange/30 transition-all min-h-[100px] resize-y"
+                        className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange focus:ring-1 focus:ring-orange/30 transition-all min-h-[100px] resize-y"
                       />
                       <div className="flex justify-end mt-3">
                         <button

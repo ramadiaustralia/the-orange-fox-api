@@ -260,7 +260,7 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-white">Settings</h1>
+        <h1 className="font-heading text-2xl font-bold text-gray-900">Settings</h1>
         <p className="text-sm text-gray-500 mt-1">Manage your account and site settings</p>
       </div>
 
@@ -281,10 +281,10 @@ export default function SettingsPage() {
       )}
 
       {/* Admin Profile */}
-      <div className="bg-dark-400 border border-dark-50/50 rounded-2xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-dark-50/50 flex items-center gap-2">
+      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
           <User size={16} className="text-orange" />
-          <h3 className="font-heading text-sm font-semibold text-white">Admin Profile</h3>
+          <h3 className="font-heading text-sm font-semibold text-gray-900">Admin Profile</h3>
         </div>
         <div className="p-6">
           <div className="flex items-center gap-6 mb-6">
@@ -292,7 +292,7 @@ export default function SettingsPage() {
               {admin.display_name?.charAt(0)?.toUpperCase() || "A"}
             </div>
             <div>
-              <h4 className="text-lg font-semibold text-white">{admin.display_name || "Admin"}</h4>
+              <h4 className="text-lg font-semibold text-gray-900">{admin.display_name || "Admin"}</h4>
               <p className="text-sm text-gray-500">@{admin.username || "admin"}</p>
               <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 text-[10px] rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                 <Shield size={10} /> Administrator
@@ -302,19 +302,19 @@ export default function SettingsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Username</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Username</label>
               <input
                 value={admin.username}
                 disabled
-                className="w-full bg-dark-200/50 border border-dark-50/50 text-gray-500 text-sm rounded-xl px-4 py-3 cursor-not-allowed"
+                className="w-full bg-gray-50 border border-gray-200 text-gray-500 text-sm rounded-xl px-4 py-3 cursor-not-allowed"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Display Name</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Display Name</label>
               <input
                 value={admin.display_name}
                 disabled
-                className="w-full bg-dark-200/50 border border-dark-50/50 text-gray-500 text-sm rounded-xl px-4 py-3 cursor-not-allowed"
+                className="w-full bg-gray-50 border border-gray-200 text-gray-500 text-sm rounded-xl px-4 py-3 cursor-not-allowed"
               />
             </div>
           </div>
@@ -322,40 +322,40 @@ export default function SettingsPage() {
       </div>
 
       {/* Change Password */}
-      <div className="bg-dark-400 border border-dark-50/50 rounded-2xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-dark-50/50 flex items-center gap-2">
+      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
           <Lock size={16} className="text-orange" />
-          <h3 className="font-heading text-sm font-semibold text-white">Change Password</h3>
+          <h3 className="font-heading text-sm font-semibold text-gray-900">Change Password</h3>
         </div>
         <div className="p-6 space-y-4">
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">Current Password</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1.5">Current Password</label>
             <input
               type="password"
               value={password.current}
               onChange={(e) => setPassword({ ...password, current: e.target.value })}
-              className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+              className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
               placeholder="Enter current password"
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">New Password</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">New Password</label>
               <input
                 type="password"
                 value={password.new_password}
                 onChange={(e) => setPassword({ ...password, new_password: e.target.value })}
-                className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
                 placeholder="Enter new password"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Confirm New Password</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Confirm New Password</label>
               <input
                 type="password"
                 value={password.confirm}
                 onChange={(e) => setPassword({ ...password, confirm: e.target.value })}
-                className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
                 placeholder="Confirm new password"
               />
             </div>
@@ -372,41 +372,41 @@ export default function SettingsPage() {
       </div>
 
       {/* Site Settings */}
-      <div className="bg-dark-400 border border-dark-50/50 rounded-2xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-dark-50/50 flex items-center gap-2">
+      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
           <Globe size={16} className="text-orange" />
-          <h3 className="font-heading text-sm font-semibold text-white">Site Settings</h3>
+          <h3 className="font-heading text-sm font-semibold text-gray-900">Site Settings</h3>
         </div>
         <div className="p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Site Name</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Site Name</label>
               <input
                 value={siteSettings.site_name}
                 onChange={(e) => setSiteSettings({ ...siteSettings, site_name: e.target.value })}
-                className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Site URL</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Site URL</label>
               <input
                 value={siteSettings.site_url}
                 onChange={(e) => setSiteSettings({ ...siteSettings, site_url: e.target.value })}
-                className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
               />
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Logo URL</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Logo URL</label>
               <input
                 value={siteSettings.logo_url}
                 onChange={(e) => setSiteSettings({ ...siteSettings, logo_url: e.target.value })}
-                className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
                 placeholder="https://..."
               />
               {siteSettings.logo_url && (
-                <div className="mt-2 p-3 bg-dark-200/50 rounded-xl border border-dark-50/30">
+                <div className="mt-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
                   <div className="flex items-center gap-2 mb-2">
                     <Image size={12} className="text-gray-500" />
                     <span className="text-[10px] text-gray-500">Logo Preview</span>
@@ -423,20 +423,20 @@ export default function SettingsPage() {
               )}
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Contact Email</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Contact Email</label>
               <input
                 value={siteSettings.contact_email}
                 onChange={(e) => setSiteSettings({ ...siteSettings, contact_email: e.target.value })}
-                className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
               />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">Default Locale</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1.5">Default Locale</label>
             <select
               value={siteSettings.default_locale}
               onChange={(e) => setSiteSettings({ ...siteSettings, default_locale: e.target.value })}
-              className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all max-w-xs"
+              className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all max-w-xs"
             >
               <option value="en">English</option>
               <option value="id">Indonesian</option>
@@ -444,57 +444,57 @@ export default function SettingsPage() {
           </div>
 
           {/* Social Links Subsection */}
-          <div className="pt-4 border-t border-dark-50/30">
+          <div className="pt-4 border-t border-gray-100">
             <div className="flex items-center gap-2 mb-4">
               <Link2 size={14} className="text-orange" />
-              <h4 className="text-sm font-semibold text-white">Social Links</h4>
+              <h4 className="text-sm font-semibold text-gray-900">Social Links</h4>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="flex items-center gap-1.5 text-xs font-medium text-gray-400 mb-1.5">
+                <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-1.5">
                   <Mail size={12} />
                   Email
                 </label>
                 <input
                   value={socialLinks.social_email}
                   onChange={(e) => setSocialLinks({ ...socialLinks, social_email: e.target.value })}
-                  className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
                   placeholder="hello@theorangefox.com"
                 />
               </div>
               <div>
-                <label className="flex items-center gap-1.5 text-xs font-medium text-gray-400 mb-1.5">
+                <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-1.5">
                   <MessageCircle size={12} />
                   WhatsApp
                 </label>
                 <input
                   value={socialLinks.social_whatsapp}
                   onChange={(e) => setSocialLinks({ ...socialLinks, social_whatsapp: e.target.value })}
-                  className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
                   placeholder="+1234567890"
                 />
               </div>
               <div>
-                <label className="flex items-center gap-1.5 text-xs font-medium text-gray-400 mb-1.5">
+                <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-1.5">
                   <Instagram size={12} />
                   Instagram
                 </label>
                 <input
                   value={socialLinks.social_instagram}
                   onChange={(e) => setSocialLinks({ ...socialLinks, social_instagram: e.target.value })}
-                  className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
                   placeholder="https://instagram.com/theorangefox"
                 />
               </div>
               <div>
-                <label className="flex items-center gap-1.5 text-xs font-medium text-gray-400 mb-1.5">
+                <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-1.5">
                   <Github size={12} />
                   GitHub
                 </label>
                 <input
                   value={socialLinks.social_github}
                   onChange={(e) => setSocialLinks({ ...socialLinks, social_github: e.target.value })}
-                  className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
                   placeholder="https://github.com/theorangefox"
                 />
               </div>
@@ -513,10 +513,10 @@ export default function SettingsPage() {
       </div>
 
       {/* Google Analytics */}
-      <div className="bg-dark-400 border border-dark-50/50 rounded-2xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-dark-50/50 flex items-center gap-2">
+      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
           <Globe size={16} className="text-orange" />
-          <h3 className="font-heading text-sm font-semibold text-white">Google Integration</h3>
+          <h3 className="font-heading text-sm font-semibold text-gray-900">Google Integration</h3>
         </div>
         <div className="p-6 space-y-4">
           <p className="text-xs text-gray-500">
@@ -524,11 +524,11 @@ export default function SettingsPage() {
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">GA4 Measurement ID</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">GA4 Measurement ID</label>
               <input
                 value={gaId}
                 onChange={(e) => setGaId(e.target.value)}
-                className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
                 placeholder="G-XXXXXXXXXX"
               />
               {gaId && !gaId.startsWith("G-") && (
@@ -536,11 +536,11 @@ export default function SettingsPage() {
               )}
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Google API Key <span className="text-gray-600">(for PageSpeed)</span></label>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Google API Key <span className="text-gray-600">(for PageSpeed)</span></label>
               <input
                 value={googleApiKey}
                 onChange={(e) => setGoogleApiKey(e.target.value)}
-                className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
                 placeholder="AIzaSy..."
               />
               <p className="text-[10px] text-gray-600 mt-1">Free from <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener" className="text-orange/60 hover:text-orange underline">Google Cloud Console</a> → enable PageSpeed Insights API</p>
@@ -558,7 +558,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Danger Zone */}
-      <div className="bg-dark-400 border border-red-500/30 rounded-2xl overflow-hidden">
+      <div className="bg-white border border-red-500/30 rounded-2xl overflow-hidden">
         <div className="px-6 py-4 border-b border-red-500/20 flex items-center gap-2">
           <Trash2 size={16} className="text-red-400" />
           <h3 className="font-heading text-sm font-semibold text-red-400">Danger Zone</h3>

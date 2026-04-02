@@ -164,7 +164,7 @@ export default function DashboardPage() {
       {/* Welcome Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-white flex items-center gap-2">
+          <h1 className="font-heading text-2xl font-bold text-gray-900 flex items-center gap-2">
             Welcome to the Den <span className="text-3xl">🦊</span>
           </h1>
           <p className="text-sm text-gray-500 mt-1">
@@ -189,7 +189,7 @@ export default function DashboardPage() {
           return (
             <div
               key={card.label}
-              className="bg-dark-400 border border-dark-50/50 rounded-2xl p-5 hover:border-dark-50 transition-all duration-200 group animate-stagger animate-shimmer"
+              className="bg-white border border-gray-200 rounded-2xl p-5 hover:border-gray-200 transition-all duration-200 group animate-stagger animate-shimmer"
             >
               <div className="flex items-start justify-between mb-4">
                 <div
@@ -199,17 +199,17 @@ export default function DashboardPage() {
                 </div>
                 <ArrowUpRight
                   size={16}
-                  className="text-gray-600 group-hover:text-gray-400 transition-colors"
+                  className="text-gray-600 group-hover:text-gray-500 transition-colors"
                 />
               </div>
-              <div className="text-2xl font-bold text-white mb-1">
+              <div className="text-2xl font-bold text-gray-900 mb-1">
                 {loading ? (
-                  <span className="inline-block w-10 h-7 bg-dark-200 rounded animate-pulse" />
+                  <span className="inline-block w-10 h-7 bg-gray-50 rounded animate-pulse" />
                 ) : (
                   card.value
                 )}
               </div>
-              <div className="font-heading text-sm font-medium text-gray-400">{card.label}</div>
+              <div className="font-heading text-sm font-medium text-gray-500">{card.label}</div>
               <div className="text-xs text-gray-600 mt-1">{card.desc}</div>
             </div>
           );
@@ -219,14 +219,14 @@ export default function DashboardPage() {
       {/* SEO Score Overview + Live Website Preview */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* SEO Score Card */}
-        <div className="bg-dark-400 border border-dark-50/50 rounded-2xl p-6 bg-gradient-to-br from-dark-400 to-dark-400/80">
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 ">
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp size={18} className="text-orange" />
-            <h3 className="font-heading text-lg font-semibold text-white">SEO Score — Home</h3>
+            <h3 className="font-heading text-lg font-semibold text-gray-900">SEO Score — Home</h3>
           </div>
           {loading || seoScore === null ? (
             <div className="flex items-center justify-center py-8">
-              <div className="w-20 h-20 bg-dark-200 rounded-full animate-pulse" />
+              <div className="w-20 h-20 bg-gray-50 rounded-full animate-pulse" />
             </div>
           ) : (
             <div className="flex items-center gap-6">
@@ -250,7 +250,7 @@ export default function DashboardPage() {
                 </span>
               </div>
               <div>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-gray-500">
                   {seoScore >= 80 ? "Your homepage SEO is looking great!" : seoScore >= 50 ? "Room for improvement — check your meta tags." : "Your homepage needs SEO attention."}
                 </p>
                 <a
@@ -265,16 +265,16 @@ export default function DashboardPage() {
         </div>
 
         {/* Live Website Preview Card */}
-        <div className="bg-dark-400 border border-dark-50/50 rounded-2xl p-6 bg-gradient-to-br from-dark-400 to-dark-400/80">
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 ">
           <div className="flex items-center gap-2 mb-4">
             <Globe size={18} className="text-orange" />
-            <h3 className="font-heading text-lg font-semibold text-white">Live Website</h3>
+            <h3 className="font-heading text-lg font-semibold text-gray-900">Live Website</h3>
           </div>
-          <div className="bg-dark-200 rounded-xl border border-dark-50/30 p-4 flex flex-col items-center justify-center gap-3 min-h-[120px]">
+          <div className="bg-gray-50 rounded-xl border border-gray-100 p-4 flex flex-col items-center justify-center gap-3 min-h-[120px]">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange to-orange-700 flex items-center justify-center text-2xl shadow-lg shadow-orange/20">
               🦊
             </div>
-            <p className="text-sm text-gray-400 text-center">the-orange-fox-web.vercel.app</p>
+            <p className="text-sm text-gray-500 text-center">the-orange-fox-web.vercel.app</p>
             <a
               href="https://the-orange-fox-web.vercel.app"
               target="_blank"
@@ -290,10 +290,10 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Quick Actions */}
-        <div className="bg-dark-400 border border-dark-50/50 rounded-2xl p-6">
+        <div className="bg-white border border-gray-200 rounded-2xl p-6">
           <div className="flex items-center gap-2 mb-4">
             <Zap size={18} className="text-orange" />
-            <h3 className="font-heading text-lg font-semibold text-white">Quick Actions</h3>
+            <h3 className="font-heading text-lg font-semibold text-gray-900">Quick Actions</h3>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {quickActions.map((action) => {
@@ -302,13 +302,13 @@ export default function DashboardPage() {
                 <a
                   key={action.label}
                   href={action.href}
-                  className="flex items-center gap-3 p-4 rounded-xl bg-dark-200 border border-dark-50/30 hover:border-orange/30 hover:bg-orange/5 transition-all duration-200 group animate-stagger"
+                  className="flex items-center gap-3 p-4 rounded-xl bg-gray-50 border border-gray-100 hover:border-orange/30 hover:bg-orange/5 transition-all duration-200 group animate-stagger"
                 >
                   <Icon
                     size={18}
                     className="text-gray-500 group-hover:text-orange transition-colors"
                   />
-                  <span className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors">
+                  <span className="text-sm font-medium text-gray-500 group-hover:text-gray-900 transition-colors">
                     {action.label}
                   </span>
                 </a>
@@ -318,15 +318,15 @@ export default function DashboardPage() {
         </div>
 
         {/* Content Coverage */}
-        <div className="bg-dark-400 border border-dark-50/50 rounded-2xl p-6">
+        <div className="bg-white border border-gray-200 rounded-2xl p-6">
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 size={18} className="text-orange" />
-            <h3 className="font-heading text-lg font-semibold text-white">Content Coverage</h3>
+            <h3 className="font-heading text-lg font-semibold text-gray-900">Content Coverage</h3>
           </div>
           {loading ? (
             <div className="space-y-3">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-8 bg-dark-200 rounded-lg animate-pulse" />
+                <div key={i} className="h-8 bg-gray-50 rounded-lg animate-pulse" />
               ))}
             </div>
           ) : (
@@ -340,13 +340,13 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between mb-1">
                       <a
                         href={`/dashboard/content`}
-                        className="text-sm text-gray-400 capitalize group-hover:text-orange transition-colors"
+                        className="text-sm text-gray-500 capitalize group-hover:text-orange transition-colors"
                       >
                         {p}
                       </a>
                       <span className="text-xs text-gray-500 font-mono">{count}</span>
                     </div>
-                    <div className="w-full h-1.5 bg-dark-200 rounded-full overflow-hidden">
+                    <div className="w-full h-1.5 bg-gray-50 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-orange to-orange-600 rounded-full transition-all duration-500"
                         style={{ width: `${pct}%` }}
@@ -355,10 +355,10 @@ export default function DashboardPage() {
                   </div>
                 );
               })}
-              <div className="pt-2 border-t border-dark-50/30 mt-3">
+              <div className="pt-2 border-t border-gray-100 mt-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-500">Total content items</span>
-                  <span className="text-sm font-semibold text-white">{stats.contentItems}</span>
+                  <span className="text-sm font-semibold text-gray-900">{stats.contentItems}</span>
                 </div>
               </div>
             </div>

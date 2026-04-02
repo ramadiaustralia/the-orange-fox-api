@@ -35,14 +35,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-dark">
+      <div className="min-h-screen flex items-center justify-center bg-[#fafafa]">
         <div className="animate-pulse-orange w-4 h-4 rounded-full bg-orange" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-dark flex">
+    <div className="min-h-screen bg-[#fafafa] flex">
       {/* Desktop Sidebar */}
       <div className="hidden lg:block flex-shrink-0">
         <div className="sticky top-0 h-screen">

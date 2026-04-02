@@ -84,7 +84,7 @@ export default function TechStackPage() {
       Tools: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
       Mobile: "bg-orange/10 text-orange border-orange/20",
     };
-    return colors[cat] || "bg-gray-500/10 text-gray-400 border-gray-500/20";
+    return colors[cat] || "bg-gray-500/10 text-gray-500 border-gray-500/20";
   };
 
   const handleDelete = (index: number) => {
@@ -186,7 +186,7 @@ export default function TechStackPage() {
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-white flex items-center gap-2">
+          <h1 className="font-heading text-2xl font-bold text-gray-900 flex items-center gap-2">
             <Layers size={24} className="text-orange" />
             Tech Stack
           </h1>
@@ -197,7 +197,7 @@ export default function TechStackPage() {
         <div className="flex gap-2">
           <button
             onClick={() => setShowAddForm(!showAddForm)}
-            className="flex items-center gap-2 px-4 py-2 text-sm rounded-xl bg-dark-400 border border-dark-50/50 text-gray-300 hover:text-white hover:border-dark-50 transition-all"
+            className="flex items-center gap-2 px-4 py-2 text-sm rounded-xl bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:border-gray-200 transition-all"
           >
             <Plus size={14} />
             Add Tech
@@ -215,25 +215,25 @@ export default function TechStackPage() {
 
       {/* Add Form */}
       {showAddForm && (
-        <div className="bg-dark-400 border border-orange/20 rounded-2xl p-6">
-          <h3 className="text-sm font-semibold text-white mb-4">Add New Technology</h3>
+        <div className="bg-white border border-orange/20 rounded-2xl p-6">
+          <h3 className="text-sm font-semibold text-gray-900 mb-4">Add New Technology</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Name</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Name</label>
               <input
                 value={newItem.name}
                 onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
-                className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
                 placeholder="e.g. React, Node.js"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Category</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Category</label>
               <input
                 value={newItem.category}
                 onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
                 list="category-suggestions"
-                className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
                 placeholder="e.g. Frontend, Backend"
               />
               <datalist id="category-suggestions">
@@ -257,7 +257,7 @@ export default function TechStackPage() {
                 setShowAddForm(false);
                 setNewItem({ name: "", category: "" });
               }}
-              className="px-4 py-2 text-sm rounded-xl bg-dark-200 text-gray-400 hover:text-white transition-all"
+              className="px-4 py-2 text-sm rounded-xl bg-gray-50 text-gray-500 hover:text-gray-900 transition-all"
             >
               Cancel
             </button>
@@ -273,7 +273,7 @@ export default function TechStackPage() {
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
               activeFilter === "all"
                 ? "bg-orange/10 text-orange border border-orange/20"
-                : "bg-dark-400 text-gray-400 border border-dark-50/50 hover:text-white"
+                : "bg-white text-gray-500 border border-gray-200 hover:text-gray-900"
             }`}
           >
             All ({items.length})
@@ -285,7 +285,7 @@ export default function TechStackPage() {
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
                 activeFilter === cat
                   ? "bg-orange/10 text-orange border border-orange/20"
-                  : "bg-dark-400 text-gray-400 border border-dark-50/50 hover:text-white"
+                  : "bg-white text-gray-500 border border-gray-200 hover:text-gray-900"
               }`}
             >
               {cat} ({items.filter((i) => i.category === cat).length})
@@ -298,17 +298,17 @@ export default function TechStackPage() {
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="bg-dark-400 border border-dark-50/50 rounded-2xl p-5">
-              <div className="h-5 w-24 bg-dark-200 rounded animate-pulse mb-3" />
-              <div className="h-4 w-16 bg-dark-200 rounded animate-pulse" />
+            <div key={i} className="bg-white border border-gray-200 rounded-2xl p-5">
+              <div className="h-5 w-24 bg-gray-50 rounded animate-pulse mb-3" />
+              <div className="h-4 w-16 bg-gray-50 rounded animate-pulse" />
             </div>
           ))}
         </div>
       ) : filteredItems.length === 0 ? (
         /* Empty State */
-        <div className="bg-dark-400 border border-dark-50/50 rounded-2xl p-12 text-center">
+        <div className="bg-white border border-gray-200 rounded-2xl p-12 text-center">
           <PackageOpen size={48} className="text-gray-600 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-white mb-2">No technologies found</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No technologies found</h3>
           <p className="text-sm text-gray-500 mb-4">
             {activeFilter !== "all"
               ? `No items in "${activeFilter}" category. Try a different filter.`
@@ -329,13 +329,13 @@ export default function TechStackPage() {
           {filteredItems.map((item, index) => (
             <div
               key={`${item.name}-${index}`}
-              className="bg-dark-400 border border-dark-50/50 rounded-2xl p-5 hover:border-dark-50 transition-all duration-200 group"
+              className="bg-white border border-gray-200 rounded-2xl p-5 hover:border-gray-200 transition-all duration-200 group"
             >
               <div className="flex items-start justify-between mb-3">
                 <input
                   value={item.name}
                   onChange={(e) => handleEditName(index, e.target.value)}
-                  className="bg-transparent text-white text-sm font-medium outline-none border-b border-transparent focus:border-orange transition-all w-full mr-2"
+                  className="bg-transparent text-gray-900 text-sm font-medium outline-none border-b border-transparent focus:border-orange transition-all w-full mr-2"
                 />
                 <button
                   onClick={() => handleDelete(index)}
@@ -350,7 +350,7 @@ export default function TechStackPage() {
                   value={item.category}
                   onChange={(e) => handleEditCategory(index, e.target.value)}
                   list="category-suggestions"
-                  className="bg-transparent text-xs text-gray-400 outline-none border-b border-transparent focus:border-orange transition-all w-full"
+                  className="bg-transparent text-xs text-gray-500 outline-none border-b border-transparent focus:border-orange transition-all w-full"
                   placeholder="Category"
                 />
               </div>
@@ -366,14 +366,14 @@ export default function TechStackPage() {
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={() => handleMoveUp(index)}
-                    className="p-1 rounded text-gray-600 hover:text-white hover:bg-dark-200 transition-all"
+                    className="p-1 rounded text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-all"
                     title="Move up"
                   >
                     <ChevronUp size={12} />
                   </button>
                   <button
                     onClick={() => handleMoveDown(index)}
-                    className="p-1 rounded text-gray-600 hover:text-white hover:bg-dark-200 transition-all"
+                    className="p-1 rounded text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-all"
                     title="Move down"
                   >
                     <ChevronDown size={12} />

@@ -112,17 +112,17 @@ export default function PricingPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-white">Pricing Management</h1>
+          <h1 className="font-heading text-2xl font-bold text-gray-900">Pricing Management</h1>
           <p className="text-sm text-gray-500 mt-1">Manage package prices and details</p>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="bg-dark-400 border border-dark-50/50 rounded-2xl p-6">
-              <div className="h-6 w-32 bg-dark-200 rounded animate-pulse mb-4" />
-              <div className="h-10 w-24 bg-dark-200 rounded animate-pulse mb-4" />
+            <div key={i} className="bg-white border border-gray-200 rounded-2xl p-6">
+              <div className="h-6 w-32 bg-gray-50 rounded animate-pulse mb-4" />
+              <div className="h-10 w-24 bg-gray-50 rounded animate-pulse mb-4" />
               <div className="space-y-2">
                 {[1, 2, 3].map((j) => (
-                  <div key={j} className="h-4 bg-dark-200 rounded animate-pulse" />
+                  <div key={j} className="h-4 bg-gray-50 rounded animate-pulse" />
                 ))}
               </div>
             </div>
@@ -149,7 +149,7 @@ export default function PricingPage() {
       )}
 
       <div>
-        <h1 className="font-heading text-2xl font-bold text-white flex items-center gap-2">
+        <h1 className="font-heading text-2xl font-bold text-gray-900 flex items-center gap-2">
           <DollarSign size={24} className="text-orange" />
           Pricing Management
         </h1>
@@ -171,16 +171,16 @@ export default function PricingPage() {
           return (
             <div
               key={pkg.key}
-              className={`bg-dark-400 border rounded-2xl p-6 transition-all duration-200 ${
+              className={`bg-white border rounded-2xl p-6 transition-all duration-200 ${
                 pkg.highlight
                   ? "border-orange/40 shadow-lg shadow-orange/10"
-                  : "border-dark-50/50 hover:border-dark-50"
+                  : "border-gray-200 hover:border-gray-200"
               }`}
             >
               {/* Header */}
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-white">{pkgName}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">{pkgName}</h3>
                   {pkg.highlight && (
                     <span className="inline-block mt-1 px-2 py-0.5 text-[10px] font-medium rounded-md bg-orange/10 text-orange border border-orange/20">
                       Best Value
@@ -200,7 +200,7 @@ export default function PricingPage() {
               {/* Price Inputs */}
               <div className="space-y-3 mb-4">
                 <div>
-                  <label className="block text-xs font-medium text-gray-400 mb-1.5">
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">
                     Price (EN)
                   </label>
                   <input
@@ -208,12 +208,12 @@ export default function PricingPage() {
                     onChange={(e) =>
                       setPrices((prev) => ({ ...prev, [priceKeyEn]: e.target.value }))
                     }
-                    className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                    className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
                     placeholder={pkg.defaultPrice}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-400 mb-1.5">
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">
                     Price (ID)
                   </label>
                   <input
@@ -221,7 +221,7 @@ export default function PricingPage() {
                     onChange={(e) =>
                       setPrices((prev) => ({ ...prev, [priceKeyId]: e.target.value }))
                     }
-                    className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                    className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
                     placeholder="Rp ..."
                   />
                 </div>
@@ -230,7 +230,7 @@ export default function PricingPage() {
               {/* Features */}
               {features.length > 0 && (
                 <div className="mb-4">
-                  <p className="text-xs font-medium text-gray-400 mb-2">Features</p>
+                  <p className="text-xs font-medium text-gray-500 mb-2">Features</p>
                   <ul className="space-y-1">
                     {features.map((f, i) => (
                       <li key={i} className="flex items-start gap-2 text-xs text-gray-500">
