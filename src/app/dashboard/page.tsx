@@ -189,7 +189,7 @@ export default function DashboardPage() {
           return (
             <div
               key={card.label}
-              className="bg-dark-400 border border-dark-50/50 rounded-2xl p-5 hover:border-dark-50 transition-all duration-200 group"
+              className="bg-dark-400 border border-dark-50/50 rounded-2xl p-5 hover:border-dark-50 transition-all duration-200 group animate-stagger animate-shimmer"
             >
               <div className="flex items-start justify-between mb-4">
                 <div
@@ -302,7 +302,7 @@ export default function DashboardPage() {
                 <a
                   key={action.label}
                   href={action.href}
-                  className="flex items-center gap-3 p-4 rounded-xl bg-dark-200 border border-dark-50/30 hover:border-orange/30 hover:bg-orange/5 transition-all duration-200 group"
+                  className="flex items-center gap-3 p-4 rounded-xl bg-dark-200 border border-dark-50/30 hover:border-orange/30 hover:bg-orange/5 transition-all duration-200 group animate-stagger"
                 >
                   <Icon
                     size={18}
