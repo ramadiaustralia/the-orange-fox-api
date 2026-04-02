@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -43,14 +44,17 @@ export default function LoginPage() {
 
       <div className="relative z-10 w-full max-w-md px-6">
         <div className="animate-fade-in">
-          {/* Logo / Brand */}
-          <div className="text-center mb-10">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-orange to-orange-700 shadow-lg shadow-orange/20 mb-6">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M2 17L12 22L22 17" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M2 12L12 17L22 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+          {/* Logo */}
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-5">
+              <Image
+                src="/logo.png"
+                alt="The Orange Fox"
+                width={120}
+                height={120}
+                className="drop-shadow-[0_0_30px_rgba(255,140,0,0.3)]"
+                priority
+              />
             </div>
             <h1 className="text-2xl font-bold text-white mb-1">The Orange Fox</h1>
             <p className="text-sm text-gray-500">Content Management System</p>
