@@ -35,6 +35,13 @@ const config: Config = {
           900: "#050505",
         },
         charcoal: "#222222",
+        'off-white': '#fafafa',
+        'light-bg': '#f5f2ef',
+        'border-custom': '#e8e4e0',
+        'border-light': '#f0ece8',
+        'text-primary': '#1a1a1a',
+        'text-secondary': '#555555',
+        'text-muted': '#999999',
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],

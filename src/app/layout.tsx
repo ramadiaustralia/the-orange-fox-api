@@ -1,5 +1,20 @@
 import type { Metadata } from "next";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-body",
+  display: "swap",
+});
+
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["500", "600", "700", "800"],
+  variable: "--font-heading",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "The Orange Fox — CMS Dashboard",
@@ -13,13 +28,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <head>
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body className="bg-white text-gray-900 antialiased">{children}</body>
+      <body
+        className={`${inter.variable} ${plusJakarta.variable} font-sans antialiased bg-light-bg text-text-primary`}
+      >
+        {children}
+      </body>
     </html>
   );
 }

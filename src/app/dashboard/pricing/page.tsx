@@ -112,17 +112,17 @@ export default function PricingPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-gray-900">Pricing Management</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage package prices and details</p>
+          <h1 className="text-2xl font-bold text-[#1a1a1a]" style={{ fontFamily: "var(--font-heading)" }}>Pricing Management</h1>
+          <p className="text-sm text-[#555555] mt-1">Manage package prices and details</p>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 stagger-enter">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-6">
-              <div className="h-6 w-32 bg-gray-50 rounded animate-pulse mb-4" />
-              <div className="h-10 w-24 bg-gray-50 rounded animate-pulse mb-4" />
+            <div key={i} className="bg-white border border-[#f0ece8] rounded-2xl shadow-sm p-6">
+              <div className="h-6 w-32 bg-[#f0ece8] rounded animate-pulse mb-4" />
+              <div className="h-10 w-24 bg-[#f0ece8] rounded animate-pulse mb-4" />
               <div className="space-y-2">
                 {[1, 2, 3].map((j) => (
-                  <div key={j} className="h-4 bg-gray-50 rounded animate-pulse" />
+                  <div key={j} className="h-4 bg-[#f0ece8] rounded animate-pulse" />
                 ))}
               </div>
             </div>
@@ -139,8 +139,8 @@ export default function PricingPage() {
         <div
           className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl text-sm animate-fade-in shadow-xl ${
             toast.type === "success"
-              ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
-              : "bg-red-500/10 border border-red-500/20 text-red-400"
+              ? "bg-emerald-50 border border-emerald-200 text-emerald-700"
+              : "bg-red-50 border border-red-200 text-red-700"
           }`}
         >
           {toast.type === "success" ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
@@ -149,11 +149,11 @@ export default function PricingPage() {
       )}
 
       <div>
-        <h1 className="font-heading text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <DollarSign size={24} className="text-orange" />
+        <h1 className="text-2xl font-bold text-[#1a1a1a] flex items-center gap-2" style={{ fontFamily: "var(--font-heading)" }}>
+          <DollarSign size={24} className="text-[#D4692A]" />
           Pricing Management
         </h1>
-        <p className="text-sm text-gray-500 mt-1">Manage package prices and details</p>
+        <p className="text-sm text-[#555555] mt-1">Manage package prices and details</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 stagger-enter">
@@ -171,36 +171,36 @@ export default function PricingPage() {
           return (
             <div
               key={pkg.key}
-              className={`bg-white border rounded-2xl p-6 transition-all duration-200 ${
+              className={`bg-white border rounded-2xl shadow-sm p-6 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(212,105,42,0.06)] ${
                 pkg.highlight
-                  ? "border-orange/40 shadow-lg shadow-orange/10"
-                  : "border-gray-200 hover:border-gray-200"
+                  ? "border-[#D4692A]/40 shadow-lg shadow-[#D4692A]/10"
+                  : "border-[#f0ece8] hover:border-[#D4692A]/30"
               }`}
             >
               {/* Header */}
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{pkgName}</h3>
+                  <h3 className="text-lg font-semibold text-[#1a1a1a]">{pkgName}</h3>
                   {pkg.highlight && (
-                    <span className="inline-block mt-1 px-2 py-0.5 text-[10px] font-medium rounded-md bg-orange/10 text-orange border border-orange/20">
+                    <span className="inline-block mt-1 px-2 py-0.5 text-[10px] font-medium rounded-md bg-[#D4692A]/10 text-[#D4692A] border border-[#D4692A]/20">
                       Best Value
                     </span>
                   )}
                 </div>
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange to-orange-700 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#D4692A] to-[#b85520] flex items-center justify-center">
                   <DollarSign size={18} className="text-white" />
                 </div>
               </div>
 
               {/* Description */}
               {pkgDesc && (
-                <p className="text-xs text-gray-500 mb-4 line-clamp-2">{pkgDesc}</p>
+                <p className="text-xs text-[#555555] mb-4 line-clamp-2">{pkgDesc}</p>
               )}
 
               {/* Price Inputs */}
               <div className="space-y-3 mb-4">
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                  <label className="block text-xs font-medium text-[#555555] mb-1.5">
                     Price (EN)
                   </label>
                   <input
@@ -208,12 +208,12 @@ export default function PricingPage() {
                     onChange={(e) =>
                       setPrices((prev) => ({ ...prev, [priceKeyEn]: e.target.value }))
                     }
-                    className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                    className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999]"
                     placeholder={pkg.defaultPrice}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                  <label className="block text-xs font-medium text-[#555555] mb-1.5">
                     Price (ID)
                   </label>
                   <input
@@ -221,7 +221,7 @@ export default function PricingPage() {
                     onChange={(e) =>
                       setPrices((prev) => ({ ...prev, [priceKeyId]: e.target.value }))
                     }
-                    className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                    className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999]"
                     placeholder="Rp ..."
                   />
                 </div>
@@ -230,11 +230,11 @@ export default function PricingPage() {
               {/* Features */}
               {features.length > 0 && (
                 <div className="mb-4">
-                  <p className="text-xs font-medium text-gray-500 mb-2">Features</p>
+                  <p className="text-xs font-medium text-[#555555] mb-2">Features</p>
                   <ul className="space-y-1">
                     {features.map((f, i) => (
-                      <li key={i} className="flex items-start gap-2 text-xs text-gray-500">
-                        <span className="text-orange mt-0.5">✓</span>
+                      <li key={i} className="flex items-start gap-2 text-xs text-[#555555]">
+                        <span className="text-[#D4692A] mt-0.5">✓</span>
                         {f}
                       </li>
                     ))}
@@ -246,7 +246,7 @@ export default function PricingPage() {
               <button
                 onClick={() => handleSavePackage(pkg.key)}
                 disabled={isSaving}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm rounded-xl bg-orange text-white hover:bg-orange-600 transition-all disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-[#D4692A] text-white hover:bg-[#b85520] transition-all duration-200 hover:shadow-[0_4px_16px_rgba(212,105,42,0.3)] disabled:opacity-50"
               >
                 {isSaving ? (
                   <Loader2 size={14} className="animate-spin" />

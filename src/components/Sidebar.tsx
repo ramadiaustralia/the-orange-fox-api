@@ -1,7 +1,6 @@
 "use client";
 import Link from "next/link";
-import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   FileEdit,
@@ -13,6 +12,7 @@ import {
   X,
   DollarSign,
   Layers,
+  LogOut,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -35,36 +35,42 @@ const navItems = [
 
 export default function Sidebar({ collapsed, onToggle, mobile, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard";
     return pathname.startsWith(href);
   };
 
+  const handleLogout = async () => {
+    await fetch("/api/auth", { method: "DELETE" });
+    router.push("/login");
+  };
+
   const content = (
-    <div className={`flex flex-col h-full bg-dark border-r border-white/5 ${collapsed && !mobile ? 'w-[72px]' : 'w-64'} transition-all duration-300`}>
-      {/* Logo */}
-      <div className="flex items-center justify-between p-4 border-b border-white/5">
+    <div className={`flex flex-col h-full bg-[#1c1c1c] border-r border-white/[0.06] ${collapsed && !mobile ? 'w-[72px]' : 'w-64'} transition-all duration-300`}>
+      {/* Logo Area */}
+      <div className="flex items-center justify-between px-5 py-5 border-b border-white/[0.06]">
         {(!collapsed || mobile) && (
           <div className="flex items-center gap-3">
-            <Image src="/logo.png" alt="The Orange Fox" width={36} height={36} className="w-9 h-9 rounded-xl object-contain" />
-            <div>
-              <span className="font-heading font-bold text-[0.7rem] tracking-[2px] text-orange uppercase">THE ORANGE FOX</span>
-              <span className="block text-[10px] text-gray-500 -mt-0.5">CMS Dashboard</span>
+            <span className="text-2xl leading-none">🦊</span>
+            <div className="flex items-center gap-2">
+              <span className="font-heading font-bold text-white text-sm tracking-wide">The Orange Fox</span>
+              <span className="bg-[#D4692A]/15 text-[#D4692A] text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">CMS</span>
             </div>
           </div>
         )}
         {collapsed && !mobile && (
-          <Image src="/logo.png" alt="The Orange Fox" width={36} height={36} className="w-9 h-9 mx-auto rounded-xl object-contain" />
+          <span className="text-2xl mx-auto leading-none">🦊</span>
         )}
         {mobile && (
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/5 text-gray-400">
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/[0.05] text-white/30 hover:text-white/60 transition-colors">
             <X size={18} />
           </button>
         )}
       </div>
 
-      {/* Nav Items */}
+      {/* Navigation */}
       <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -74,36 +80,48 @@ export default function Sidebar({ collapsed, onToggle, mobile, onClose }: Sideba
               key={item.href}
               href={item.href}
               onClick={mobile ? onClose : undefined}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-all duration-200 group ${
                 active
-                  ? "bg-orange/10 text-orange border border-orange/20"
-                  : "text-gray-400 hover:text-white hover:bg-white/5 border border-transparent"
+                  ? "bg-[#D4692A]/10 text-[#D4692A] font-medium"
+                  : "text-white/50 hover:text-white hover:bg-white/[0.05]"
               }`}
             >
-              <Icon size={18} className={active ? "text-orange" : "text-gray-500 group-hover:text-white"} />
+              <Icon size={18} className={`w-[18px] h-[18px] flex-shrink-0 ${active ? "text-[#D4692A]" : "text-white/40 group-hover:text-white"}`} />
               {(!collapsed || mobile) && <span className="font-heading">{item.label}</span>}
             </Link>
           );
         })}
       </nav>
 
-      {/* Version + Collapse button (desktop only) */}
-      {!mobile && (
-        <div className="p-3 border-t border-white/5">
-          {!collapsed && (
-            <div className="text-center mb-2">
-              <span className="text-[10px] text-gray-600 font-mono">v2.0</span>
-            </div>
-          )}
+      {/* Bottom Area */}
+      <div className="px-5 py-4 border-t border-white/[0.06]">
+        {/* Version */}
+        {!collapsed && (
+          <div className="text-center mb-3">
+            <span className="text-[10px] text-white/20 font-mono">v2.0</span>
+          </div>
+        )}
+
+        {/* Collapse Button (desktop only) */}
+        {!mobile && (
           <button
             onClick={onToggle}
-            className="flex items-center justify-center w-full p-2 rounded-xl text-gray-500 hover:text-white hover:bg-white/5 transition-all"
+            className="flex items-center justify-center w-full p-2 mb-3 rounded-xl text-white/30 hover:text-white/60 hover:bg-white/[0.05] transition-all"
           >
             <ChevronLeft size={18} className={`transition-transform duration-300 ${collapsed ? 'rotate-180' : ''}`} />
             {!collapsed && <span className="ml-2 text-sm">Collapse</span>}
           </button>
-        </div>
-      )}
+        )}
+
+        {/* Logout */}
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-white/30 hover:text-white/60 hover:bg-white/[0.05] transition-colors text-sm"
+        >
+          <LogOut size={16} className="flex-shrink-0" />
+          {(!collapsed || mobile) && <span>Logout</span>}
+        </button>
+      </div>
     </div>
   );
 

@@ -72,12 +72,17 @@ export default function ContentPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-gray-900">Content Editor</h1>
-          <p className="text-sm text-gray-500 mt-1">Edit website content across all pages and languages</p>
+          <h1
+            className="text-2xl font-bold text-[#1a1a1a] flex items-center gap-2"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            Content Editor
+          </h1>
+          <p className="text-sm text-[#999999] mt-1">Edit website content across all pages and languages</p>
         </div>
         <button
           onClick={loadContent}
-          className="flex items-center gap-2 px-4 py-2 text-sm rounded-xl bg-gray-50 border border-gray-200 text-gray-500 hover:text-gray-900 hover:border-orange/30 transition-all"
+          className="flex items-center gap-2 px-4 py-2.5 text-sm rounded-xl border border-[#e8e4e0] text-[#555555] hover:text-[#D4692A] hover:border-[#D4692A]/30 bg-[#fafafa] transition-all"
         >
           <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
           Refresh
@@ -93,18 +98,18 @@ export default function ContentPage() {
             <button
               key={p}
               onClick={() => setActivePage(p)}
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 ${
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
                 activePage === p
-                  ? "bg-orange/10 text-orange border border-orange/20"
-                  : "bg-white text-gray-500 border border-gray-200 hover:text-gray-900 hover:border-gray-200"
+                  ? "bg-[#D4692A]/10 text-[#D4692A] border border-[#D4692A]/20"
+                  : "bg-[#fafafa] text-[#999999] border border-[#f0ece8] hover:text-[#1a1a1a] hover:border-[#e8e4e0]"
               }`}
             >
               <span>{info?.title || p}</span>
               {count > 0 && (
                 <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold ${
                   activePage === p
-                    ? "bg-orange/20 text-orange"
-                    : "bg-gray-50 text-gray-500"
+                    ? "bg-[#D4692A]/20 text-[#D4692A]"
+                    : "bg-[#f0ece8] text-[#999999]"
                 }`}>
                   {count}
                 </span>
@@ -116,8 +121,8 @@ export default function ContentPage() {
 
       {/* Page Info Banner */}
       {pageInfo && (
-        <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 px-6 py-4">
-          <p className="text-sm text-gray-500">{pageInfo.description}</p>
+        <div className="bg-white border border-[#f0ece8] rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(212,105,42,0.06)] hover:border-[#D4692A]/30 px-6 py-4">
+          <p className="text-sm text-[#555555]">{pageInfo.description}</p>
         </div>
       )}
 
@@ -125,11 +130,11 @@ export default function ContentPage() {
       {loading ? (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-6">
-              <div className="h-4 w-32 bg-gray-50 rounded animate-pulse mb-4" />
+            <div key={i} className="bg-white border border-[#f0ece8] rounded-2xl shadow-sm p-6">
+              <div className="h-4 w-32 bg-[#f0ece8] rounded animate-pulse mb-4" />
               <div className="grid grid-cols-2 gap-4">
-                <div className="h-16 bg-gray-50 rounded-xl animate-pulse" />
-                <div className="h-16 bg-gray-50 rounded-xl animate-pulse" />
+                <div className="h-16 bg-[#f0ece8] rounded-xl animate-pulse" />
+                <div className="h-16 bg-[#f0ece8] rounded-xl animate-pulse" />
               </div>
             </div>
           ))}

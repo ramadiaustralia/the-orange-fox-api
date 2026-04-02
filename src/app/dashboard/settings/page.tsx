@@ -260,13 +260,13 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-sm text-gray-500 mt-1">Manage your account and site settings</p>
+        <h1 className="text-2xl font-bold text-[#1a1a1a]" style={{ fontFamily: "var(--font-heading)" }}>Settings</h1>
+        <p className="text-sm text-[#999999] mt-1">Manage your account and site settings</p>
       </div>
 
       {/* Success Toast */}
       {successMsg && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-4 py-3 rounded-xl text-sm animate-fade-in shadow-xl">
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl text-sm animate-fade-in shadow-xl">
           <CheckCircle2 size={16} />
           {successMsg}
         </div>
@@ -274,26 +274,26 @@ export default function SettingsPage() {
 
       {/* Error Toast */}
       {errorMsg && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm animate-fade-in shadow-xl">
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm animate-fade-in shadow-xl">
           <AlertCircle size={16} />
           {errorMsg}
         </div>
       )}
 
       {/* Admin Profile */}
-      <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
-          <User size={16} className="text-orange" />
-          <h3 className="font-heading text-sm font-semibold text-gray-900">Admin Profile</h3>
+      <div className="bg-white border border-[#f0ece8] rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(212,105,42,0.06)] hover:border-[#D4692A]/30 overflow-hidden">
+        <div className="px-6 py-4 border-b border-[#f0ece8] flex items-center gap-2">
+          <User size={16} className="text-[#D4692A]" />
+          <h3 className="text-sm font-semibold text-[#1a1a1a]" style={{ fontFamily: "var(--font-heading)" }}>Admin Profile</h3>
         </div>
         <div className="p-6">
           <div className="flex items-center gap-6 mb-6">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange to-orange-700 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-orange/20">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#D4692A] to-[#b85520] flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-[#D4692A]/20">
               {admin.display_name?.charAt(0)?.toUpperCase() || "A"}
             </div>
             <div>
-              <h4 className="text-lg font-semibold text-gray-900">{admin.display_name || "Admin"}</h4>
-              <p className="text-sm text-gray-500">@{admin.username || "admin"}</p>
+              <h4 className="text-lg font-semibold text-[#1a1a1a]">{admin.display_name || "Admin"}</h4>
+              <p className="text-sm text-[#555555]">@{admin.username || "admin"}</p>
               <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 text-[10px] rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                 <Shield size={10} /> Administrator
               </span>
@@ -302,19 +302,19 @@ export default function SettingsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Username</label>
+              <label className="block text-xs font-medium text-[#555555] mb-1.5">Username</label>
               <input
                 value={admin.username}
                 disabled
-                className="w-full bg-gray-50 border border-gray-200 text-gray-500 text-sm rounded-xl px-4 py-3 cursor-not-allowed"
+                className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#555555] text-sm rounded-xl px-4 py-2.5 cursor-not-allowed"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Display Name</label>
+              <label className="block text-xs font-medium text-[#555555] mb-1.5">Display Name</label>
               <input
                 value={admin.display_name}
                 disabled
-                className="w-full bg-gray-50 border border-gray-200 text-gray-500 text-sm rounded-xl px-4 py-3 cursor-not-allowed"
+                className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#555555] text-sm rounded-xl px-4 py-2.5 cursor-not-allowed"
               />
             </div>
           </div>
@@ -322,40 +322,40 @@ export default function SettingsPage() {
       </div>
 
       {/* Change Password */}
-      <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
-          <Lock size={16} className="text-orange" />
-          <h3 className="font-heading text-sm font-semibold text-gray-900">Change Password</h3>
+      <div className="bg-white border border-[#f0ece8] rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(212,105,42,0.06)] hover:border-[#D4692A]/30 overflow-hidden">
+        <div className="px-6 py-4 border-b border-[#f0ece8] flex items-center gap-2">
+          <Lock size={16} className="text-[#D4692A]" />
+          <h3 className="text-sm font-semibold text-[#1a1a1a]" style={{ fontFamily: "var(--font-heading)" }}>Change Password</h3>
         </div>
         <div className="p-6 space-y-4">
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1.5">Current Password</label>
+            <label className="block text-xs font-medium text-[#555555] mb-1.5">Current Password</label>
             <input
               type="password"
               value={password.current}
               onChange={(e) => setPassword({ ...password, current: e.target.value })}
-              className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+              className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999]"
               placeholder="Enter current password"
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">New Password</label>
+              <label className="block text-xs font-medium text-[#555555] mb-1.5">New Password</label>
               <input
                 type="password"
                 value={password.new_password}
                 onChange={(e) => setPassword({ ...password, new_password: e.target.value })}
-                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999]"
                 placeholder="Enter new password"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Confirm New Password</label>
+              <label className="block text-xs font-medium text-[#555555] mb-1.5">Confirm New Password</label>
               <input
                 type="password"
                 value={password.confirm}
                 onChange={(e) => setPassword({ ...password, confirm: e.target.value })}
-                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999]"
                 placeholder="Confirm new password"
               />
             </div>
@@ -363,7 +363,7 @@ export default function SettingsPage() {
           <button
             onClick={handlePasswordChange}
             disabled={changingPw || !password.current || !password.new_password}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm rounded-xl bg-orange text-white hover:bg-orange-600 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-[#D4692A] text-white hover:bg-[#b85520] transition-all duration-200 hover:shadow-[0_4px_16px_rgba(212,105,42,0.3)] disabled:opacity-50"
           >
             <Lock size={14} />
             {changingPw ? "Changing..." : "Change Password"}
@@ -372,44 +372,44 @@ export default function SettingsPage() {
       </div>
 
       {/* Site Settings */}
-      <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
-          <Globe size={16} className="text-orange" />
-          <h3 className="font-heading text-sm font-semibold text-gray-900">Site Settings</h3>
+      <div className="bg-white border border-[#f0ece8] rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(212,105,42,0.06)] hover:border-[#D4692A]/30 overflow-hidden">
+        <div className="px-6 py-4 border-b border-[#f0ece8] flex items-center gap-2">
+          <Globe size={16} className="text-[#D4692A]" />
+          <h3 className="text-sm font-semibold text-[#1a1a1a]" style={{ fontFamily: "var(--font-heading)" }}>Site Settings</h3>
         </div>
         <div className="p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Site Name</label>
+              <label className="block text-xs font-medium text-[#555555] mb-1.5">Site Name</label>
               <input
                 value={siteSettings.site_name}
                 onChange={(e) => setSiteSettings({ ...siteSettings, site_name: e.target.value })}
-                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999]"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Site URL</label>
+              <label className="block text-xs font-medium text-[#555555] mb-1.5">Site URL</label>
               <input
                 value={siteSettings.site_url}
                 onChange={(e) => setSiteSettings({ ...siteSettings, site_url: e.target.value })}
-                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999]"
               />
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Logo URL</label>
+              <label className="block text-xs font-medium text-[#555555] mb-1.5">Logo URL</label>
               <input
                 value={siteSettings.logo_url}
                 onChange={(e) => setSiteSettings({ ...siteSettings, logo_url: e.target.value })}
-                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999]"
                 placeholder="https://..."
               />
               {siteSettings.logo_url && (
-                <div className="mt-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                <div className="mt-2 p-3 bg-[#fafafa] rounded-xl border border-[#e8e4e0]">
                   <div className="flex items-center gap-2 mb-2">
-                    <Image size={12} className="text-gray-500" />
-                    <span className="text-[10px] text-gray-500">Logo Preview</span>
+                    <Image size={12} className="text-[#555555]" />
+                    <span className="text-[10px] text-[#555555]">Logo Preview</span>
                   </div>
                   <img
                     src={siteSettings.logo_url}
@@ -423,20 +423,20 @@ export default function SettingsPage() {
               )}
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Contact Email</label>
+              <label className="block text-xs font-medium text-[#555555] mb-1.5">Contact Email</label>
               <input
                 value={siteSettings.contact_email}
                 onChange={(e) => setSiteSettings({ ...siteSettings, contact_email: e.target.value })}
-                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999]"
               />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1.5">Default Locale</label>
+            <label className="block text-xs font-medium text-[#555555] mb-1.5">Default Locale</label>
             <select
               value={siteSettings.default_locale}
               onChange={(e) => setSiteSettings({ ...siteSettings, default_locale: e.target.value })}
-              className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all max-w-xs"
+              className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999] max-w-xs"
             >
               <option value="en">English</option>
               <option value="id">Indonesian</option>
@@ -444,57 +444,57 @@ export default function SettingsPage() {
           </div>
 
           {/* Social Links Subsection */}
-          <div className="pt-4 border-t border-gray-100">
+          <div className="pt-4 border-t border-[#e8e4e0]">
             <div className="flex items-center gap-2 mb-4">
-              <Link2 size={14} className="text-orange" />
-              <h4 className="text-sm font-semibold text-gray-900">Social Links</h4>
+              <Link2 size={14} className="text-[#D4692A]" />
+              <h4 className="text-sm font-semibold text-[#1a1a1a]" style={{ fontFamily: "var(--font-heading)" }}>Social Links</h4>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-1.5">
+                <label className="flex items-center gap-1.5 text-xs font-medium text-[#555555] mb-1.5">
                   <Mail size={12} />
                   Email
                 </label>
                 <input
                   value={socialLinks.social_email}
                   onChange={(e) => setSocialLinks({ ...socialLinks, social_email: e.target.value })}
-                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                  className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999]"
                   placeholder="hello@theorangefox.com"
                 />
               </div>
               <div>
-                <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-1.5">
+                <label className="flex items-center gap-1.5 text-xs font-medium text-[#555555] mb-1.5">
                   <MessageCircle size={12} />
                   WhatsApp
                 </label>
                 <input
                   value={socialLinks.social_whatsapp}
                   onChange={(e) => setSocialLinks({ ...socialLinks, social_whatsapp: e.target.value })}
-                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                  className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999]"
                   placeholder="+1234567890"
                 />
               </div>
               <div>
-                <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-1.5">
+                <label className="flex items-center gap-1.5 text-xs font-medium text-[#555555] mb-1.5">
                   <Instagram size={12} />
                   Instagram
                 </label>
                 <input
                   value={socialLinks.social_instagram}
                   onChange={(e) => setSocialLinks({ ...socialLinks, social_instagram: e.target.value })}
-                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                  className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999]"
                   placeholder="https://instagram.com/theorangefox"
                 />
               </div>
               <div>
-                <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-1.5">
+                <label className="flex items-center gap-1.5 text-xs font-medium text-[#555555] mb-1.5">
                   <Github size={12} />
                   GitHub
                 </label>
                 <input
                   value={socialLinks.social_github}
                   onChange={(e) => setSocialLinks({ ...socialLinks, social_github: e.target.value })}
-                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                  className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999]"
                   placeholder="https://github.com/theorangefox"
                 />
               </div>
@@ -504,7 +504,7 @@ export default function SettingsPage() {
           <button
             onClick={handleSaveSiteSettings}
             disabled={savingSiteSettings}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm rounded-xl bg-orange text-white hover:bg-orange-600 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-[#D4692A] text-white hover:bg-[#b85520] transition-all duration-200 hover:shadow-[0_4px_16px_rgba(212,105,42,0.3)] disabled:opacity-50"
           >
             <Save size={14} />
             {savingSiteSettings ? "Saving..." : "Save Site Settings"}
@@ -513,43 +513,43 @@ export default function SettingsPage() {
       </div>
 
       {/* Google Analytics */}
-      <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
-          <Globe size={16} className="text-orange" />
-          <h3 className="font-heading text-sm font-semibold text-gray-900">Google Integration</h3>
+      <div className="bg-white border border-[#f0ece8] rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(212,105,42,0.06)] hover:border-[#D4692A]/30 overflow-hidden">
+        <div className="px-6 py-4 border-b border-[#f0ece8] flex items-center gap-2">
+          <Globe size={16} className="text-[#D4692A]" />
+          <h3 className="text-sm font-semibold text-[#1a1a1a]" style={{ fontFamily: "var(--font-heading)" }}>Google Integration</h3>
         </div>
         <div className="p-6 space-y-4">
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-[#999999]">
             Configure your Google services. GA4 enables analytics tracking, and the API key unlocks real-time PageSpeed Insights on the SEO page.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">GA4 Measurement ID</label>
+              <label className="block text-xs font-medium text-[#555555] mb-1.5">GA4 Measurement ID</label>
               <input
                 value={gaId}
                 onChange={(e) => setGaId(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999]"
                 placeholder="G-XXXXXXXXXX"
               />
               {gaId && !gaId.startsWith("G-") && (
-                <p className="text-xs text-yellow-400 mt-1">⚠️ GA4 IDs typically start with &quot;G-&quot;</p>
+                <p className="text-xs text-yellow-600 mt-1">⚠️ GA4 IDs typically start with &quot;G-&quot;</p>
               )}
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Google API Key <span className="text-gray-600">(for PageSpeed)</span></label>
+              <label className="block text-xs font-medium text-[#555555] mb-1.5">Google API Key <span className="text-[#999999]">(for PageSpeed)</span></label>
               <input
                 value={googleApiKey}
                 onChange={(e) => setGoogleApiKey(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999]"
                 placeholder="AIzaSy..."
               />
-              <p className="text-[10px] text-gray-600 mt-1">Free from <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener" className="text-orange/60 hover:text-orange underline">Google Cloud Console</a> → enable PageSpeed Insights API</p>
+              <p className="text-[10px] text-[#999999] mt-1">Free from <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener" className="text-[#D4692A] hover:text-[#b85520] underline">Google Cloud Console</a> → enable PageSpeed Insights API</p>
             </div>
           </div>
           <button
             onClick={handleSaveGa}
             disabled={savingGa}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm rounded-xl bg-orange text-white hover:bg-orange-600 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-[#D4692A] text-white hover:bg-[#b85520] transition-all duration-200 hover:shadow-[0_4px_16px_rgba(212,105,42,0.3)] disabled:opacity-50"
           >
             <Save size={14} />
             {savingGa ? "Saving..." : "Save Google Settings"}
@@ -558,18 +558,18 @@ export default function SettingsPage() {
       </div>
 
       {/* Danger Zone */}
-      <div className="bg-white border border-red-500/30 rounded-2xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-red-500/20 flex items-center gap-2">
-          <Trash2 size={16} className="text-red-400" />
-          <h3 className="font-heading text-sm font-semibold text-red-400">Danger Zone</h3>
+      <div className="bg-red-50/30 border border-red-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-red-200 flex items-center gap-2">
+          <Trash2 size={16} className="text-red-600" />
+          <h3 className="text-sm font-semibold text-red-600" style={{ fontFamily: "var(--font-heading)" }}>Danger Zone</h3>
         </div>
         <div className="p-6">
-          <p className="text-xs text-gray-500 mb-4">
+          <p className="text-xs text-[#999999] mb-4">
             ⚠️ These actions may have irreversible consequences. Proceed with caution.
           </p>
           <button
             onClick={handleClearCache}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm rounded-xl bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-all"
           >
             <Trash2 size={14} />
             Clear Cache

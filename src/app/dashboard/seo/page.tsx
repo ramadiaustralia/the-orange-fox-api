@@ -546,7 +546,7 @@ export default function SeoPage() {
     <div className="space-y-6">
       {/* Save Success Toast */}
       {saveSuccess && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-4 py-3 rounded-xl text-sm animate-fade-in shadow-xl">
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl text-sm animate-fade-in shadow-xl">
           <CheckCircle2 size={16} />
           SEO settings saved successfully!
         </div>
@@ -556,14 +556,14 @@ export default function SeoPage() {
       {showBulkModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowBulkModal(false)} />
-          <div className="relative z-50 bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-6 max-w-md w-full">
+          <div className="relative z-50 bg-white border border-[#f0ece8] rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(212,105,42,0.06)] hover:border-[#D4692A]/30 p-6 max-w-md w-full">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Bulk Optimize All Pages</h3>
-              <button onClick={() => setShowBulkModal(false)} className="p-1 rounded-lg hover:bg-gray-50 text-gray-500">
+              <h3 className="text-lg font-semibold text-[#1a1a1a]" style={{ fontFamily: "var(--font-heading)" }}>Bulk Optimize All Pages</h3>
+              <button onClick={() => setShowBulkModal(false)} className="p-1 rounded-lg hover:bg-[#fafafa] text-[#999999] hover:text-[#1a1a1a]">
                 <X size={18} />
               </button>
             </div>
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="text-sm text-[#555555] mb-4">
               This will fill in missing SEO fields for all {PAGES.length} pages with AI-generated, page-specific content. Existing values will not be overwritten.
             </p>
             <div className="flex gap-2">
@@ -577,7 +577,7 @@ export default function SeoPage() {
               </button>
               <button
                 onClick={() => setShowBulkModal(false)}
-                className="px-4 py-2.5 text-sm rounded-xl bg-gray-50 text-gray-500 hover:text-gray-900 transition-all"
+                className="px-4 py-2.5 text-sm rounded-xl border border-[#e8e4e0] text-[#555555] hover:text-[#D4692A] hover:border-[#D4692A]/30 bg-white transition-all"
               >
                 Cancel
               </button>
@@ -588,13 +588,13 @@ export default function SeoPage() {
 
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-gray-900">SEO Settings</h1>
-          <p className="text-sm text-gray-500 mt-1">Optimize your website for search engines</p>
+          <h1 className="text-2xl font-bold text-[#1a1a1a]" style={{ fontFamily: "var(--font-heading)" }}>SEO Settings</h1>
+          <p className="text-sm text-[#999999] mt-1">Optimize your website for search engines</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setShowBulkModal(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm rounded-xl bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:border-gray-200 transition-all"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm rounded-xl border border-[#e8e4e0] text-[#555555] hover:text-[#D4692A] hover:border-[#D4692A]/30 bg-white transition-all"
           >
             <Zap size={14} />
             Bulk Optimize
@@ -610,7 +610,7 @@ export default function SeoPage() {
           <button
             onClick={saveSeo}
             disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 text-sm rounded-xl bg-orange text-white hover:bg-orange-600 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-[#D4692A] text-white hover:bg-[#b85520] transition-all duration-200 hover:shadow-[0_4px_16px_rgba(212,105,42,0.3)] disabled:opacity-50"
           >
             <Save size={14} />
             {saving ? "Saving..." : "Save"}
@@ -619,15 +619,15 @@ export default function SeoPage() {
       </div>
 
       {/* Info Banner */}
-      <div className="bg-blue-500/5 border border-blue-500/20 rounded-2xl px-5 py-3 flex items-start gap-3">
-        <Info size={16} className="text-blue-400 mt-0.5 flex-shrink-0" />
-        <p className="text-xs text-blue-300/80">
+      <div className="bg-[#D4692A]/5 border border-[#D4692A]/10 rounded-2xl px-5 py-3 flex items-start gap-3">
+        <Info size={16} className="text-[#D4692A] mt-0.5 flex-shrink-0" />
+        <p className="text-xs text-[#555555]">
           These settings control the meta tags on the live website at{" "}
           <a
             href="https://the-orange-fox-web.vercel.app"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-400 underline hover:text-blue-300"
+            className="text-[#D4692A] underline hover:text-[#b85520]"
           >
             the-orange-fox-web.vercel.app
           </a>
@@ -635,41 +635,41 @@ export default function SeoPage() {
       </div>
 
       {/* PageSpeed Insights Section */}
-      <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 overflow-hidden">
+      <div className="bg-white border border-[#f0ece8] rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(212,105,42,0.06)] hover:border-[#D4692A]/30 overflow-hidden">
         <button
           onClick={() => setPageSpeedOpen(!pageSpeedOpen)}
-          className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50/30 transition-colors"
+          className="w-full px-6 py-4 flex items-center justify-between hover:bg-[#fafafa] transition-colors"
         >
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center">
               <Gauge size={16} className="text-white" />
             </div>
             <div className="text-left">
-              <h3 className="font-heading text-sm font-semibold text-gray-900">Google PageSpeed Insights</h3>
-              <p className="text-[11px] text-gray-500">Real performance, SEO, and accessibility scores from Google</p>
+              <h3 className="text-sm font-semibold text-[#1a1a1a]" style={{ fontFamily: "var(--font-heading)" }}>Google PageSpeed Insights</h3>
+              <p className="text-[11px] text-[#999999]">Real performance, SEO, and accessibility scores from Google</p>
             </div>
           </div>
-          {pageSpeedOpen ? <ChevronUp size={16} className="text-gray-500" /> : <ChevronDown size={16} className="text-gray-500" />}
+          {pageSpeedOpen ? <ChevronUp size={16} className="text-[#555555]" /> : <ChevronDown size={16} className="text-[#555555]" />}
         </button>
 
         {pageSpeedOpen && (
-          <div className="px-6 pb-6 space-y-4 border-t border-gray-100 pt-4">
+          <div className="px-6 pb-6 space-y-4 border-t border-[#f0ece8] pt-4">
             {/* Controls */}
             <div className="flex flex-wrap items-end gap-3">
               <div className="flex-1 min-w-[200px]">
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">Page URL</label>
+                <label className="block text-xs font-medium text-[#555555] mb-1.5">Page URL</label>
                 <input
                   value={pageSpeedUrl}
                   onChange={(e) => setPageSpeedUrl(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-orange transition-all"
+                  className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999]"
                   placeholder="https://the-orange-fox-web.vercel.app"
                 />
               </div>
-              <div className="flex gap-1 bg-gray-50 rounded-xl p-1">
+              <div className="flex gap-1 bg-[#fafafa] border border-[#f0ece8] rounded-xl p-1">
                 <button
                   onClick={() => setPageSpeedStrategy("mobile")}
                   className={`flex items-center gap-1.5 px-3 py-2 text-xs rounded-lg transition-all ${
-                    pageSpeedStrategy === "mobile" ? "bg-orange/20 text-orange" : "text-gray-500 hover:text-white"
+                    pageSpeedStrategy === "mobile" ? "bg-[#D4692A]/10 text-[#D4692A] font-medium" : "text-[#999999] hover:text-[#1a1a1a]"
                   }`}
                 >
                   <Smartphone size={12} /> Mobile
@@ -677,7 +677,7 @@ export default function SeoPage() {
                 <button
                   onClick={() => setPageSpeedStrategy("desktop")}
                   className={`flex items-center gap-1.5 px-3 py-2 text-xs rounded-lg transition-all ${
-                    pageSpeedStrategy === "desktop" ? "bg-orange/20 text-orange" : "text-gray-500 hover:text-white"
+                    pageSpeedStrategy === "desktop" ? "bg-[#D4692A]/10 text-[#D4692A] font-medium" : "text-[#999999] hover:text-[#1a1a1a]"
                   }`}
                 >
                   <Monitor size={12} /> Desktop
@@ -695,7 +695,7 @@ export default function SeoPage() {
 
             {/* Error */}
             {pageSpeedError && (
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
                 <AlertCircle size={14} />
                 {pageSpeedError}
               </div>
@@ -704,7 +704,7 @@ export default function SeoPage() {
             {/* Loading */}
             {pageSpeedLoading && !pageSpeedData && (
               <div className="text-center py-8">
-                <div className="inline-flex items-center gap-2 text-sm text-gray-500">
+                <div className="inline-flex items-center gap-2 text-sm text-[#999999]">
                   <RefreshCw size={16} className="animate-spin" />
                   Analyzing page with Google Lighthouse... This may take 15-30 seconds.
                 </div>
@@ -742,15 +742,15 @@ export default function SeoPage() {
                             {item.score}
                           </span>
                         </div>
-                        <span className="font-heading text-xs font-medium text-gray-500">{item.label}</span>
+                        <span className="text-xs font-medium text-[#555555]" style={{ fontFamily: "var(--font-heading)" }}>{item.label}</span>
                       </div>
                     );
                   })}
                 </div>
 
                 {/* Core Web Vitals */}
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <h4 className="font-heading text-xs font-semibold text-gray-900 uppercase tracking-wider mb-3">Core Web Vitals</h4>
+                <div className="bg-[#fafafa] border border-[#f0ece8] rounded-xl p-4">
+                  <h4 className="text-xs font-semibold text-[#1a1a1a] uppercase tracking-wider mb-3" style={{ fontFamily: "var(--font-heading)" }}>Core Web Vitals</h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {[
                       { label: "LCP", value: pageSpeedData.coreWebVitals.lcp, desc: "Largest Contentful Paint" },
@@ -760,19 +760,19 @@ export default function SeoPage() {
                       { label: "TBT", value: pageSpeedData.coreWebVitals.tbt, desc: "Total Blocking Time" },
                       { label: "SI", value: pageSpeedData.coreWebVitals.si, desc: "Speed Index" },
                     ].map((metric) => (
-                      <div key={metric.label} className="bg-gray-50/50 rounded-lg p-3">
+                      <div key={metric.label} className="bg-[#fafafa] rounded-lg p-3">
                         <div className="flex items-baseline justify-between mb-1">
-                          <span className="text-xs font-semibold text-orange">{metric.label}</span>
-                          <span className="text-sm font-bold text-gray-900">{metric.value}</span>
+                          <span className="text-xs font-semibold text-[#D4692A]">{metric.label}</span>
+                          <span className="text-sm font-bold text-[#1a1a1a]">{metric.value}</span>
                         </div>
-                        <p className="text-[10px] text-gray-500">{metric.desc}</p>
+                        <p className="text-[10px] text-[#999999]">{metric.desc}</p>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {/* Meta info */}
-                <div className="flex items-center justify-between text-[10px] text-gray-600">
+                <div className="flex items-center justify-between text-[10px] text-[#999999]">
                   <span>Strategy: {pageSpeedData.strategy} · URL: {pageSpeedData.url}</span>
                   <span>Tested: {new Date(pageSpeedData.fetchedAt).toLocaleString()}</span>
                 </div>
@@ -788,15 +788,15 @@ export default function SeoPage() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Target size={14} className="text-purple-400" />
-              <h4 className="text-sm font-semibold text-gray-900">Optimization Report</h4>
+              <h4 className="text-sm font-semibold text-[#1a1a1a]" style={{ fontFamily: "var(--font-heading)" }}>Optimization Report</h4>
             </div>
-            <button onClick={() => setOptimizeReport(null)} className="text-gray-500 hover:text-gray-500">
+            <button onClick={() => setOptimizeReport(null)} className="text-[#999999] hover:text-[#1a1a1a]">
               <X size={14} />
             </button>
           </div>
           <ul className="space-y-1">
             {optimizeReport.map((line, i) => (
-              <li key={i} className="text-xs text-gray-500">{line}</li>
+              <li key={i} className="text-xs text-[#555555]">{line}</li>
             ))}
           </ul>
         </div>
@@ -810,8 +810,8 @@ export default function SeoPage() {
             onClick={() => { setActivePage(p); setOptimizeReport(null); }}
             className={`px-4 py-2 text-sm font-medium rounded-xl transition-all capitalize ${
               activePage === p
-                ? "bg-orange/10 text-orange border border-orange/20"
-                : "bg-white text-gray-500 border border-gray-200 hover:text-gray-900 hover:border-gray-200"
+                ? "bg-[#D4692A]/10 text-[#D4692A] border border-[#D4692A]/20"
+                : "bg-[#fafafa] text-[#999999] border border-[#f0ece8] hover:text-[#1a1a1a]"
             }`}
           >
             {p}
@@ -823,20 +823,20 @@ export default function SeoPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-20 bg-white rounded-2xl animate-pulse" />
+              <div key={i} className="h-20 bg-[#f0ece8] rounded-2xl animate-pulse" />
             ))}
           </div>
-          <div className="h-80 bg-white rounded-2xl animate-pulse" />
+          <div className="h-80 bg-[#f0ece8] rounded-2xl animate-pulse" />
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* SEO Form */}
           <div className="lg:col-span-2 space-y-4">
             {/* SERP Preview */}
-            <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-6">
+            <div className="bg-white border border-[#f0ece8] rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(212,105,42,0.06)] hover:border-[#D4692A]/30 p-6">
               <div className="flex items-center gap-2 mb-4">
-                <Globe size={14} className="text-gray-500" />
-                <h3 className="font-heading text-sm font-semibold text-gray-900 uppercase tracking-wider">Google Search Preview</h3>
+                <Globe size={14} className="text-[#555555]" />
+                <h3 className="text-sm font-semibold text-[#1a1a1a] uppercase tracking-wider" style={{ fontFamily: "var(--font-heading)" }}>Google Search Preview</h3>
               </div>
               <div className="bg-white rounded-xl p-4">
                 <p className="text-[13px] text-green-700 truncate font-normal">
@@ -845,65 +845,65 @@ export default function SeoPage() {
                 <h4 className="text-lg text-blue-700 hover:underline cursor-pointer truncate font-medium mt-0.5">
                   {serpTitle.length > 60 ? serpTitle.substring(0, 60) + "..." : serpTitle}
                 </h4>
-                <p className="text-[13px] text-gray-600 mt-1 line-clamp-2">
+                <p className="text-[13px] text-[#555555] mt-1 line-clamp-2">
                   {serpDesc.length > 160 ? serpDesc.substring(0, 160) + "..." : serpDesc}
                 </p>
               </div>
             </div>
 
             {/* Basic SEO */}
-            <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-6 space-y-5">
-              <h3 className="font-heading text-sm font-semibold text-gray-900 uppercase tracking-wider flex items-center gap-2">
-                <Search size={14} className="text-orange" />
+            <div className="bg-white border border-[#f0ece8] rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(212,105,42,0.06)] hover:border-[#D4692A]/30 p-6 space-y-5">
+              <h3 className="text-sm font-semibold text-[#1a1a1a] uppercase tracking-wider flex items-center gap-2" style={{ fontFamily: "var(--font-heading)" }}>
+                <Search size={14} className="text-[#D4692A]" />
                 Basic SEO
               </h3>
 
               <div>
                 <div className="flex justify-between mb-1.5">
-                  <label className="text-xs font-medium text-gray-500">Meta Title</label>
-                  <span className={`text-xs ${(seo.title ?? "").length >= 50 && (seo.title ?? "").length <= 60 ? "text-emerald-400" : "text-gray-500"}`}>
+                  <label className="text-xs font-medium text-[#555555]">Meta Title</label>
+                  <span className={`text-xs ${(seo.title ?? "").length >= 50 && (seo.title ?? "").length <= 60 ? "text-emerald-400" : "text-[#555555]"}`}>
                     {(seo.title ?? "").length}/60
                   </span>
                 </div>
                 <input
                   value={seo.title ?? ""}
                   onChange={(e) => setSeo({ ...seo, title: e.target.value })}
-                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                  className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999]"
                   placeholder="Page title for search engines"
                 />
               </div>
 
               <div>
                 <div className="flex justify-between mb-1.5">
-                  <label className="text-xs font-medium text-gray-500">Meta Description</label>
-                  <span className={`text-xs ${(seo.description ?? "").length >= 150 && (seo.description ?? "").length <= 160 ? "text-emerald-400" : "text-gray-500"}`}>
+                  <label className="text-xs font-medium text-[#555555]">Meta Description</label>
+                  <span className={`text-xs ${(seo.description ?? "").length >= 150 && (seo.description ?? "").length <= 160 ? "text-emerald-400" : "text-[#555555]"}`}>
                     {(seo.description ?? "").length}/160
                   </span>
                 </div>
                 <textarea
                   value={seo.description ?? ""}
                   onChange={(e) => setSeo({ ...seo, description: e.target.value })}
-                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all min-h-[80px] resize-y"
+                  className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999] min-h-[80px] resize-y"
                   placeholder="Page description for search results"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">Keywords</label>
+                <label className="block text-xs font-medium text-[#555555] mb-1.5">Keywords</label>
                 <input
                   value={seo.keywords ?? ""}
                   onChange={(e) => setSeo({ ...seo, keywords: e.target.value })}
-                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                  className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999]"
                   placeholder="keyword1, keyword2, keyword3"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">Robots</label>
+                <label className="block text-xs font-medium text-[#555555] mb-1.5">Robots</label>
                 <select
                   value={seo.robots ?? "index, follow"}
                   onChange={(e) => setSeo({ ...seo, robots: e.target.value })}
-                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                  className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999]"
                 >
                   <option value="index, follow">index, follow</option>
                   <option value="noindex, follow">noindex, follow</option>
@@ -913,51 +913,51 @@ export default function SeoPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">Canonical URL</label>
+                <label className="block text-xs font-medium text-[#555555] mb-1.5">Canonical URL</label>
                 <input
                   value={seo.canonical_url ?? ""}
                   onChange={(e) => setSeo({ ...seo, canonical_url: e.target.value })}
-                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                  className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999]"
                   placeholder="https://the-orange-fox-web.vercel.app/page"
                 />
               </div>
             </div>
 
             {/* Open Graph */}
-            <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-6 space-y-5">
-              <h3 className="font-heading text-sm font-semibold text-gray-900 uppercase tracking-wider">Open Graph</h3>
+            <div className="bg-white border border-[#f0ece8] rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(212,105,42,0.06)] hover:border-[#D4692A]/30 p-6 space-y-5">
+              <h3 className="text-sm font-semibold text-[#1a1a1a] uppercase tracking-wider" style={{ fontFamily: "var(--font-heading)" }}>Open Graph</h3>
 
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">OG Title</label>
+                <label className="block text-xs font-medium text-[#555555] mb-1.5">OG Title</label>
                 <input
                   value={seo.og_title ?? ""}
                   onChange={(e) => setSeo({ ...seo, og_title: e.target.value })}
-                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                  className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999]"
                   placeholder="Title for social sharing"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">OG Description</label>
+                <label className="block text-xs font-medium text-[#555555] mb-1.5">OG Description</label>
                 <textarea
                   value={seo.og_description ?? ""}
                   onChange={(e) => setSeo({ ...seo, og_description: e.target.value })}
-                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all min-h-[60px] resize-y"
+                  className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999] min-h-[60px] resize-y"
                   placeholder="Description for social sharing"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">OG Image URL</label>
+                <label className="block text-xs font-medium text-[#555555] mb-1.5">OG Image URL</label>
                 <input
                   value={seo.og_image ?? ""}
                   onChange={(e) => setSeo({ ...seo, og_image: e.target.value })}
-                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                  className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999]"
                   placeholder="https://example.com/og-image.jpg"
                 />
                 {(seo.og_image ?? "").length > 0 && (
-                  <div className="mt-2 p-2 bg-gray-50 rounded-lg">
-                    <p className="text-[10px] text-gray-500 mb-1">Preview</p>
+                  <div className="mt-2 p-2 bg-[#fafafa] border border-[#f0ece8] rounded-lg">
+                    <p className="text-[10px] text-[#999999] mb-1">Preview</p>
                     <img
                       src={seo.og_image ?? ""}
                       alt="OG Preview"
@@ -972,12 +972,12 @@ export default function SeoPage() {
             </div>
 
             {/* Schema Markup */}
-            <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-6 space-y-5">
-              <h3 className="font-heading text-sm font-semibold text-gray-900 uppercase tracking-wider">Schema Markup</h3>
+            <div className="bg-white border border-[#f0ece8] rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(212,105,42,0.06)] hover:border-[#D4692A]/30 p-6 space-y-5">
+              <h3 className="text-sm font-semibold text-[#1a1a1a] uppercase tracking-wider" style={{ fontFamily: "var(--font-heading)" }}>Schema Markup</h3>
               <textarea
                 value={seo.schema_markup ?? ""}
                 onChange={(e) => setSeo({ ...seo, schema_markup: e.target.value })}
-                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all min-h-[150px] resize-y font-mono"
+                className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999] min-h-[150px] resize-y font-mono"
                 placeholder='{"@context": "https://schema.org", ...}'
               />
             </div>
@@ -985,8 +985,8 @@ export default function SeoPage() {
 
           {/* SEO Score Sidebar */}
           <div className="space-y-4">
-            <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-6 sticky top-20">
-              <h3 className="font-heading text-sm font-semibold text-gray-900 mb-4">SEO Score</h3>
+            <div className="bg-white border border-[#f0ece8] rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(212,105,42,0.06)] hover:border-[#D4692A]/30 p-6 sticky top-20">
+              <h3 className="text-sm font-semibold text-[#1a1a1a] mb-4" style={{ fontFamily: "var(--font-heading)" }}>SEO Score</h3>
 
               {/* Score Gauge */}
               <div className="text-center mb-6">
@@ -1013,7 +1013,7 @@ export default function SeoPage() {
                   </svg>
                   <span className={`absolute text-3xl font-bold ${scoreColor}`}>{score}</span>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs text-[#999999] mt-2">
                   {score >= 80 ? "Excellent" : score >= 50 ? "Needs improvement" : "Poor — optimize now"}
                 </p>
               </div>
@@ -1021,15 +1021,15 @@ export default function SeoPage() {
               {/* Checks */}
               <div className="space-y-2">
                 {checks.map((check, i) => (
-                  <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-gray-50">
+                  <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-[#fafafa] border border-[#f0ece8]">
                     {check.passed ? (
                       <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 flex-shrink-0" />
                     ) : (
                       <AlertCircle size={14} className="text-yellow-400 mt-0.5 flex-shrink-0" />
                     )}
                     <div>
-                      <p className="text-xs font-medium text-gray-500">{check.label}</p>
-                      <p className="text-[10px] text-gray-500">{check.tip}</p>
+                      <p className="text-xs font-medium text-[#1a1a1a]">{check.label}</p>
+                      <p className="text-[10px] text-[#999999]">{check.tip}</p>
                     </div>
                   </div>
                 ))}
@@ -1037,25 +1037,25 @@ export default function SeoPage() {
             </div>
 
             {/* Sitemap Status */}
-            <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-6">
-              <h3 className="font-heading text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <Globe size={14} className="text-orange" />
+            <div className="bg-white border border-[#f0ece8] rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(212,105,42,0.06)] hover:border-[#D4692A]/30 p-6">
+              <h3 className="text-sm font-semibold text-[#1a1a1a] mb-3 flex items-center gap-2" style={{ fontFamily: "var(--font-heading)" }}>
+                <Globe size={14} className="text-[#D4692A]" />
                 Sitemap Status
               </h3>
               <div className="flex items-center gap-2 mb-3">
                 <div className={`w-3 h-3 rounded-full ${sitemapComplete ? "bg-emerald-400" : "bg-yellow-400"}`} />
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-[#555555]">
                   {pagesWithCanonical.length}/{PAGES.length} pages with canonical URLs
                 </span>
               </div>
               <div className="space-y-1">
                 {PAGES.map((p) => (
                   <div key={p} className="flex items-center justify-between text-xs">
-                    <span className="text-gray-500 capitalize">{p}</span>
+                    <span className="text-[#555555] capitalize">{p}</span>
                     {(allSeoData[p]?.canonical_url ?? "").length > 0 ? (
                       <CheckCircle2 size={12} className="text-emerald-400" />
                     ) : (
-                      <AlertCircle size={12} className="text-gray-600" />
+                      <AlertCircle size={12} className="text-[#555555]" />
                     )}
                   </div>
                 ))}
@@ -1063,18 +1063,18 @@ export default function SeoPage() {
             </div>
 
             {/* Generate Sitemap */}
-            <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-6">
-              <h3 className="font-heading text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <FileCode2 size={14} className="text-orange" />
+            <div className="bg-white border border-[#f0ece8] rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(212,105,42,0.06)] hover:border-[#D4692A]/30 p-6">
+              <h3 className="text-sm font-semibold text-[#1a1a1a] mb-3 flex items-center gap-2" style={{ fontFamily: "var(--font-heading)" }}>
+                <FileCode2 size={14} className="text-[#D4692A]" />
                 Generate Sitemap
               </h3>
-              <p className="text-xs text-gray-500 mb-3">
+              <p className="text-xs text-[#555555] mb-3">
                 Generate a sitemap.xml from your SEO settings with proper canonical URLs and priorities.
               </p>
               <button
                 onClick={generateSitemap}
                 disabled={sitemapLoading}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm rounded-xl bg-orange/10 border border-orange/20 text-orange hover:bg-orange/20 transition-all disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm rounded-xl bg-[#D4692A]/10 border border-[#D4692A]/20 text-[#D4692A] hover:bg-[#D4692A]/20 transition-all disabled:opacity-50"
               >
                 <FileCode2 size={14} className={sitemapLoading ? "animate-spin" : ""} />
                 {sitemapLoading ? "Generating..." : "Generate Sitemap"}
@@ -1082,15 +1082,15 @@ export default function SeoPage() {
               {sitemapVisible && sitemapXml && (
                 <div className="mt-3 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-gray-500">sitemap.xml</span>
+                    <span className="text-[10px] text-[#999999]">sitemap.xml</span>
                     <button
                       onClick={() => { navigator.clipboard.writeText(sitemapXml); }}
-                      className="flex items-center gap-1 text-[10px] text-gray-500 hover:text-gray-900 transition-colors"
+                      className="flex items-center gap-1 text-[10px] text-[#999999] hover:text-[#D4692A] transition-colors"
                     >
                       <Copy size={10} /> Copy
                     </button>
                   </div>
-                  <pre className="bg-gray-50 rounded-lg p-3 text-[10px] text-gray-500 overflow-x-auto max-h-48 overflow-y-auto font-mono whitespace-pre">
+                  <pre className="bg-[#fafafa] border border-[#f0ece8] rounded-lg p-3 text-[10px] text-[#555555] overflow-x-auto max-h-48 overflow-y-auto font-mono whitespace-pre">
                     {sitemapXml}
                   </pre>
                 </div>
@@ -1098,15 +1098,15 @@ export default function SeoPage() {
             </div>
 
             {/* Page-Specific Tips */}
-            <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-6">
-              <h3 className="font-heading text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <Lightbulb size={14} className="text-orange" />
+            <div className="bg-white border border-[#f0ece8] rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(212,105,42,0.06)] hover:border-[#D4692A]/30 p-6">
+              <h3 className="text-sm font-semibold text-[#1a1a1a] mb-3 flex items-center gap-2" style={{ fontFamily: "var(--font-heading)" }}>
+                <Lightbulb size={14} className="text-[#D4692A]" />
                 Tips for &ldquo;{activePage}&rdquo;
               </h3>
-              <ul className="space-y-2 text-xs text-gray-500">
+              <ul className="space-y-2 text-xs text-[#555555]">
                 {currentTips.map((tip, i) => (
                   <li key={i} className="flex items-start gap-2">
-                    <span className="text-orange mt-0.5">•</span>
+                    <span className="text-[#D4692A] mt-0.5">•</span>
                     {tip}
                   </li>
                 ))}

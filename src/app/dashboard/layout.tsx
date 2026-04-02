@@ -35,14 +35,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#fafafa]">
-        <div className="animate-pulse-orange w-4 h-4 rounded-full bg-orange" />
+      <div className="min-h-screen flex items-center justify-center bg-[#f5f2ef]">
+        <div className="animate-pulse-orange w-4 h-4 rounded-full bg-[#D4692A]" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#fafafa] flex">
+    <div className="flex min-h-screen bg-[#f5f2ef]">
       {/* Desktop Sidebar */}
       <div className="hidden lg:block flex-shrink-0">
         <div className="sticky top-0 h-screen">
@@ -58,7 +58,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Main Area */}
       <div className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
         <Topbar adminName={adminName} onMenuClick={() => setMobileOpen(true)} />
-        <main className="flex-1 p-4 lg:p-6 animate-fade-in">
+        <main className="flex-1 overflow-y-auto p-6 lg:p-8 animate-fade-in">
           {children}
         </main>
       </div>
