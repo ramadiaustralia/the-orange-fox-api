@@ -10,6 +10,8 @@ import {
   Settings,
   ChevronLeft,
   X,
+  DollarSign,
+  Layers,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -22,6 +24,8 @@ interface SidebarProps {
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/content", label: "Content", icon: FileEdit },
+  { href: "/dashboard/pricing", label: "Pricing", icon: DollarSign },
+  { href: "/dashboard/tech-stack", label: "Tech Stack", icon: Layers },
   { href: "/dashboard/menus", label: "Menus", icon: Menu },
   { href: "/dashboard/messages", label: "Messages", icon: MessageSquare },
   { href: "/dashboard/seo", label: "SEO & Analytics", icon: Search },
@@ -42,18 +46,18 @@ export default function Sidebar({ collapsed, onToggle, mobile, onClose }: Sideba
       <div className="flex items-center justify-between p-4 border-b border-dark-50/50">
         {(!collapsed || mobile) && (
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange to-orange-700 flex items-center justify-center shadow-lg shadow-orange/20">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M2 17L12 22L22 17" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M2 12L12 17L22 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange to-orange-700 flex items-center justify-center shadow-lg shadow-orange/20 text-lg">
+              🦊
             </div>
             <div>
-              <span className="font-bold text-sm text-white">The Orange Fox</span>
+              <span className="font-bold text-sm text-white tracking-wide">THE ORANGE FOX</span>
               <span className="block text-[10px] text-gray-500 -mt-0.5">CMS Dashboard</span>
             </div>
           </div>
         )}
         {collapsed && !mobile && (
-          <div className="w-9 h-9 mx-auto rounded-xl bg-gradient-to-br from-orange to-orange-700 flex items-center justify-center shadow-lg shadow-orange/20">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M2 17L12 22L22 17" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M2 12L12 17L22 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          <div className="w-9 h-9 mx-auto rounded-xl bg-gradient-to-br from-orange to-orange-700 flex items-center justify-center shadow-lg shadow-orange/20 text-lg">
+            🦊
           </div>
         )}
         {mobile && (
@@ -86,9 +90,14 @@ export default function Sidebar({ collapsed, onToggle, mobile, onClose }: Sideba
         })}
       </nav>
 
-      {/* Collapse button (desktop only) */}
+      {/* Version + Collapse button (desktop only) */}
       {!mobile && (
         <div className="p-3 border-t border-dark-50/50">
+          {!collapsed && (
+            <div className="text-center mb-2">
+              <span className="text-[10px] text-gray-600 font-mono">v2.0</span>
+            </div>
+          )}
           <button
             onClick={onToggle}
             className="flex items-center justify-center w-full p-2 rounded-xl text-gray-500 hover:text-white hover:bg-dark-200 transition-all"

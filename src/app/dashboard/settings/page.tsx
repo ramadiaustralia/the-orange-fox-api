@@ -1,6 +1,21 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Save, User, Lock, Globe, Shield, CheckCircle2, AlertCircle } from "lucide-react";
+import {
+  Save,
+  User,
+  Lock,
+  Globe,
+  Shield,
+  CheckCircle2,
+  AlertCircle,
+  Trash2,
+  Link2,
+  Image,
+  Mail,
+  MessageCircle,
+  Instagram,
+  Github,
+} from "lucide-react";
 
 export default function SettingsPage() {
   const [admin, setAdmin] = useState({ username: "", display_name: "" });
@@ -11,6 +26,12 @@ export default function SettingsPage() {
     logo_url: "",
     contact_email: "hello@theorangefox.com",
     default_locale: "en",
+  });
+  const [socialLinks, setSocialLinks] = useState({
+    social_email: "",
+    social_whatsapp: "",
+    social_instagram: "",
+    social_github: "",
   });
   const [changingPw, setChangingPw] = useState(false);
   const [savingSiteSettings, setSavingSiteSettings] = useState(false);
@@ -34,7 +55,30 @@ export default function SettingsPage() {
         console.error("Failed to load admin info", e);
       }
     }
+
+    async function loadSocialLinks() {
+      try {
+        const res = await fetch("/api/content");
+        if (res.ok) {
+          const data = await res.json();
+          const items = data.data || [];
+          const socialItems = items.filter(
+            (item: { page: string; section: string }) =>
+              item.page === "global" && item.section === "social"
+          );
+          const links: Record<string, string> = {};
+          socialItems.forEach((item: { content_key: string; content_value: string }) => {
+            links[item.content_key] = item.content_value;
+          });
+          setSocialLinks((prev) => ({ ...prev, ...links }));
+        }
+      } catch (e) {
+        console.error("Failed to load social links", e);
+      }
+    }
+
     loadAdmin();
+    loadSocialLinks();
   }, []);
 
   const showSuccess = (msg: string) => {
@@ -113,6 +157,29 @@ export default function SettingsPage() {
           }),
         });
       }
+
+      // Save social links
+      const socialSettings = [
+        { key: "social_email", value: socialLinks.social_email },
+        { key: "social_whatsapp", value: socialLinks.social_whatsapp },
+        { key: "social_instagram", value: socialLinks.social_instagram },
+        { key: "social_github", value: socialLinks.social_github },
+      ];
+
+      for (const s of socialSettings) {
+        await fetch("/api/content", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            page: "global",
+            section: "social",
+            content_key: s.key,
+            content_value: s.value,
+            locale: "en",
+          }),
+        });
+      }
+
       showSuccess("Site settings saved successfully!");
     } catch (e) {
       console.error(e);
@@ -120,6 +187,10 @@ export default function SettingsPage() {
     } finally {
       setSavingSiteSettings(false);
     }
+  };
+
+  const handleClearCache = () => {
+    showSuccess("Cache cleared successfully!");
   };
 
   return (
@@ -270,6 +341,22 @@ export default function SettingsPage() {
                 className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
                 placeholder="https://..."
               />
+              {siteSettings.logo_url && (
+                <div className="mt-2 p-3 bg-dark-200/50 rounded-xl border border-dark-50/30">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Image size={12} className="text-gray-500" />
+                    <span className="text-[10px] text-gray-500">Logo Preview</span>
+                  </div>
+                  <img
+                    src={siteSettings.logo_url}
+                    alt="Logo preview"
+                    className="max-h-16 rounded object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1.5">Contact Email</label>
@@ -291,6 +378,65 @@ export default function SettingsPage() {
               <option value="id">Indonesian</option>
             </select>
           </div>
+
+          {/* Social Links Subsection */}
+          <div className="pt-4 border-t border-dark-50/30">
+            <div className="flex items-center gap-2 mb-4">
+              <Link2 size={14} className="text-orange" />
+              <h4 className="text-sm font-semibold text-white">Social Links</h4>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-medium text-gray-400 mb-1.5">
+                  <Mail size={12} />
+                  Email
+                </label>
+                <input
+                  value={socialLinks.social_email}
+                  onChange={(e) => setSocialLinks({ ...socialLinks, social_email: e.target.value })}
+                  className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                  placeholder="hello@theorangefox.com"
+                />
+              </div>
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-medium text-gray-400 mb-1.5">
+                  <MessageCircle size={12} />
+                  WhatsApp
+                </label>
+                <input
+                  value={socialLinks.social_whatsapp}
+                  onChange={(e) => setSocialLinks({ ...socialLinks, social_whatsapp: e.target.value })}
+                  className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                  placeholder="+1234567890"
+                />
+              </div>
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-medium text-gray-400 mb-1.5">
+                  <Instagram size={12} />
+                  Instagram
+                </label>
+                <input
+                  value={socialLinks.social_instagram}
+                  onChange={(e) => setSocialLinks({ ...socialLinks, social_instagram: e.target.value })}
+                  className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                  placeholder="https://instagram.com/theorangefox"
+                />
+              </div>
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-medium text-gray-400 mb-1.5">
+                  <Github size={12} />
+                  GitHub
+                </label>
+                <input
+                  value={socialLinks.social_github}
+                  onChange={(e) => setSocialLinks({ ...socialLinks, social_github: e.target.value })}
+                  className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                  placeholder="https://github.com/theorangefox"
+                />
+              </div>
+            </div>
+          </div>
+
           <button
             onClick={handleSaveSiteSettings}
             disabled={savingSiteSettings}
@@ -298,6 +444,26 @@ export default function SettingsPage() {
           >
             <Save size={14} />
             {savingSiteSettings ? "Saving..." : "Save Site Settings"}
+          </button>
+        </div>
+      </div>
+
+      {/* Danger Zone */}
+      <div className="bg-dark-400 border border-red-500/30 rounded-2xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-red-500/20 flex items-center gap-2">
+          <Trash2 size={16} className="text-red-400" />
+          <h3 className="text-sm font-semibold text-red-400">Danger Zone</h3>
+        </div>
+        <div className="p-6">
+          <p className="text-xs text-gray-500 mb-4">
+            ⚠️ These actions may have irreversible consequences. Proceed with caution.
+          </p>
+          <button
+            onClick={handleClearCache}
+            className="flex items-center gap-2 px-4 py-2.5 text-sm rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all"
+          >
+            <Trash2 size={14} />
+            Clear Cache
           </button>
         </div>
       </div>

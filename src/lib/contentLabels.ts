@@ -65,8 +65,8 @@ export const SECTION_INFO: Record<string, SectionInfoEntry> = {
     description: "The services grid shown on the home page with 6 service cards",
   },
   portfolio_cta: {
-    title: "🎨 Portfolio CTA",
-    description: "Call-to-action block encouraging visitors to view the portfolio",
+    title: "📢 Call to Action",
+    description: "Call-to-action section encouraging visitors to get in touch",
   },
 
   // About
@@ -182,6 +182,12 @@ export const SECTION_INFO: Record<string, SectionInfoEntry> = {
     title: "🦶 Footer",
     description: "Footer tagline, copyright text, and navigation labels",
   },
+
+  // Social
+  social: {
+    title: "🔗 Social Links",
+    description: "Social media and contact links",
+  },
 };
 
 // ─── Content Labels ──────────────────────────────────────────────────
@@ -191,7 +197,6 @@ export const CONTENT_LABELS: Record<string, ContentLabelEntry> = {
   hero_title: { label: "Hero Title", description: "Main headline on the landing page", type: "short" },
   hero_desc: { label: "Hero Description", description: "Supporting text below the headline", type: "long" },
   hero_cta: { label: "Primary CTA Button", description: "Main call-to-action button text", type: "short" },
-  hero_cta_portfolio: { label: "Portfolio CTA Button", description: "Secondary button linking to portfolio", type: "short" },
 
   // ── Home: Services Overview ──
   services_label: { label: "Section Label", description: "Small label above the services title", type: "short" },
@@ -210,10 +215,10 @@ export const CONTENT_LABELS: Record<string, ContentLabelEntry> = {
   svc_support_title: { label: "Support — Title", type: "short" },
   svc_support_desc: { label: "Support — Description", type: "long" },
 
-  // ── Home: Portfolio CTA ──
-  portfolio_cta: { label: "Portfolio CTA Title", description: "Heading for the portfolio section", type: "short" },
-  portfolio_cta_btn: { label: "Portfolio Button Text", type: "short" },
-  portfolio_cta_desc: { label: "Portfolio CTA Description", type: "long" },
+  // ── Home: CTA ──
+  portfolio_cta: { label: "CTA Section Title", description: "Heading for the CTA section", type: "short" },
+  portfolio_cta_btn: { label: "CTA Button Text", type: "short" },
+  portfolio_cta_desc: { label: "CTA Section Description", type: "long" },
 
   // ── About: Header ──
   about_label: { label: "Section Label", type: "short" },
@@ -273,6 +278,7 @@ export const CONTENT_LABELS: Record<string, ContentLabelEntry> = {
 
   // ── Pricing: Premium Web ──
   pkg_premium_web: { label: "Package Name", type: "short" },
+  pkg_premium_web_price: { label: "Package Price", description: "Price in USD", type: "short" },
   pkg_premium_web_desc: { label: "Package Description", type: "long" },
   pkg_premium_web_f1: { label: "Feature 1", type: "short" },
   pkg_premium_web_f2: { label: "Feature 2", type: "short" },
@@ -284,6 +290,7 @@ export const CONTENT_LABELS: Record<string, ContentLabelEntry> = {
 
   // ── Pricing: Exclusive Web ──
   pkg_exclusive_web: { label: "Package Name", type: "short" },
+  pkg_exclusive_web_price: { label: "Package Price", description: "Price in USD", type: "short" },
   pkg_exclusive_web_desc: { label: "Package Description", type: "long" },
   pkg_exclusive_web_f1: { label: "Feature 1", type: "short" },
   pkg_exclusive_web_f2: { label: "Feature 2", type: "short" },
@@ -295,6 +302,7 @@ export const CONTENT_LABELS: Record<string, ContentLabelEntry> = {
 
   // ── Pricing: Premium App ──
   pkg_premium_app: { label: "Package Name", type: "short" },
+  pkg_premium_app_price: { label: "Package Price", description: "Price in USD", type: "short" },
   pkg_premium_app_desc: { label: "Package Description", type: "long" },
   pkg_premium_app_f1: { label: "Feature 1", type: "short" },
   pkg_premium_app_f2: { label: "Feature 2", type: "short" },
@@ -306,6 +314,7 @@ export const CONTENT_LABELS: Record<string, ContentLabelEntry> = {
 
   // ── Pricing: Exclusive App ──
   pkg_exclusive_app: { label: "Package Name", type: "short" },
+  pkg_exclusive_app_price: { label: "Package Price", description: "Price in USD", type: "short" },
   pkg_exclusive_app_desc: { label: "Package Description", type: "long" },
   pkg_exclusive_app_f1: { label: "Feature 1", type: "short" },
   pkg_exclusive_app_f2: { label: "Feature 2", type: "short" },
@@ -317,6 +326,7 @@ export const CONTENT_LABELS: Record<string, ContentLabelEntry> = {
 
   // ── Pricing: Ultimate ──
   pkg_ultimate: { label: "Package Name", type: "short" },
+  pkg_ultimate_price: { label: "Package Price", description: "Price in USD", type: "short" },
   pkg_ultimate_desc: { label: "Package Description", type: "long" },
   pkg_ultimate_f1: { label: "Feature 1", type: "short" },
   pkg_ultimate_f2: { label: "Feature 2", type: "short" },
@@ -430,6 +440,12 @@ export const CONTENT_LABELS: Record<string, ContentLabelEntry> = {
   footer_nav: { label: "Footer Nav Label", type: "short" },
   footer_framework: { label: "Footer Framework Label", type: "short" },
   footer_main: { label: "Footer Main Label", type: "short" },
+
+  // ── Global: Social Links ──
+  social_email: { label: "Contact Email", type: "short" },
+  social_whatsapp: { label: "WhatsApp Number", type: "short" },
+  social_instagram: { label: "Instagram URL", type: "short" },
+  social_github: { label: "GitHub URL", type: "short" },
 };
 
 // ─── Helper: Group keys into logical sections ────────────────────────
@@ -475,6 +491,7 @@ export function getSectionGroup(key: string, _dbSection?: string): string {
   if (/^faq_support_/.test(key)) return "faq_support";
 
   // Global sections
+  if (/^social_/.test(key)) return "social";
   if (/^nav_/.test(key)) return "navigation";
   if (/^footer_/.test(key)) return "footer";
 

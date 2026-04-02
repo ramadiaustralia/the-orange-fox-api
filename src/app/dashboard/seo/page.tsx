@@ -1,6 +1,18 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
-import { Save, Sparkles, Search, RefreshCw, AlertCircle, CheckCircle2, Globe, Info } from "lucide-react";
+import {
+  Save,
+  Sparkles,
+  Search,
+  AlertCircle,
+  CheckCircle2,
+  Globe,
+  Info,
+  Zap,
+  Target,
+  Lightbulb,
+  X,
+} from "lucide-react";
 
 const PAGES = ["home", "about", "services", "process", "pricing", "contact", "faq", "global"];
 
@@ -31,6 +43,122 @@ const emptySeo = (page: string): SeoData => ({
   schema_markup: "",
 });
 
+// Page-specific SEO optimization data
+const PAGE_SEO_CONTEXT: Record<string, { focus: string; keywords: string[]; titleTemplate: string; descTemplate: string; ogTitleTemplate: string; ogDescTemplate: string; tips: string[] }> = {
+  home: {
+    focus: "main value proposition and brand identity",
+    keywords: ["premium web design", "web development agency", "digital solutions", "The Orange Fox", "UI/UX design", "custom websites"],
+    titleTemplate: "The Orange Fox — Premium Web Design & Development Agency",
+    descTemplate: "The Orange Fox crafts premium digital experiences. Custom web design, development, and branding solutions for businesses that demand excellence. Start your project today.",
+    ogTitleTemplate: "The Orange Fox — Where Digital Excellence Meets Creative Design",
+    ogDescTemplate: "Transform your online presence with The Orange Fox. Premium web design and development agency delivering exceptional digital experiences.",
+    tips: [
+      "Include your primary brand name in the title",
+      "Highlight your unique value proposition in the first 50 characters",
+      "Use action-oriented language in the description",
+      "Set a high-quality hero image as OG image (1200×630px)",
+    ],
+  },
+  about: {
+    focus: "company story, team expertise, and values",
+    keywords: ["about The Orange Fox", "web agency team", "company values", "digital expertise", "creative agency", "our story"],
+    titleTemplate: "About Us — The Orange Fox | Our Story & Expertise",
+    descTemplate: "Meet the team behind The Orange Fox. We're a passionate web agency committed to quality, innovation, and transparency. Discover our mission and the values that drive us.",
+    ogTitleTemplate: "About The Orange Fox — Passionate Digital Craftsmen",
+    ogDescTemplate: "Learn about our mission, values, and the talented team building premium digital experiences at The Orange Fox.",
+    tips: [
+      "Include team expertise keywords (e.g., 'experienced developers')",
+      "Mention your company values to build trust",
+      "Use a team photo or office image for OG image",
+      "Include your location if targeting local clients",
+    ],
+  },
+  services: {
+    focus: "service offerings and capabilities",
+    keywords: ["web design services", "web development", "SEO services", "domain hosting", "admin panel", "training support"],
+    titleTemplate: "Services — The Orange Fox | Web Design, Development & More",
+    descTemplate: "Explore our comprehensive web services: custom design, full-stack development, SEO optimization, domain hosting, admin panels, and ongoing support. Get a free consultation.",
+    ogTitleTemplate: "Our Services — Full-Stack Web Solutions by The Orange Fox",
+    ogDescTemplate: "From design to deployment and beyond. Discover the full range of web services offered by The Orange Fox.",
+    tips: [
+      "List your primary services in the meta description",
+      "Use service-specific keywords naturally",
+      "Mention free consultation or project starter offers",
+      "Include structured data for services (Schema.org)",
+    ],
+  },
+  pricing: {
+    focus: "pricing packages, value, and affordability",
+    keywords: ["web design pricing", "web development packages", "affordable web design", "premium packages", "app development cost"],
+    titleTemplate: "Pricing — The Orange Fox | Premium Web & App Packages",
+    descTemplate: "Transparent pricing for premium web and app development. Choose from 5 packages starting at $1,250. Premium Web, Exclusive Web, Premium App, Exclusive App, or Ultimate bundle.",
+    ogTitleTemplate: "Pricing Plans — Find Your Perfect Package | The Orange Fox",
+    ogDescTemplate: "View our transparent pricing packages for web and app development. Premium quality starting at $1,250.",
+    tips: [
+      "Include starting price in the description for rich snippets",
+      "Mention the number of packages available",
+      "Use pricing-related keywords (affordable, value, investment)",
+      "Add PriceSpecification schema markup for each package",
+    ],
+  },
+  contact: {
+    focus: "getting in touch and free consultation",
+    keywords: ["contact us", "free consultation", "get a quote", "web design inquiry", "project discussion", "The Orange Fox contact"],
+    titleTemplate: "Contact Us — The Orange Fox | Start Your Project Today",
+    descTemplate: "Ready to start your project? Contact The Orange Fox for a free consultation. Fill out our simple form or reach us directly. We respond within 24 hours.",
+    ogTitleTemplate: "Get In Touch — Start Your Project with The Orange Fox",
+    ogDescTemplate: "Contact The Orange Fox to discuss your web project. Free consultation, fast response, and expert guidance.",
+    tips: [
+      "Include a call-to-action in the meta description",
+      "Mention response time to set expectations",
+      "Use 'free consultation' as a key phrase",
+      "Add LocalBusiness schema with contact details",
+    ],
+  },
+  faq: {
+    focus: "common questions and helpful answers",
+    keywords: ["FAQ", "frequently asked questions", "web design questions", "development process", "pricing questions", "support"],
+    titleTemplate: "FAQ — The Orange Fox | Common Questions Answered",
+    descTemplate: "Find answers to frequently asked questions about The Orange Fox's web design services, development process, pricing, and support. Everything you need to know.",
+    ogTitleTemplate: "Frequently Asked Questions — The Orange Fox",
+    ogDescTemplate: "Get answers to common questions about our services, pricing, process, and support at The Orange Fox.",
+    tips: [
+      "Use FAQPage schema markup for rich snippets in Google",
+      "Include the word 'FAQ' or 'Questions' in the title",
+      "Mention the categories of questions covered",
+      "This page has high potential for featured snippets",
+    ],
+  },
+  process: {
+    focus: "development methodology and workflow",
+    keywords: ["development process", "how we work", "project phases", "web development workflow", "agile development", "project methodology"],
+    titleTemplate: "Our Process — The Orange Fox | How We Build Your Project",
+    descTemplate: "Discover our proven 6-phase development process: Discovery, Design, Development, Testing, Launch, and Support. See how The Orange Fox brings your vision to life.",
+    ogTitleTemplate: "How We Work — The Orange Fox Development Process",
+    ogDescTemplate: "From discovery to launch and beyond. Learn about our structured 6-phase approach to building premium digital experiences.",
+    tips: [
+      "Mention the number of phases to set clear expectations",
+      "Use process-related keywords (methodology, phases, workflow)",
+      "Include a process diagram as OG image",
+      "Add HowTo schema markup for the development steps",
+    ],
+  },
+  global: {
+    focus: "general site-wide SEO defaults",
+    keywords: ["The Orange Fox", "web agency", "digital solutions", "premium web design", "web development"],
+    titleTemplate: "The Orange Fox — Premium Digital Agency",
+    descTemplate: "The Orange Fox is a premium web agency specializing in custom web design, development, and digital solutions for businesses worldwide.",
+    ogTitleTemplate: "The Orange Fox — Digital Excellence",
+    ogDescTemplate: "Premium web design and development agency crafting exceptional digital experiences.",
+    tips: [
+      "These are fallback/default SEO settings for the whole site",
+      "Keep them general but brand-focused",
+      "Ensure the site name is consistent across all pages",
+      "Set a default OG image that represents your brand",
+    ],
+  },
+};
+
 export default function SeoPage() {
   const [activePage, setActivePage] = useState("home");
   const [seo, setSeo] = useState<SeoData>(emptySeo("home"));
@@ -38,6 +166,10 @@ export default function SeoPage() {
   const [saving, setSaving] = useState(false);
   const [optimizing, setOptimizing] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [optimizeReport, setOptimizeReport] = useState<string[] | null>(null);
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkOptimizing, setBulkOptimizing] = useState(false);
+  const [allSeoData, setAllSeoData] = useState<Record<string, SeoData>>({});
 
   const loadSeo = useCallback(async () => {
     setLoading(true);
@@ -72,9 +204,30 @@ export default function SeoPage() {
     }
   }, [activePage]);
 
+  // Load all SEO data for sitemap status
+  const loadAllSeo = useCallback(async () => {
+    const data: Record<string, SeoData> = {};
+    for (const page of PAGES) {
+      try {
+        const res = await fetch(`/api/seo?page=${page}`);
+        const json = await res.json();
+        if (json.data) {
+          data[page] = json.data as SeoData;
+        }
+      } catch {
+        // skip
+      }
+    }
+    setAllSeoData(data);
+  }, []);
+
   useEffect(() => {
     loadSeo();
   }, [loadSeo]);
+
+  useEffect(() => {
+    loadAllSeo();
+  }, [loadAllSeo]);
 
   const saveSeo = async () => {
     setSaving(true);
@@ -92,98 +245,225 @@ export default function SeoPage() {
     }
   };
 
-  // SEO Score calculation
+  // Enhanced SEO Score calculation with 10 checks
   const calculateScore = () => {
     let score = 0;
     const checks: { label: string; passed: boolean; tip: string }[] = [];
 
-    // Title check (50-60 chars ideal)
+    // 1. Title check (50-60 chars ideal)
     const titleLen = (seo.title ?? "").length;
     const titleGood = titleLen >= 50 && titleLen <= 60;
     const titleOk = titleLen >= 30 && titleLen <= 70;
     if (titleGood) {
-      score += 20;
+      score += 12;
       checks.push({ label: "Title length", passed: true, tip: `${titleLen} chars — perfect!` });
     } else if (titleOk) {
-      score += 10;
+      score += 6;
       checks.push({ label: "Title length", passed: false, tip: `${titleLen} chars — aim for 50-60` });
     } else {
       checks.push({ label: "Title length", passed: false, tip: titleLen === 0 ? "Missing title" : `${titleLen} chars — should be 50-60` });
     }
 
-    // Description check (150-160 chars ideal)
+    // 2. Description check (150-160 chars ideal)
     const descLen = (seo.description ?? "").length;
     const descGood = descLen >= 150 && descLen <= 160;
     const descOk = descLen >= 120 && descLen <= 180;
     if (descGood) {
-      score += 20;
+      score += 12;
       checks.push({ label: "Meta description", passed: true, tip: `${descLen} chars — perfect!` });
     } else if (descOk) {
-      score += 10;
+      score += 6;
       checks.push({ label: "Meta description", passed: false, tip: `${descLen} chars — aim for 150-160` });
     } else {
       checks.push({ label: "Meta description", passed: false, tip: descLen === 0 ? "Missing description" : `${descLen} chars — should be 150-160` });
     }
 
-    // Keywords
+    // 3. Keywords
     if ((seo.keywords ?? "").length > 0) {
-      score += 15;
+      score += 10;
       checks.push({ label: "Keywords", passed: true, tip: "Keywords defined" });
     } else {
       checks.push({ label: "Keywords", passed: false, tip: "Add target keywords" });
     }
 
-    // OG Title
+    // 4. OG Title
     if ((seo.og_title ?? "").length > 0) {
-      score += 15;
+      score += 10;
       checks.push({ label: "OG Title", passed: true, tip: "Open Graph title set" });
     } else {
       checks.push({ label: "OG Title", passed: false, tip: "Add Open Graph title" });
     }
 
-    // OG Description
+    // 5. OG Description
     if ((seo.og_description ?? "").length > 0) {
-      score += 10;
+      score += 8;
       checks.push({ label: "OG Description", passed: true, tip: "Open Graph description set" });
     } else {
       checks.push({ label: "OG Description", passed: false, tip: "Add Open Graph description" });
     }
 
-    // OG Image
+    // 6. OG Image
     if ((seo.og_image ?? "").length > 0) {
-      score += 10;
+      score += 8;
       checks.push({ label: "OG Image", passed: true, tip: "Open Graph image set" });
     } else {
       checks.push({ label: "OG Image", passed: false, tip: "Add social sharing image" });
     }
 
-    // Robots
+    // 7. Robots
     if ((seo.robots ?? "").length > 0) {
-      score += 10;
+      score += 8;
       checks.push({ label: "Robots directive", passed: true, tip: seo.robots ?? "" });
     } else {
       checks.push({ label: "Robots directive", passed: false, tip: "Set robots meta tag" });
     }
 
+    // 8. Schema markup
+    if ((seo.schema_markup ?? "").length > 10) {
+      score += 12;
+      checks.push({ label: "Schema markup", passed: true, tip: "Structured data present" });
+    } else {
+      checks.push({ label: "Schema markup", passed: false, tip: "Add JSON-LD schema markup for rich snippets" });
+    }
+
+    // 9. Keyword in title
+    const keywords = (seo.keywords ?? "").toLowerCase().split(",").map((k) => k.trim()).filter(Boolean);
+    const titleLower = (seo.title ?? "").toLowerCase();
+    const keywordInTitle = keywords.some((k) => titleLower.includes(k));
+    if (keywords.length > 0 && keywordInTitle) {
+      score += 10;
+      checks.push({ label: "Keyword in title", passed: true, tip: "Primary keyword found in title" });
+    } else if (keywords.length > 0) {
+      checks.push({ label: "Keyword in title", passed: false, tip: "Include a target keyword in your title" });
+    } else {
+      checks.push({ label: "Keyword in title", passed: false, tip: "Set keywords first, then include one in title" });
+    }
+
+    // 10. Canonical URL
+    if ((seo.canonical_url ?? "").length > 0) {
+      score += 10;
+      checks.push({ label: "Canonical URL", passed: true, tip: "Canonical URL set — prevents duplicate content" });
+    } else {
+      checks.push({ label: "Canonical URL", passed: false, tip: "Set canonical URL to prevent duplicate content" });
+    }
+
     return { score: Math.min(score, 100), checks };
   };
 
+  // Smart AI Optimize with page-specific content
   const aiOptimize = async () => {
     setOptimizing(true);
-    await new Promise((r) => setTimeout(r, 1500));
+    setOptimizeReport(null);
+    await new Promise((r) => setTimeout(r, 1200));
 
-    const pageTitle = activePage.charAt(0).toUpperCase() + activePage.slice(1);
-    const optimized: Partial<SeoData> = {
-      title: (seo.title ?? "") || `${pageTitle} — The Orange Fox | Premium Web Design & Development Agency`,
-      description: (seo.description ?? "") || `Discover ${pageTitle.toLowerCase()} at The Orange Fox. We craft premium digital experiences with cutting-edge web design, development, and branding solutions. Get started today.`,
-      keywords: (seo.keywords ?? "") || `web design, web development, digital agency, ${activePage}, the orange fox, UI/UX, branding`,
-      og_title: (seo.og_title ?? "") || `${pageTitle} | The Orange Fox — Digital Excellence`,
-      og_description: (seo.og_description ?? "") || `Explore our ${activePage} page. The Orange Fox delivers premium web solutions for businesses that demand the best.`,
-      robots: (seo.robots ?? "") || "index, follow",
-    };
+    const ctx = PAGE_SEO_CONTEXT[activePage] || PAGE_SEO_CONTEXT.global;
+    const report: string[] = [];
+
+    const optimized: Partial<SeoData> = {};
+
+    if (!(seo.title ?? "").trim()) {
+      optimized.title = ctx.titleTemplate;
+      report.push(`✅ Generated title optimized for ${ctx.focus}`);
+    } else if ((seo.title ?? "").length < 30) {
+      report.push(`⚠️ Title is too short (${(seo.title ?? "").length} chars) — consider expanding`);
+    } else {
+      report.push(`✓ Title already set (${(seo.title ?? "").length} chars)`);
+    }
+
+    if (!(seo.description ?? "").trim()) {
+      optimized.description = ctx.descTemplate;
+      report.push(`✅ Generated meta description focusing on ${ctx.focus}`);
+    } else if ((seo.description ?? "").length < 120) {
+      report.push(`⚠️ Description is short (${(seo.description ?? "").length} chars) — aim for 150-160`);
+    } else {
+      report.push(`✓ Description already set (${(seo.description ?? "").length} chars)`);
+    }
+
+    if (!(seo.keywords ?? "").trim()) {
+      optimized.keywords = ctx.keywords.join(", ");
+      report.push(`✅ Added ${ctx.keywords.length} relevant keywords`);
+    } else {
+      report.push(`✓ Keywords already set`);
+    }
+
+    if (!(seo.og_title ?? "").trim()) {
+      optimized.og_title = ctx.ogTitleTemplate;
+      report.push(`✅ Generated unique OG title (different from meta title)`);
+    } else {
+      report.push(`✓ OG title already set`);
+    }
+
+    if (!(seo.og_description ?? "").trim()) {
+      optimized.og_description = ctx.ogDescTemplate;
+      report.push(`✅ Generated OG description for social sharing`);
+    } else {
+      report.push(`✓ OG description already set`);
+    }
+
+    if (!(seo.robots ?? "").trim()) {
+      optimized.robots = "index, follow";
+      report.push(`✅ Set robots to "index, follow"`);
+    }
+
+    if (!(seo.canonical_url ?? "").trim()) {
+      const slug = activePage === "home" ? "" : activePage;
+      optimized.canonical_url = `https://the-orange-fox-web.vercel.app/${slug}`;
+      report.push(`✅ Set canonical URL`);
+    }
+
     setSeo((prev) => ({ ...prev, ...optimized }));
+    setOptimizeReport(report);
     setOptimizing(false);
   };
+
+  const handleBulkOptimize = async () => {
+    setBulkOptimizing(true);
+    for (const page of PAGES) {
+      const ctx = PAGE_SEO_CONTEXT[page] || PAGE_SEO_CONTEXT.global;
+      const slug = page === "home" ? "" : page;
+
+      try {
+        const res = await fetch(`/api/seo?page=${page}`);
+        const json = await res.json();
+        const existing = json.data || {};
+
+        const updates: Partial<SeoData> = {
+          page,
+          title: (existing.title as string) || ctx.titleTemplate,
+          description: (existing.description as string) || ctx.descTemplate,
+          keywords: (existing.keywords as string) || ctx.keywords.join(", "),
+          og_title: (existing.og_title as string) || ctx.ogTitleTemplate,
+          og_description: (existing.og_description as string) || ctx.ogDescTemplate,
+          robots: (existing.robots as string) || "index, follow",
+          canonical_url: (existing.canonical_url as string) || `https://the-orange-fox-web.vercel.app/${slug}`,
+          og_image: (existing.og_image as string) || "",
+          schema_markup: (existing.schema_markup as string) || "",
+        };
+
+        if (existing.id) {
+          updates.id = existing.id as string;
+        }
+
+        await fetch("/api/seo", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updates),
+        });
+      } catch {
+        // continue
+      }
+    }
+    setBulkOptimizing(false);
+    setShowBulkModal(false);
+    loadSeo();
+    loadAllSeo();
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 3000);
+  };
+
+  // Sitemap status
+  const pagesWithCanonical = PAGES.filter((p) => (allSeoData[p]?.canonical_url ?? "").length > 0);
+  const sitemapComplete = pagesWithCanonical.length === PAGES.length;
 
   const { score, checks } = calculateScore();
   const scoreColor = score >= 80 ? "text-emerald-400" : score >= 50 ? "text-yellow-400" : "text-red-400";
@@ -192,6 +472,8 @@ export default function SeoPage() {
   const serpTitle = (seo.title ?? "") || "Page Title";
   const serpDesc = (seo.description ?? "") || "No meta description set. Search engines will auto-generate a snippet from page content.";
   const serpUrl = (seo.canonical_url ?? "") || `https://the-orange-fox-web.vercel.app/${activePage === "home" ? "" : activePage}`;
+
+  const currentTips = PAGE_SEO_CONTEXT[activePage]?.tips || PAGE_SEO_CONTEXT.global.tips;
 
   return (
     <div className="space-y-6">
@@ -203,12 +485,53 @@ export default function SeoPage() {
         </div>
       )}
 
+      {/* Bulk Optimize Modal */}
+      {showBulkModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowBulkModal(false)} />
+          <div className="relative z-50 bg-dark-400 border border-dark-50/50 rounded-2xl p-6 max-w-md w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">Bulk Optimize All Pages</h3>
+              <button onClick={() => setShowBulkModal(false)} className="p-1 rounded-lg hover:bg-dark-200 text-gray-400">
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-sm text-gray-400 mb-4">
+              This will fill in missing SEO fields for all {PAGES.length} pages with AI-generated, page-specific content. Existing values will not be overwritten.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={handleBulkOptimize}
+                disabled={bulkOptimizing}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50"
+              >
+                <Sparkles size={14} className={bulkOptimizing ? "animate-spin" : ""} />
+                {bulkOptimizing ? "Optimizing..." : "Optimize All"}
+              </button>
+              <button
+                onClick={() => setShowBulkModal(false)}
+                className="px-4 py-2.5 text-sm rounded-xl bg-dark-200 text-gray-400 hover:text-white transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">SEO Settings</h1>
           <p className="text-sm text-gray-500 mt-1">Optimize your website for search engines</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => setShowBulkModal(true)}
+            className="flex items-center gap-2 px-4 py-2 text-sm rounded-xl bg-dark-400 border border-dark-50/50 text-gray-300 hover:text-white hover:border-dark-50 transition-all"
+          >
+            <Zap size={14} />
+            Bulk Optimize
+          </button>
           <button
             onClick={aiOptimize}
             disabled={optimizing}
@@ -244,12 +567,32 @@ export default function SeoPage() {
         </p>
       </div>
 
+      {/* AI Optimize Report */}
+      {optimizeReport && (
+        <div className="bg-purple-500/5 border border-purple-500/20 rounded-2xl px-5 py-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Target size={14} className="text-purple-400" />
+              <h4 className="text-sm font-semibold text-white">Optimization Report</h4>
+            </div>
+            <button onClick={() => setOptimizeReport(null)} className="text-gray-500 hover:text-gray-300">
+              <X size={14} />
+            </button>
+          </div>
+          <ul className="space-y-1">
+            {optimizeReport.map((line, i) => (
+              <li key={i} className="text-xs text-gray-400">{line}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Page Tabs */}
       <div className="flex flex-wrap gap-2">
         {PAGES.map((p) => (
           <button
             key={p}
-            onClick={() => setActivePage(p)}
+            onClick={() => { setActivePage(p); setOptimizeReport(null); }}
             className={`px-4 py-2 text-sm font-medium rounded-xl transition-all capitalize ${
               activePage === p
                 ? "bg-orange/10 text-orange border border-orange/20"
@@ -478,30 +821,45 @@ export default function SeoPage() {
               </div>
             </div>
 
-            {/* Quick Tips */}
+            {/* Sitemap Status */}
             <div className="bg-dark-400 border border-dark-50/50 rounded-2xl p-6">
-              <h3 className="text-sm font-semibold text-white mb-3">Quick Tips</h3>
+              <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                <Globe size={14} className="text-orange" />
+                Sitemap Status
+              </h3>
+              <div className="flex items-center gap-2 mb-3">
+                <div className={`w-3 h-3 rounded-full ${sitemapComplete ? "bg-emerald-400" : "bg-yellow-400"}`} />
+                <span className="text-xs text-gray-400">
+                  {pagesWithCanonical.length}/{PAGES.length} pages with canonical URLs
+                </span>
+              </div>
+              <div className="space-y-1">
+                {PAGES.map((p) => (
+                  <div key={p} className="flex items-center justify-between text-xs">
+                    <span className="text-gray-500 capitalize">{p}</span>
+                    {(allSeoData[p]?.canonical_url ?? "").length > 0 ? (
+                      <CheckCircle2 size={12} className="text-emerald-400" />
+                    ) : (
+                      <AlertCircle size={12} className="text-gray-600" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Page-Specific Tips */}
+            <div className="bg-dark-400 border border-dark-50/50 rounded-2xl p-6">
+              <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                <Lightbulb size={14} className="text-orange" />
+                Tips for &ldquo;{activePage}&rdquo;
+              </h3>
               <ul className="space-y-2 text-xs text-gray-400">
-                <li className="flex items-start gap-2">
-                  <span className="text-orange mt-0.5">•</span>
-                  Keep titles between 50-60 characters
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-orange mt-0.5">•</span>
-                  Meta descriptions should be 150-160 characters
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-orange mt-0.5">•</span>
-                  Use unique titles and descriptions for each page
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-orange mt-0.5">•</span>
-                  OG images should be 1200×630px for best display
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-orange mt-0.5">•</span>
-                  Add schema markup to improve rich snippets
-                </li>
+                {currentTips.map((tip, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <span className="text-orange mt-0.5">•</span>
+                    {tip}
+                  </li>
+                ))}
               </ul>
             </div>
           </div>

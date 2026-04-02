@@ -1,6 +1,19 @@
 "use client";
 import { useEffect, useState } from "react";
-import { FileEdit, Menu, MessageSquare, Search, ArrowUpRight, ExternalLink, Zap, BarChart3 } from "lucide-react";
+import {
+  FileEdit,
+  Menu,
+  MessageSquare,
+  Search,
+  ArrowUpRight,
+  ExternalLink,
+  Zap,
+  BarChart3,
+  DollarSign,
+  Layers,
+  Globe,
+  TrendingUp,
+} from "lucide-react";
 
 interface Stats {
   pages: number;
@@ -21,6 +34,18 @@ interface ContentItem {
   updated_by: string;
 }
 
+interface SeoScore {
+  title: string;
+  description: string;
+  keywords: string;
+  og_title: string;
+  og_description: string;
+  og_image: string;
+  robots: string;
+  canonical_url: string;
+  schema_markup: string;
+}
+
 const PAGES = ["home", "about", "services", "process", "pricing", "contact", "faq", "global"];
 
 export default function DashboardPage() {
@@ -33,6 +58,7 @@ export default function DashboardPage() {
   });
   const [pageCounts, setPageCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+  const [seoScore, setSeoScore] = useState<number | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -63,6 +89,27 @@ export default function DashboardPage() {
             messages.data?.filter((m: { status: string }) => m.status === "unread")?.length || 0,
           menuItems: menus.data?.length || 0,
         });
+
+        // Fetch SEO score for home
+        try {
+          const seoRes = await fetch("/api/seo?page=home");
+          const seoJson = await seoRes.json();
+          if (seoJson.data) {
+            const d = seoJson.data as SeoScore;
+            let score = 0;
+            if ((d.title ?? "").length >= 30) score += 15;
+            if ((d.description ?? "").length >= 100) score += 15;
+            if ((d.keywords ?? "").length > 0) score += 15;
+            if ((d.og_title ?? "").length > 0) score += 15;
+            if ((d.og_description ?? "").length > 0) score += 10;
+            if ((d.og_image ?? "").length > 0) score += 10;
+            if ((d.robots ?? "").length > 0) score += 10;
+            if ((d.canonical_url ?? "").length > 0) score += 10;
+            setSeoScore(Math.min(score, 100));
+          }
+        } catch {
+          // SEO score optional
+        }
       } catch (e) {
         console.error("Failed to load stats", e);
       } finally {
@@ -108,14 +155,21 @@ export default function DashboardPage() {
     { label: "Manage Menus", href: "/dashboard/menus", icon: Menu },
     { label: "View Messages", href: "/dashboard/messages", icon: MessageSquare },
     { label: "SEO Settings", href: "/dashboard/seo", icon: Search },
+    { label: "Edit Pricing", href: "/dashboard/pricing", icon: DollarSign },
+    { label: "Manage Tech Stack", href: "/dashboard/tech-stack", icon: Layers },
   ];
 
   return (
     <div className="space-y-6">
+      {/* Welcome Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-1">Overview of your website management</p>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            Welcome to the Den <span className="text-3xl">🦊</span>
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Manage your website content, SEO, and more from your CMS dashboard
+          </p>
         </div>
         <a
           href="https://the-orange-fox-web.vercel.app"
@@ -160,6 +214,78 @@ export default function DashboardPage() {
             </div>
           );
         })}
+      </div>
+
+      {/* SEO Score Overview + Live Website Preview */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* SEO Score Card */}
+        <div className="bg-dark-400 border border-dark-50/50 rounded-2xl p-6 bg-gradient-to-br from-dark-400 to-dark-400/80">
+          <div className="flex items-center gap-2 mb-4">
+            <TrendingUp size={18} className="text-orange" />
+            <h3 className="text-lg font-semibold text-white">SEO Score — Home</h3>
+          </div>
+          {loading || seoScore === null ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="w-20 h-20 bg-dark-200 rounded-full animate-pulse" />
+            </div>
+          ) : (
+            <div className="flex items-center gap-6">
+              <div className="relative inline-flex items-center justify-center w-24 h-24">
+                <svg className="w-24 h-24 -rotate-90" viewBox="0 0 120 120">
+                  <circle cx="60" cy="60" r="52" stroke="#222" strokeWidth="8" fill="none" />
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="52"
+                    stroke={seoScore >= 80 ? "#10b981" : seoScore >= 50 ? "#eab308" : "#ef4444"}
+                    strokeWidth="8"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeDasharray={`${seoScore * 3.27} 327`}
+                    className="transition-all duration-1000"
+                  />
+                </svg>
+                <span className={`absolute text-2xl font-bold ${seoScore >= 80 ? "text-emerald-400" : seoScore >= 50 ? "text-yellow-400" : "text-red-400"}`}>
+                  {seoScore}
+                </span>
+              </div>
+              <div>
+                <p className="text-sm text-gray-400">
+                  {seoScore >= 80 ? "Your homepage SEO is looking great!" : seoScore >= 50 ? "Room for improvement — check your meta tags." : "Your homepage needs SEO attention."}
+                </p>
+                <a
+                  href="/dashboard/seo"
+                  className="inline-flex items-center gap-1 mt-2 text-xs text-orange hover:text-orange-400 transition-colors"
+                >
+                  View full SEO settings <ArrowUpRight size={12} />
+                </a>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Live Website Preview Card */}
+        <div className="bg-dark-400 border border-dark-50/50 rounded-2xl p-6 bg-gradient-to-br from-dark-400 to-dark-400/80">
+          <div className="flex items-center gap-2 mb-4">
+            <Globe size={18} className="text-orange" />
+            <h3 className="text-lg font-semibold text-white">Live Website</h3>
+          </div>
+          <div className="bg-dark-200 rounded-xl border border-dark-50/30 p-4 flex flex-col items-center justify-center gap-3 min-h-[120px]">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange to-orange-700 flex items-center justify-center text-2xl shadow-lg shadow-orange/20">
+              🦊
+            </div>
+            <p className="text-sm text-gray-400 text-center">the-orange-fox-web.vercel.app</p>
+            <a
+              href="https://the-orange-fox-web.vercel.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 text-sm rounded-xl bg-orange/10 border border-orange/20 text-orange hover:bg-orange/20 transition-all"
+            >
+              <ExternalLink size={14} />
+              Open Website
+            </a>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
