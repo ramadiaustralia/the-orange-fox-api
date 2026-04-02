@@ -56,13 +56,13 @@ export default function LoginPage() {
                 priority
               />
             </div>
-            <h1 className="text-2xl font-bold text-white mb-1">The Orange Fox</h1>
+            <h1 className="font-heading text-2xl font-bold text-white mb-1">The Orange Fox</h1>
             <p className="text-sm text-gray-500">Content Management System</p>
           </div>
 
           {/* Login Card */}
           <div className="bg-dark-400/80 backdrop-blur-xl border border-dark-50/50 rounded-2xl p-8 shadow-2xl">
-            <h2 className="text-lg font-semibold text-white mb-1">Welcome back</h2>
+            <h2 className="font-heading text-lg font-semibold text-white mb-1">Welcome back</h2>
             <p className="text-sm text-gray-500 mb-6">Sign in to manage your content</p>
 
             {error && (

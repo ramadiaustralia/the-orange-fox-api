@@ -12,6 +12,14 @@ import {
   Target,
   Lightbulb,
   X,
+  Gauge,
+  Monitor,
+  Smartphone,
+  ChevronDown,
+  ChevronUp,
+  FileCode2,
+  RefreshCw,
+  Copy,
 } from "lucide-react";
 
 const PAGES = ["home", "about", "services", "process", "pricing", "contact", "faq", "global"];
@@ -171,6 +179,25 @@ export default function SeoPage() {
   const [bulkOptimizing, setBulkOptimizing] = useState(false);
   const [allSeoData, setAllSeoData] = useState<Record<string, SeoData>>({});
 
+  // PageSpeed Insights state
+  const [pageSpeedOpen, setPageSpeedOpen] = useState(true);
+  const [pageSpeedLoading, setPageSpeedLoading] = useState(false);
+  const [pageSpeedStrategy, setPageSpeedStrategy] = useState<"mobile" | "desktop">("mobile");
+  const [pageSpeedUrl, setPageSpeedUrl] = useState("https://the-orange-fox-web.vercel.app");
+  const [pageSpeedData, setPageSpeedData] = useState<{
+    scores: { performance: number; seo: number; accessibility: number; bestPractices: number };
+    coreWebVitals: { lcp: string; fid: string; cls: string; fcp: string; tbt: string; si: string };
+    strategy: string;
+    url: string;
+    fetchedAt: string;
+  } | null>(null);
+  const [pageSpeedError, setPageSpeedError] = useState("");
+
+  // Sitemap state
+  const [sitemapXml, setSitemapXml] = useState("");
+  const [sitemapLoading, setSitemapLoading] = useState(false);
+  const [sitemapVisible, setSitemapVisible] = useState(false);
+
   const loadSeo = useCallback(async () => {
     setLoading(true);
     try {
@@ -221,6 +248,40 @@ export default function SeoPage() {
     setAllSeoData(data);
   }, []);
 
+  const fetchPageSpeed = useCallback(async () => {
+    setPageSpeedLoading(true);
+    setPageSpeedError("");
+    setPageSpeedData(null);
+    try {
+      const res = await fetch(`/api/pagespeed?url=${encodeURIComponent(pageSpeedUrl)}&strategy=${pageSpeedStrategy}`);
+      const json = await res.json();
+      if (json.error) {
+        setPageSpeedError(json.error);
+      } else {
+        setPageSpeedData(json.data);
+      }
+    } catch {
+      setPageSpeedError("Failed to fetch PageSpeed data. Please try again.");
+    } finally {
+      setPageSpeedLoading(false);
+    }
+  }, [pageSpeedUrl, pageSpeedStrategy]);
+
+  const generateSitemap = async () => {
+    setSitemapLoading(true);
+    try {
+      const res = await fetch("/api/generate-sitemap");
+      const xml = await res.text();
+      setSitemapXml(xml);
+      setSitemapVisible(true);
+    } catch {
+      setSitemapXml("<!-- Failed to generate sitemap -->");
+      setSitemapVisible(true);
+    } finally {
+      setSitemapLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadSeo();
   }, [loadSeo]);
@@ -228,6 +289,12 @@ export default function SeoPage() {
   useEffect(() => {
     loadAllSeo();
   }, [loadAllSeo]);
+
+  // Auto-load PageSpeed on mount
+  useEffect(() => {
+    fetchPageSpeed();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const saveSeo = async () => {
     setSaving(true);
@@ -521,7 +588,7 @@ export default function SeoPage() {
 
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">SEO Settings</h1>
+          <h1 className="font-heading text-2xl font-bold text-white">SEO Settings</h1>
           <p className="text-sm text-gray-500 mt-1">Optimize your website for search engines</p>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -565,6 +632,154 @@ export default function SeoPage() {
             the-orange-fox-web.vercel.app
           </a>
         </p>
+      </div>
+
+      {/* PageSpeed Insights Section */}
+      <div className="bg-dark-400 border border-dark-50/50 rounded-2xl overflow-hidden">
+        <button
+          onClick={() => setPageSpeedOpen(!pageSpeedOpen)}
+          className="w-full px-6 py-4 flex items-center justify-between hover:bg-dark-200/30 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center">
+              <Gauge size={16} className="text-white" />
+            </div>
+            <div className="text-left">
+              <h3 className="font-heading text-sm font-semibold text-white">Google PageSpeed Insights</h3>
+              <p className="text-[11px] text-gray-500">Real performance, SEO, and accessibility scores from Google</p>
+            </div>
+          </div>
+          {pageSpeedOpen ? <ChevronUp size={16} className="text-gray-500" /> : <ChevronDown size={16} className="text-gray-500" />}
+        </button>
+
+        {pageSpeedOpen && (
+          <div className="px-6 pb-6 space-y-4 border-t border-dark-50/30 pt-4">
+            {/* Controls */}
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="flex-1 min-w-[200px]">
+                <label className="block text-xs font-medium text-gray-400 mb-1.5">Page URL</label>
+                <input
+                  value={pageSpeedUrl}
+                  onChange={(e) => setPageSpeedUrl(e.target.value)}
+                  className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-2.5 outline-none focus:border-orange transition-all"
+                  placeholder="https://the-orange-fox-web.vercel.app"
+                />
+              </div>
+              <div className="flex gap-1 bg-dark-200 rounded-xl p-1">
+                <button
+                  onClick={() => setPageSpeedStrategy("mobile")}
+                  className={`flex items-center gap-1.5 px-3 py-2 text-xs rounded-lg transition-all ${
+                    pageSpeedStrategy === "mobile" ? "bg-orange/20 text-orange" : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  <Smartphone size={12} /> Mobile
+                </button>
+                <button
+                  onClick={() => setPageSpeedStrategy("desktop")}
+                  className={`flex items-center gap-1.5 px-3 py-2 text-xs rounded-lg transition-all ${
+                    pageSpeedStrategy === "desktop" ? "bg-orange/20 text-orange" : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  <Monitor size={12} /> Desktop
+                </button>
+              </div>
+              <button
+                onClick={fetchPageSpeed}
+                disabled={pageSpeedLoading}
+                className="flex items-center gap-2 px-4 py-2.5 text-sm rounded-xl bg-gradient-to-r from-emerald-600 to-blue-600 text-white hover:from-emerald-700 hover:to-blue-700 transition-all disabled:opacity-50"
+              >
+                <RefreshCw size={14} className={pageSpeedLoading ? "animate-spin" : ""} />
+                {pageSpeedLoading ? "Testing..." : "Test Page Speed"}
+              </button>
+            </div>
+
+            {/* Error */}
+            {pageSpeedError && (
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                <AlertCircle size={14} />
+                {pageSpeedError}
+              </div>
+            )}
+
+            {/* Loading */}
+            {pageSpeedLoading && !pageSpeedData && (
+              <div className="text-center py-8">
+                <div className="inline-flex items-center gap-2 text-sm text-gray-400">
+                  <RefreshCw size={16} className="animate-spin" />
+                  Analyzing page with Google Lighthouse... This may take 15-30 seconds.
+                </div>
+              </div>
+            )}
+
+            {/* Results */}
+            {pageSpeedData && (
+              <div className="space-y-4 animate-fade-in">
+                {/* Score Circles */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {[
+                    { label: "Performance", score: pageSpeedData.scores.performance },
+                    { label: "SEO", score: pageSpeedData.scores.seo },
+                    { label: "Accessibility", score: pageSpeedData.scores.accessibility },
+                    { label: "Best Practices", score: pageSpeedData.scores.bestPractices },
+                  ].map((item) => {
+                    const color = item.score >= 90 ? "#10b981" : item.score >= 50 ? "#eab308" : "#ef4444";
+                    const textColor = item.score >= 90 ? "text-emerald-400" : item.score >= 50 ? "text-yellow-400" : "text-red-400";
+                    const bgColor = item.score >= 90 ? "bg-emerald-500/5 border-emerald-500/20" : item.score >= 50 ? "bg-yellow-500/5 border-yellow-500/20" : "bg-red-500/5 border-red-500/20";
+                    return (
+                      <div key={item.label} className={`flex flex-col items-center p-4 rounded-xl border ${bgColor}`}>
+                        <div className="relative w-16 h-16 mb-2">
+                          <svg className="w-16 h-16 -rotate-90" viewBox="0 0 120 120">
+                            <circle cx="60" cy="60" r="52" stroke="#222" strokeWidth="8" fill="none" />
+                            <circle
+                              cx="60" cy="60" r="52"
+                              stroke={color}
+                              strokeWidth="8" fill="none" strokeLinecap="round"
+                              strokeDasharray={`${item.score * 3.27} 327`}
+                              className="transition-all duration-1000"
+                            />
+                          </svg>
+                          <span className={`absolute inset-0 flex items-center justify-center text-lg font-bold ${textColor}`}>
+                            {item.score}
+                          </span>
+                        </div>
+                        <span className="font-heading text-xs font-medium text-gray-400">{item.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Core Web Vitals */}
+                <div className="bg-dark-200/50 rounded-xl p-4">
+                  <h4 className="font-heading text-xs font-semibold text-white uppercase tracking-wider mb-3">Core Web Vitals</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {[
+                      { label: "LCP", value: pageSpeedData.coreWebVitals.lcp, desc: "Largest Contentful Paint" },
+                      { label: "FID", value: pageSpeedData.coreWebVitals.fid, desc: "Max Potential FID" },
+                      { label: "CLS", value: pageSpeedData.coreWebVitals.cls, desc: "Cumulative Layout Shift" },
+                      { label: "FCP", value: pageSpeedData.coreWebVitals.fcp, desc: "First Contentful Paint" },
+                      { label: "TBT", value: pageSpeedData.coreWebVitals.tbt, desc: "Total Blocking Time" },
+                      { label: "SI", value: pageSpeedData.coreWebVitals.si, desc: "Speed Index" },
+                    ].map((metric) => (
+                      <div key={metric.label} className="bg-dark-300/50 rounded-lg p-3">
+                        <div className="flex items-baseline justify-between mb-1">
+                          <span className="text-xs font-semibold text-orange">{metric.label}</span>
+                          <span className="text-sm font-bold text-white">{metric.value}</span>
+                        </div>
+                        <p className="text-[10px] text-gray-500">{metric.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Meta info */}
+                <div className="flex items-center justify-between text-[10px] text-gray-600">
+                  <span>Strategy: {pageSpeedData.strategy} · URL: {pageSpeedData.url}</span>
+                  <span>Tested: {new Date(pageSpeedData.fetchedAt).toLocaleString()}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* AI Optimize Report */}
@@ -621,7 +836,7 @@ export default function SeoPage() {
             <div className="bg-dark-400 border border-dark-50/50 rounded-2xl p-6">
               <div className="flex items-center gap-2 mb-4">
                 <Globe size={14} className="text-gray-400" />
-                <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Google Search Preview</h3>
+                <h3 className="font-heading text-sm font-semibold text-white uppercase tracking-wider">Google Search Preview</h3>
               </div>
               <div className="bg-white rounded-xl p-4">
                 <p className="text-[13px] text-green-700 truncate font-normal">
@@ -638,7 +853,7 @@ export default function SeoPage() {
 
             {/* Basic SEO */}
             <div className="bg-dark-400 border border-dark-50/50 rounded-2xl p-6 space-y-5">
-              <h3 className="text-sm font-semibold text-white uppercase tracking-wider flex items-center gap-2">
+              <h3 className="font-heading text-sm font-semibold text-white uppercase tracking-wider flex items-center gap-2">
                 <Search size={14} className="text-orange" />
                 Basic SEO
               </h3>
@@ -710,7 +925,7 @@ export default function SeoPage() {
 
             {/* Open Graph */}
             <div className="bg-dark-400 border border-dark-50/50 rounded-2xl p-6 space-y-5">
-              <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Open Graph</h3>
+              <h3 className="font-heading text-sm font-semibold text-white uppercase tracking-wider">Open Graph</h3>
 
               <div>
                 <label className="block text-xs font-medium text-gray-400 mb-1.5">OG Title</label>
@@ -758,7 +973,7 @@ export default function SeoPage() {
 
             {/* Schema Markup */}
             <div className="bg-dark-400 border border-dark-50/50 rounded-2xl p-6 space-y-5">
-              <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Schema Markup</h3>
+              <h3 className="font-heading text-sm font-semibold text-white uppercase tracking-wider">Schema Markup</h3>
               <textarea
                 value={seo.schema_markup ?? ""}
                 onChange={(e) => setSeo({ ...seo, schema_markup: e.target.value })}
@@ -771,7 +986,7 @@ export default function SeoPage() {
           {/* SEO Score Sidebar */}
           <div className="space-y-4">
             <div className="bg-dark-400 border border-dark-50/50 rounded-2xl p-6 sticky top-20">
-              <h3 className="text-sm font-semibold text-white mb-4">SEO Score</h3>
+              <h3 className="font-heading text-sm font-semibold text-white mb-4">SEO Score</h3>
 
               {/* Score Gauge */}
               <div className="text-center mb-6">
@@ -823,7 +1038,7 @@ export default function SeoPage() {
 
             {/* Sitemap Status */}
             <div className="bg-dark-400 border border-dark-50/50 rounded-2xl p-6">
-              <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+              <h3 className="font-heading text-sm font-semibold text-white mb-3 flex items-center gap-2">
                 <Globe size={14} className="text-orange" />
                 Sitemap Status
               </h3>
@@ -847,9 +1062,44 @@ export default function SeoPage() {
               </div>
             </div>
 
+            {/* Generate Sitemap */}
+            <div className="bg-dark-400 border border-dark-50/50 rounded-2xl p-6">
+              <h3 className="font-heading text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                <FileCode2 size={14} className="text-orange" />
+                Generate Sitemap
+              </h3>
+              <p className="text-xs text-gray-500 mb-3">
+                Generate a sitemap.xml from your SEO settings with proper canonical URLs and priorities.
+              </p>
+              <button
+                onClick={generateSitemap}
+                disabled={sitemapLoading}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm rounded-xl bg-orange/10 border border-orange/20 text-orange hover:bg-orange/20 transition-all disabled:opacity-50"
+              >
+                <FileCode2 size={14} className={sitemapLoading ? "animate-spin" : ""} />
+                {sitemapLoading ? "Generating..." : "Generate Sitemap"}
+              </button>
+              {sitemapVisible && sitemapXml && (
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-gray-500">sitemap.xml</span>
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(sitemapXml); }}
+                      className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-white transition-colors"
+                    >
+                      <Copy size={10} /> Copy
+                    </button>
+                  </div>
+                  <pre className="bg-dark-200 rounded-lg p-3 text-[10px] text-gray-400 overflow-x-auto max-h-48 overflow-y-auto font-mono whitespace-pre">
+                    {sitemapXml}
+                  </pre>
+                </div>
+              )}
+            </div>
+
             {/* Page-Specific Tips */}
             <div className="bg-dark-400 border border-dark-50/50 rounded-2xl p-6">
-              <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+              <h3 className="font-heading text-sm font-semibold text-white mb-3 flex items-center gap-2">
                 <Lightbulb size={14} className="text-orange" />
                 Tips for &ldquo;{activePage}&rdquo;
               </h3>

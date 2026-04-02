@@ -33,6 +33,8 @@ export default function SettingsPage() {
     social_instagram: "",
     social_github: "",
   });
+  const [gaId, setGaId] = useState("");
+  const [savingGa, setSavingGa] = useState(false);
   const [changingPw, setChangingPw] = useState(false);
   const [savingSiteSettings, setSavingSiteSettings] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
@@ -77,8 +79,28 @@ export default function SettingsPage() {
       }
     }
 
+    async function loadGaId() {
+      try {
+        const res = await fetch("/api/content");
+        if (res.ok) {
+          const data = await res.json();
+          const items = data.data || [];
+          const gaItem = items.find(
+            (item: { page: string; section: string; content_key: string }) =>
+              item.page === "global" && item.section === "site_settings" && item.content_key === "ga_measurement_id"
+          );
+          if (gaItem) {
+            setGaId(gaItem.content_value || "");
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load GA ID", e);
+      }
+    }
+
     loadAdmin();
     loadSocialLinks();
+    loadGaId();
   }, []);
 
   const showSuccess = (msg: string) => {
@@ -189,6 +211,29 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSaveGa = async () => {
+    setSavingGa(true);
+    try {
+      await fetch("/api/content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          page: "global",
+          section: "site_settings",
+          content_key: "ga_measurement_id",
+          content_value: gaId,
+          locale: "en",
+        }),
+      });
+      showSuccess("Google Analytics ID saved successfully!");
+    } catch (e) {
+      console.error(e);
+      showError("Failed to save Google Analytics ID.");
+    } finally {
+      setSavingGa(false);
+    }
+  };
+
   const handleClearCache = () => {
     showSuccess("Cache cleared successfully!");
   };
@@ -196,7 +241,7 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
-        <h1 className="text-2xl font-bold text-white">Settings</h1>
+        <h1 className="font-heading text-2xl font-bold text-white">Settings</h1>
         <p className="text-sm text-gray-500 mt-1">Manage your account and site settings</p>
       </div>
 
@@ -220,7 +265,7 @@ export default function SettingsPage() {
       <div className="bg-dark-400 border border-dark-50/50 rounded-2xl overflow-hidden">
         <div className="px-6 py-4 border-b border-dark-50/50 flex items-center gap-2">
           <User size={16} className="text-orange" />
-          <h3 className="text-sm font-semibold text-white">Admin Profile</h3>
+          <h3 className="font-heading text-sm font-semibold text-white">Admin Profile</h3>
         </div>
         <div className="p-6">
           <div className="flex items-center gap-6 mb-6">
@@ -261,7 +306,7 @@ export default function SettingsPage() {
       <div className="bg-dark-400 border border-dark-50/50 rounded-2xl overflow-hidden">
         <div className="px-6 py-4 border-b border-dark-50/50 flex items-center gap-2">
           <Lock size={16} className="text-orange" />
-          <h3 className="text-sm font-semibold text-white">Change Password</h3>
+          <h3 className="font-heading text-sm font-semibold text-white">Change Password</h3>
         </div>
         <div className="p-6 space-y-4">
           <div>
@@ -311,7 +356,7 @@ export default function SettingsPage() {
       <div className="bg-dark-400 border border-dark-50/50 rounded-2xl overflow-hidden">
         <div className="px-6 py-4 border-b border-dark-50/50 flex items-center gap-2">
           <Globe size={16} className="text-orange" />
-          <h3 className="text-sm font-semibold text-white">Site Settings</h3>
+          <h3 className="font-heading text-sm font-semibold text-white">Site Settings</h3>
         </div>
         <div className="p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -448,11 +493,44 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* Google Analytics */}
+      <div className="bg-dark-400 border border-dark-50/50 rounded-2xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-dark-50/50 flex items-center gap-2">
+          <Globe size={16} className="text-orange" />
+          <h3 className="font-heading text-sm font-semibold text-white">Google Analytics</h3>
+        </div>
+        <div className="p-6 space-y-4">
+          <p className="text-xs text-gray-500">
+            Add your GA4 Measurement ID to enable Google Analytics tracking on the live website. The frontend will automatically include the gtag.js script.
+          </p>
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">GA4 Measurement ID</label>
+            <input
+              value={gaId}
+              onChange={(e) => setGaId(e.target.value)}
+              className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all max-w-sm"
+              placeholder="G-XXXXXXXXXX"
+            />
+            {gaId && !gaId.startsWith("G-") && (
+              <p className="text-xs text-yellow-400 mt-1">⚠️ GA4 IDs typically start with &quot;G-&quot;</p>
+            )}
+          </div>
+          <button
+            onClick={handleSaveGa}
+            disabled={savingGa}
+            className="flex items-center gap-2 px-4 py-2.5 text-sm rounded-xl bg-orange text-white hover:bg-orange-600 transition-all disabled:opacity-50"
+          >
+            <Save size={14} />
+            {savingGa ? "Saving..." : "Save Analytics ID"}
+          </button>
+        </div>
+      </div>
+
       {/* Danger Zone */}
       <div className="bg-dark-400 border border-red-500/30 rounded-2xl overflow-hidden">
         <div className="px-6 py-4 border-b border-red-500/20 flex items-center gap-2">
           <Trash2 size={16} className="text-red-400" />
-          <h3 className="text-sm font-semibold text-red-400">Danger Zone</h3>
+          <h3 className="font-heading text-sm font-semibold text-red-400">Danger Zone</h3>
         </div>
         <div className="p-6">
           <p className="text-xs text-gray-500 mb-4">

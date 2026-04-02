@@ -92,7 +92,7 @@ export default function MessagesPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+          <h1 className="font-heading text-2xl font-bold text-white flex items-center gap-3">
             Messages
             {unreadCount > 0 && (
               <span className="px-2.5 py-1 text-xs rounded-full bg-orange/10 text-orange border border-orange/20">

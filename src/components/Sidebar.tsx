@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -46,19 +47,15 @@ export default function Sidebar({ collapsed, onToggle, mobile, onClose }: Sideba
       <div className="flex items-center justify-between p-4 border-b border-dark-50/50">
         {(!collapsed || mobile) && (
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange to-orange-700 flex items-center justify-center shadow-lg shadow-orange/20 text-lg">
-              🦊
-            </div>
+            <Image src="/logo.png" alt="The Orange Fox" width={36} height={36} className="w-9 h-9 rounded-xl object-contain" />
             <div>
-              <span className="font-bold text-sm text-white tracking-wide">THE ORANGE FOX</span>
+              <span className="font-heading font-bold text-sm text-white tracking-wide">THE ORANGE FOX</span>
               <span className="block text-[10px] text-gray-500 -mt-0.5">CMS Dashboard</span>
             </div>
           </div>
         )}
         {collapsed && !mobile && (
-          <div className="w-9 h-9 mx-auto rounded-xl bg-gradient-to-br from-orange to-orange-700 flex items-center justify-center shadow-lg shadow-orange/20 text-lg">
-            🦊
-          </div>
+          <Image src="/logo.png" alt="The Orange Fox" width={36} height={36} className="w-9 h-9 mx-auto rounded-xl object-contain" />
         )}
         {mobile && (
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-dark-200 text-gray-400">
@@ -84,7 +81,7 @@ export default function Sidebar({ collapsed, onToggle, mobile, onClose }: Sideba
               }`}
             >
               <Icon size={18} className={active ? "text-orange" : "text-gray-500 group-hover:text-white"} />
-              {(!collapsed || mobile) && <span>{item.label}</span>}
+              {(!collapsed || mobile) && <span className="font-heading">{item.label}</span>}
             </Link>
           );
         })}

@@ -72,7 +72,7 @@ export default function ContentPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Content Editor</h1>
+          <h1 className="font-heading text-2xl font-bold text-white">Content Editor</h1>
           <p className="text-sm text-gray-500 mt-1">Edit website content across all pages and languages</p>
         </div>
         <button

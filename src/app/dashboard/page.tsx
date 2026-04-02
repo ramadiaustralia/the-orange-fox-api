@@ -164,7 +164,7 @@ export default function DashboardPage() {
       {/* Welcome Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <h1 className="font-heading text-2xl font-bold text-white flex items-center gap-2">
             Welcome to the Den <span className="text-3xl">🦊</span>
           </h1>
           <p className="text-sm text-gray-500 mt-1">
@@ -209,7 +209,7 @@ export default function DashboardPage() {
                   card.value
                 )}
               </div>
-              <div className="text-sm font-medium text-gray-400">{card.label}</div>
+              <div className="font-heading text-sm font-medium text-gray-400">{card.label}</div>
               <div className="text-xs text-gray-600 mt-1">{card.desc}</div>
             </div>
           );
@@ -222,7 +222,7 @@ export default function DashboardPage() {
         <div className="bg-dark-400 border border-dark-50/50 rounded-2xl p-6 bg-gradient-to-br from-dark-400 to-dark-400/80">
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp size={18} className="text-orange" />
-            <h3 className="text-lg font-semibold text-white">SEO Score — Home</h3>
+            <h3 className="font-heading text-lg font-semibold text-white">SEO Score — Home</h3>
           </div>
           {loading || seoScore === null ? (
             <div className="flex items-center justify-center py-8">
@@ -268,7 +268,7 @@ export default function DashboardPage() {
         <div className="bg-dark-400 border border-dark-50/50 rounded-2xl p-6 bg-gradient-to-br from-dark-400 to-dark-400/80">
           <div className="flex items-center gap-2 mb-4">
             <Globe size={18} className="text-orange" />
-            <h3 className="text-lg font-semibold text-white">Live Website</h3>
+            <h3 className="font-heading text-lg font-semibold text-white">Live Website</h3>
           </div>
           <div className="bg-dark-200 rounded-xl border border-dark-50/30 p-4 flex flex-col items-center justify-center gap-3 min-h-[120px]">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange to-orange-700 flex items-center justify-center text-2xl shadow-lg shadow-orange/20">
@@ -293,7 +293,7 @@ export default function DashboardPage() {
         <div className="bg-dark-400 border border-dark-50/50 rounded-2xl p-6">
           <div className="flex items-center gap-2 mb-4">
             <Zap size={18} className="text-orange" />
-            <h3 className="text-lg font-semibold text-white">Quick Actions</h3>
+            <h3 className="font-heading text-lg font-semibold text-white">Quick Actions</h3>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {quickActions.map((action) => {
@@ -321,7 +321,7 @@ export default function DashboardPage() {
         <div className="bg-dark-400 border border-dark-50/50 rounded-2xl p-6">
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 size={18} className="text-orange" />
-            <h3 className="text-lg font-semibold text-white">Content Coverage</h3>
+            <h3 className="font-heading text-lg font-semibold text-white">Content Coverage</h3>
           </div>
           {loading ? (
             <div className="space-y-3">

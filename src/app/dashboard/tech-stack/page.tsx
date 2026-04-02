@@ -186,7 +186,7 @@ export default function TechStackPage() {
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <h1 className="font-heading text-2xl font-bold text-white flex items-center gap-2">
             <Layers size={24} className="text-orange" />
             Tech Stack
           </h1>
