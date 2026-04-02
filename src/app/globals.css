@@ -95,3 +95,16 @@ input:focus, textarea:focus, select:focus {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
+
+/* === Frontend Hero Animations === */
+@keyframes orbFloat {
+  0%, 100% { transform: translate(-50%,-50%) translate(0,0); }
+  25% { transform: translate(-50%,-50%) translate(80px,-60px); }
+  50% { transform: translate(-50%,-50%) translate(-40px,80px); }
+  75% { transform: translate(-50%,-50%) translate(-80px,-30px); }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}

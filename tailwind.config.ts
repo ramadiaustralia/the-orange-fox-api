@@ -22,6 +22,7 @@ const config: Config = {
         },
         dark: {
           DEFAULT: "#141414",
+          soft: "#1c1c1c",
           50: "#2a2a2a",
           100: "#252525",
           200: "#222222",
@@ -33,6 +34,7 @@ const config: Config = {
           800: "#0a0a0a",
           900: "#050505",
         },
+        charcoal: "#222222",
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],

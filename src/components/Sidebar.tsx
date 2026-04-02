@@ -49,7 +49,7 @@ export default function Sidebar({ collapsed, onToggle, mobile, onClose }: Sideba
           <div className="flex items-center gap-3">
             <Image src="/logo.png" alt="The Orange Fox" width={36} height={36} className="w-9 h-9 rounded-xl object-contain" />
             <div>
-              <span className="font-heading font-bold text-sm text-white tracking-wide">THE ORANGE FOX</span>
+              <span className="font-heading font-bold text-[0.7rem] tracking-[2px] text-orange uppercase">THE ORANGE FOX</span>
               <span className="block text-[10px] text-gray-500 -mt-0.5">CMS Dashboard</span>
             </div>
           </div>
