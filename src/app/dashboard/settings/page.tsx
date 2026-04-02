@@ -281,7 +281,7 @@ export default function SettingsPage() {
       )}
 
       {/* Admin Profile */}
-      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
           <User size={16} className="text-orange" />
           <h3 className="font-heading text-sm font-semibold text-gray-900">Admin Profile</h3>
@@ -322,7 +322,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Change Password */}
-      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
           <Lock size={16} className="text-orange" />
           <h3 className="font-heading text-sm font-semibold text-gray-900">Change Password</h3>
@@ -372,7 +372,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Site Settings */}
-      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
           <Globe size={16} className="text-orange" />
           <h3 className="font-heading text-sm font-semibold text-gray-900">Site Settings</h3>
@@ -513,7 +513,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Google Analytics */}
-      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
           <Globe size={16} className="text-orange" />
           <h3 className="font-heading text-sm font-semibold text-gray-900">Google Integration</h3>

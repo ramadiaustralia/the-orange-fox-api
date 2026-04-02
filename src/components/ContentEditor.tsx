@@ -205,7 +205,7 @@ export default function ContentEditor({ page, items, onRefresh }: ContentEditorP
       {sections.map((sectionGroup) => {
         const info = SECTION_INFO[sectionGroup];
         return (
-          <div key={sectionGroup} className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+          <div key={sectionGroup} className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200 bg-gray-50/50">
               <h3 className="text-sm font-semibold text-gray-900 tracking-wider">
                 {info?.title || sectionGroup.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}

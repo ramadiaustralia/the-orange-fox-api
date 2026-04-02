@@ -135,7 +135,7 @@ export default function MessagesPage() {
           {[1, 2, 3].map((i) => <div key={i} className="h-20 bg-white rounded-2xl animate-pulse" />)}
         </div>
       ) : messages.length === 0 ? (
-        <div className="text-center py-20 bg-white border border-gray-200 rounded-2xl">
+        <div className="text-center py-20 bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30">
           <MessageSquare size={40} className="mx-auto text-gray-600 mb-3" />
           <p className="text-lg font-medium text-gray-500">No messages</p>
           <p className="text-sm text-gray-600 mt-1">{filter !== "all" ? "Try a different filter" : "Messages will appear here"}</p>

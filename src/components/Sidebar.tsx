@@ -42,9 +42,9 @@ export default function Sidebar({ collapsed, onToggle, mobile, onClose }: Sideba
   };
 
   const content = (
-    <div className={`flex flex-col h-full bg-dark-400 border-r border-dark-50/50 ${collapsed && !mobile ? 'w-[72px]' : 'w-64'} transition-all duration-300`}>
+    <div className={`flex flex-col h-full bg-dark border-r border-white/5 ${collapsed && !mobile ? 'w-[72px]' : 'w-64'} transition-all duration-300`}>
       {/* Logo */}
-      <div className="flex items-center justify-between p-4 border-b border-dark-50/50">
+      <div className="flex items-center justify-between p-4 border-b border-white/5">
         {(!collapsed || mobile) && (
           <div className="flex items-center gap-3">
             <Image src="/logo.png" alt="The Orange Fox" width={36} height={36} className="w-9 h-9 rounded-xl object-contain" />
@@ -58,7 +58,7 @@ export default function Sidebar({ collapsed, onToggle, mobile, onClose }: Sideba
           <Image src="/logo.png" alt="The Orange Fox" width={36} height={36} className="w-9 h-9 mx-auto rounded-xl object-contain" />
         )}
         {mobile && (
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-dark-200 text-gray-400">
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/5 text-gray-400">
             <X size={18} />
           </button>
         )}
@@ -77,7 +77,7 @@ export default function Sidebar({ collapsed, onToggle, mobile, onClose }: Sideba
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${
                 active
                   ? "bg-orange/10 text-orange border border-orange/20"
-                  : "text-gray-400 hover:text-white hover:bg-dark-200 border border-transparent"
+                  : "text-gray-400 hover:text-white hover:bg-white/5 border border-transparent"
               }`}
             >
               <Icon size={18} className={active ? "text-orange" : "text-gray-500 group-hover:text-white"} />
@@ -89,7 +89,7 @@ export default function Sidebar({ collapsed, onToggle, mobile, onClose }: Sideba
 
       {/* Version + Collapse button (desktop only) */}
       {!mobile && (
-        <div className="p-3 border-t border-dark-50/50">
+        <div className="p-3 border-t border-white/5">
           {!collapsed && (
             <div className="text-center mb-2">
               <span className="text-[10px] text-gray-600 font-mono">v2.0</span>
@@ -97,7 +97,7 @@ export default function Sidebar({ collapsed, onToggle, mobile, onClose }: Sideba
           )}
           <button
             onClick={onToggle}
-            className="flex items-center justify-center w-full p-2 rounded-xl text-gray-500 hover:text-white hover:bg-dark-200 transition-all"
+            className="flex items-center justify-center w-full p-2 rounded-xl text-gray-500 hover:text-white hover:bg-white/5 transition-all"
           >
             <ChevronLeft size={18} className={`transition-transform duration-300 ${collapsed ? 'rotate-180' : ''}`} />
             {!collapsed && <span className="ml-2 text-sm">Collapse</span>}

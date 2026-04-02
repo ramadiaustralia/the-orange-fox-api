@@ -556,7 +556,7 @@ export default function SeoPage() {
       {showBulkModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowBulkModal(false)} />
-          <div className="relative z-50 bg-white border border-gray-200 rounded-2xl p-6 max-w-md w-full">
+          <div className="relative z-50 bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-6 max-w-md w-full">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Bulk Optimize All Pages</h3>
               <button onClick={() => setShowBulkModal(false)} className="p-1 rounded-lg hover:bg-gray-50 text-gray-500">
@@ -635,7 +635,7 @@ export default function SeoPage() {
       </div>
 
       {/* PageSpeed Insights Section */}
-      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 overflow-hidden">
         <button
           onClick={() => setPageSpeedOpen(!pageSpeedOpen)}
           className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50/30 transition-colors"
@@ -833,7 +833,7 @@ export default function SeoPage() {
           {/* SEO Form */}
           <div className="lg:col-span-2 space-y-4">
             {/* SERP Preview */}
-            <div className="bg-white border border-gray-200 rounded-2xl p-6">
+            <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-6">
               <div className="flex items-center gap-2 mb-4">
                 <Globe size={14} className="text-gray-500" />
                 <h3 className="font-heading text-sm font-semibold text-gray-900 uppercase tracking-wider">Google Search Preview</h3>
@@ -852,7 +852,7 @@ export default function SeoPage() {
             </div>
 
             {/* Basic SEO */}
-            <div className="bg-white border border-gray-200 rounded-2xl p-6 space-y-5">
+            <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-6 space-y-5">
               <h3 className="font-heading text-sm font-semibold text-gray-900 uppercase tracking-wider flex items-center gap-2">
                 <Search size={14} className="text-orange" />
                 Basic SEO
@@ -924,7 +924,7 @@ export default function SeoPage() {
             </div>
 
             {/* Open Graph */}
-            <div className="bg-white border border-gray-200 rounded-2xl p-6 space-y-5">
+            <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-6 space-y-5">
               <h3 className="font-heading text-sm font-semibold text-gray-900 uppercase tracking-wider">Open Graph</h3>
 
               <div>
@@ -972,7 +972,7 @@ export default function SeoPage() {
             </div>
 
             {/* Schema Markup */}
-            <div className="bg-white border border-gray-200 rounded-2xl p-6 space-y-5">
+            <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-6 space-y-5">
               <h3 className="font-heading text-sm font-semibold text-gray-900 uppercase tracking-wider">Schema Markup</h3>
               <textarea
                 value={seo.schema_markup ?? ""}
@@ -985,7 +985,7 @@ export default function SeoPage() {
 
           {/* SEO Score Sidebar */}
           <div className="space-y-4">
-            <div className="bg-white border border-gray-200 rounded-2xl p-6 sticky top-20">
+            <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-6 sticky top-20">
               <h3 className="font-heading text-sm font-semibold text-gray-900 mb-4">SEO Score</h3>
 
               {/* Score Gauge */}
@@ -1037,7 +1037,7 @@ export default function SeoPage() {
             </div>
 
             {/* Sitemap Status */}
-            <div className="bg-white border border-gray-200 rounded-2xl p-6">
+            <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-6">
               <h3 className="font-heading text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
                 <Globe size={14} className="text-orange" />
                 Sitemap Status
@@ -1063,7 +1063,7 @@ export default function SeoPage() {
             </div>
 
             {/* Generate Sitemap */}
-            <div className="bg-white border border-gray-200 rounded-2xl p-6">
+            <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-6">
               <h3 className="font-heading text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
                 <FileCode2 size={14} className="text-orange" />
                 Generate Sitemap
@@ -1098,7 +1098,7 @@ export default function SeoPage() {
             </div>
 
             {/* Page-Specific Tips */}
-            <div className="bg-white border border-gray-200 rounded-2xl p-6">
+            <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-6">
               <h3 className="font-heading text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
                 <Lightbulb size={14} className="text-orange" />
                 Tips for &ldquo;{activePage}&rdquo;

@@ -116,7 +116,7 @@ export default function ContentPage() {
 
       {/* Page Info Banner */}
       {pageInfo && (
-        <div className="bg-white border border-gray-200 rounded-2xl px-6 py-4">
+        <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 px-6 py-4">
           <p className="text-sm text-gray-500">{pageInfo.description}</p>
         </div>
       )}
@@ -125,7 +125,7 @@ export default function ContentPage() {
       {loading ? (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white border border-gray-200 rounded-2xl p-6">
+            <div key={i} className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-6">
               <div className="h-4 w-32 bg-gray-50 rounded animate-pulse mb-4" />
               <div className="grid grid-cols-2 gap-4">
                 <div className="h-16 bg-gray-50 rounded-xl animate-pulse" />

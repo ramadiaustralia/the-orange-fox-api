@@ -16,7 +16,7 @@ export default function Topbar({ adminName, onMenuClick }: TopbarProps) {
   };
 
   return (
-    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-40">
+    <header className="h-16 bg-white border-b border-gray-100 shadow-[0_1px_12px_rgba(0,0,0,0.04)] flex items-center justify-between px-4 lg:px-6 sticky top-0 z-40">
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuClick}

@@ -147,7 +147,7 @@ export default function MenusPage() {
       </div>
 
       {/* Menu Items */}
-      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-gray-900">
             {LOCATIONS.find((l) => l.key === activeLocation)?.label}
@@ -206,7 +206,7 @@ export default function MenusPage() {
             <p className="text-sm">No menu items in this location</p>
           </div>
         ) : (
-          <div className="divide-y divide-dark-50/30">
+          <div className="divide-y divide-gray-100">
             {items.map((item, idx) => (
               <div key={item.id} className="px-6 py-3 flex items-center gap-3 hover:bg-gray-50/20 transition-colors group">
                 <GripVertical size={14} className="text-gray-600 flex-shrink-0" />

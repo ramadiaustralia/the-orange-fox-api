@@ -298,7 +298,7 @@ export default function TechStackPage() {
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="bg-white border border-gray-200 rounded-2xl p-5">
+            <div key={i} className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-5">
               <div className="h-5 w-24 bg-gray-50 rounded animate-pulse mb-3" />
               <div className="h-4 w-16 bg-gray-50 rounded animate-pulse" />
             </div>
@@ -306,7 +306,7 @@ export default function TechStackPage() {
         </div>
       ) : filteredItems.length === 0 ? (
         /* Empty State */
-        <div className="bg-white border border-gray-200 rounded-2xl p-12 text-center">
+        <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-12 text-center">
           <PackageOpen size={48} className="text-gray-600 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">No technologies found</h3>
           <p className="text-sm text-gray-500 mb-4">
@@ -325,11 +325,11 @@ export default function TechStackPage() {
         </div>
       ) : (
         /* Tech Grid */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 stagger-enter">
           {filteredItems.map((item, index) => (
             <div
               key={`${item.name}-${index}`}
-              className="bg-white border border-gray-200 rounded-2xl p-5 hover:border-gray-200 transition-all duration-200 group"
+              className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-5 hover:border-gray-200 transition-all duration-200 group"
             >
               <div className="flex items-start justify-between mb-3">
                 <input

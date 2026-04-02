@@ -108,3 +108,71 @@ input:focus, textarea:focus, select:focus {
   0%, 100% { opacity: 0.3; }
   50% { opacity: 1; }
 }
+
+/* Reveal animation (scroll-triggered entrance) */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px) scale(0.98);
+  transition: opacity 0.8s cubic-bezier(0.16,1,0.3,1), transform 0.8s cubic-bezier(0.16,1,0.3,1), filter 0.6s ease;
+  filter: blur(3px);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: none;
+  filter: blur(0);
+}
+
+/* Stagger entrance for dashboard cards */
+.stagger-enter > * {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: staggerEnter 0.5s cubic-bezier(0.16,1,0.3,1) forwards;
+}
+.stagger-enter > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger-enter > *:nth-child(2) { animation-delay: 0.1s; }
+.stagger-enter > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger-enter > *:nth-child(4) { animation-delay: 0.2s; }
+.stagger-enter > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger-enter > *:nth-child(6) { animation-delay: 0.3s; }
+.stagger-enter > *:nth-child(7) { animation-delay: 0.35s; }
+.stagger-enter > *:nth-child(8) { animation-delay: 0.4s; }
+
+@keyframes staggerEnter {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Frontend hero keyframes */
+@keyframes heroFloat {
+  0%, 100% { transform: translateY(0) scale(1); filter: drop-shadow(0 8px 32px rgba(0,0,0,0.4)); }
+  50% { transform: translateY(-15px) scale(1.02); filter: drop-shadow(0 20px 48px rgba(212,105,42,0.3)); }
+}
+@keyframes heroSlideUp {
+  0% { opacity: 0; transform: translateY(30px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes heroFadeIn {
+  0% { opacity: 0; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes heroParticleFloat {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(15px, -20px); }
+  50% { transform: translate(-10px, 15px); }
+  75% { transform: translate(20px, 10px); }
+}
+@keyframes heroLineSlide {
+  0%, 100% { opacity: 0.05; transform: scaleY(1); }
+  50% { opacity: 0.15; transform: scaleY(1.5); }
+}
+@keyframes heroCornerPulse {
+  0%, 100% { opacity: 0.08; }
+  50% { opacity: 0.2; }
+}
+@keyframes heroDividerGlow {
+  0%, 100% { opacity: 0.5; filter: blur(0px); }
+  50% { opacity: 1; filter: blur(2px); }
+}
+@keyframes heroScrollBounce {
+  0%, 100% { transform: translateY(0); opacity: 0.4; }
+  50% { transform: translateY(6px); opacity: 1; }
+}

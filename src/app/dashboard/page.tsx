@@ -183,13 +183,13 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 stagger-enter">
         {cards.map((card) => {
           const Icon = card.icon;
           return (
             <div
               key={card.label}
-              className="bg-white border border-gray-200 rounded-2xl p-5 hover:border-gray-200 transition-all duration-200 group animate-stagger animate-shimmer"
+              className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-5 hover:border-gray-200 transition-all duration-200 group"
             >
               <div className="flex items-start justify-between mb-4">
                 <div
@@ -219,7 +219,7 @@ export default function DashboardPage() {
       {/* SEO Score Overview + Live Website Preview */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* SEO Score Card */}
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 ">
+        <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-6 ">
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp size={18} className="text-orange" />
             <h3 className="font-heading text-lg font-semibold text-gray-900">SEO Score — Home</h3>
@@ -265,7 +265,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Live Website Preview Card */}
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 ">
+        <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-6 ">
           <div className="flex items-center gap-2 mb-4">
             <Globe size={18} className="text-orange" />
             <h3 className="font-heading text-lg font-semibold text-gray-900">Live Website</h3>
@@ -290,19 +290,19 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Quick Actions */}
-        <div className="bg-white border border-gray-200 rounded-2xl p-6">
+        <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-6">
           <div className="flex items-center gap-2 mb-4">
             <Zap size={18} className="text-orange" />
             <h3 className="font-heading text-lg font-semibold text-gray-900">Quick Actions</h3>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 stagger-enter">
             {quickActions.map((action) => {
               const Icon = action.icon;
               return (
                 <a
                   key={action.label}
                   href={action.href}
-                  className="flex items-center gap-3 p-4 rounded-xl bg-gray-50 border border-gray-100 hover:border-orange/30 hover:bg-orange/5 transition-all duration-200 group animate-stagger"
+                  className="flex items-center gap-3 p-4 rounded-xl bg-gray-50 border border-gray-100 hover:border-orange/30 hover:bg-orange/5 transition-all duration-200 group"
                 >
                   <Icon
                     size={18}
@@ -318,7 +318,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Content Coverage */}
-        <div className="bg-white border border-gray-200 rounded-2xl p-6">
+        <div className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-6">
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 size={18} className="text-orange" />
             <h3 className="font-heading text-lg font-semibold text-gray-900">Content Coverage</h3>

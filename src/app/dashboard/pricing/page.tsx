@@ -115,9 +115,9 @@ export default function PricingPage() {
           <h1 className="font-heading text-2xl font-bold text-gray-900">Pricing Management</h1>
           <p className="text-sm text-gray-500 mt-1">Manage package prices and details</p>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 stagger-enter">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="bg-white border border-gray-200 rounded-2xl p-6">
+            <div key={i} className="bg-white border border-gray-200 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-orange/30 p-6">
               <div className="h-6 w-32 bg-gray-50 rounded animate-pulse mb-4" />
               <div className="h-10 w-24 bg-gray-50 rounded animate-pulse mb-4" />
               <div className="space-y-2">
@@ -156,7 +156,7 @@ export default function PricingPage() {
         <p className="text-sm text-gray-500 mt-1">Manage package prices and details</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 stagger-enter">
         {PACKAGES.map((pkg) => {
           const pkgName = getContentValue(pkg.key, "en") || pkg.name;
           const pkgDesc = getContentValue(`${pkg.key}_desc`, "en");
