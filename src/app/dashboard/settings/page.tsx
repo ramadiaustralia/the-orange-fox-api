@@ -34,6 +34,7 @@ export default function SettingsPage() {
     social_github: "",
   });
   const [gaId, setGaId] = useState("");
+  const [googleApiKey, setGoogleApiKey] = useState("");
   const [savingGa, setSavingGa] = useState(false);
   const [changingPw, setChangingPw] = useState(false);
   const [savingSiteSettings, setSavingSiteSettings] = useState(false);
@@ -91,6 +92,13 @@ export default function SettingsPage() {
           );
           if (gaItem) {
             setGaId(gaItem.content_value || "");
+          }
+          const apiKeyItem = items.find(
+            (item: { page: string; section: string; content_key: string }) =>
+              item.page === "global" && item.section === "site_settings" && item.content_key === "google_api_key"
+          );
+          if (apiKeyItem) {
+            setGoogleApiKey(apiKeyItem.content_value || "");
           }
         }
       } catch (e) {
@@ -225,7 +233,18 @@ export default function SettingsPage() {
           locale: "en",
         }),
       });
-      showSuccess("Google Analytics ID saved successfully!");
+      await fetch("/api/content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          page: "global",
+          section: "site_settings",
+          content_key: "google_api_key",
+          content_value: googleApiKey,
+          locale: "en",
+        }),
+      });
+      showSuccess("Google settings saved successfully!");
     } catch (e) {
       console.error(e);
       showError("Failed to save Google Analytics ID.");
@@ -497,23 +516,35 @@ export default function SettingsPage() {
       <div className="bg-dark-400 border border-dark-50/50 rounded-2xl overflow-hidden">
         <div className="px-6 py-4 border-b border-dark-50/50 flex items-center gap-2">
           <Globe size={16} className="text-orange" />
-          <h3 className="font-heading text-sm font-semibold text-white">Google Analytics</h3>
+          <h3 className="font-heading text-sm font-semibold text-white">Google Integration</h3>
         </div>
         <div className="p-6 space-y-4">
           <p className="text-xs text-gray-500">
-            Add your GA4 Measurement ID to enable Google Analytics tracking on the live website. The frontend will automatically include the gtag.js script.
+            Configure your Google services. GA4 enables analytics tracking, and the API key unlocks real-time PageSpeed Insights on the SEO page.
           </p>
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">GA4 Measurement ID</label>
-            <input
-              value={gaId}
-              onChange={(e) => setGaId(e.target.value)}
-              className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all max-w-sm"
-              placeholder="G-XXXXXXXXXX"
-            />
-            {gaId && !gaId.startsWith("G-") && (
-              <p className="text-xs text-yellow-400 mt-1">⚠️ GA4 IDs typically start with &quot;G-&quot;</p>
-            )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">GA4 Measurement ID</label>
+              <input
+                value={gaId}
+                onChange={(e) => setGaId(e.target.value)}
+                className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                placeholder="G-XXXXXXXXXX"
+              />
+              {gaId && !gaId.startsWith("G-") && (
+                <p className="text-xs text-yellow-400 mt-1">⚠️ GA4 IDs typically start with &quot;G-&quot;</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">Google API Key <span className="text-gray-600">(for PageSpeed)</span></label>
+              <input
+                value={googleApiKey}
+                onChange={(e) => setGoogleApiKey(e.target.value)}
+                className="w-full bg-dark-200 border border-dark-50 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-orange transition-all"
+                placeholder="AIzaSy..."
+              />
+              <p className="text-[10px] text-gray-600 mt-1">Free from <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener" className="text-orange/60 hover:text-orange underline">Google Cloud Console</a> → enable PageSpeed Insights API</p>
+            </div>
           </div>
           <button
             onClick={handleSaveGa}
@@ -521,7 +552,7 @@ export default function SettingsPage() {
             className="flex items-center gap-2 px-4 py-2.5 text-sm rounded-xl bg-orange text-white hover:bg-orange-600 transition-all disabled:opacity-50"
           >
             <Save size={14} />
-            {savingGa ? "Saving..." : "Save Analytics ID"}
+            {savingGa ? "Saving..." : "Save Google Settings"}
           </button>
         </div>
       </div>

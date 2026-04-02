@@ -1,14 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams.get("url") || "https://the-orange-fox-web.vercel.app";
   const strategy = req.nextUrl.searchParams.get("strategy") || "mobile";
   
   try {
-    // Google PageSpeed Insights API is FREE and requires NO API key for basic usage
-    const apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&strategy=${strategy}&category=performance&category=seo&category=accessibility&category=best-practices`;
+    // Try to get user's Google API key from settings
+    let apiKeyParam = "";
+    try {
+      const { data } = await supabase
+        .from("site_content")
+        .select("content_value")
+        .eq("content_key", "google_api_key")
+        .eq("locale", "en")
+        .single();
+      if (data?.content_value) {
+        apiKeyParam = `&key=${data.content_value}`;
+      }
+    } catch {
+      // No API key configured, use free tier
+    }
     
-    const res = await fetch(apiUrl, { next: { revalidate: 3600 } }); // Cache for 1 hour
+    const apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&strategy=${strategy}&category=performance&category=seo&category=accessibility&category=best-practices${apiKeyParam}`;
+    
+    const res = await fetch(apiUrl, { next: { revalidate: 3600 } });
     const data = await res.json();
     
     if (data.error) {
@@ -18,7 +39,6 @@ export async function GET(req: NextRequest) {
     const categories = data.lighthouseResult?.categories || {};
     const audits = data.lighthouseResult?.audits || {};
     
-    // Extract Core Web Vitals
     const result = {
       scores: {
         performance: Math.round((categories.performance?.score || 0) * 100),
@@ -34,9 +54,21 @@ export async function GET(req: NextRequest) {
         tbt: audits["total-blocking-time"]?.displayValue || "N/A",
         si: audits["speed-index"]?.displayValue || "N/A",
       },
+      seoAudits: {
+        metaDescription: audits["meta-description"]?.score === 1,
+        documentTitle: audits["document-title"]?.score === 1,
+        httpStatusCode: audits["http-status-code"]?.score === 1,
+        isLinkCrawlable: audits["link-text"]?.score === 1,
+        isMobileFriendly: audits["viewport"]?.score === 1,
+        robotsTxt: audits["robots-txt"]?.score === 1,
+        canonical: audits["canonical"]?.score === 1,
+        hreflang: audits["hreflang"]?.score === 1,
+        structured: audits["structured-data"]?.score === 1 || audits["structured-data"]?.score === null,
+      },
       strategy,
       url,
       fetchedAt: new Date().toISOString(),
+      hasApiKey: apiKeyParam !== "",
     };
     
     return NextResponse.json({ data: result });
