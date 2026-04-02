@@ -1,21 +1,21 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Save, User, Lock, Globe, Shield, CheckCircle2 } from "lucide-react";
+import { Save, User, Lock, Globe, Shield, CheckCircle2, AlertCircle } from "lucide-react";
 
 export default function SettingsPage() {
   const [admin, setAdmin] = useState({ username: "", display_name: "" });
   const [password, setPassword] = useState({ current: "", new_password: "", confirm: "" });
   const [siteSettings, setSiteSettings] = useState({
     site_name: "The Orange Fox",
-    site_url: "https://theorangefox.com",
+    site_url: "https://the-orange-fox-web.vercel.app",
     logo_url: "",
     contact_email: "hello@theorangefox.com",
     default_locale: "en",
   });
-  const [saving, setSaving] = useState(false);
   const [changingPw, setChangingPw] = useState(false);
-  const [saveSiteSettings, setSaveSiteSettings] = useState(false);
+  const [savingSiteSettings, setSavingSiteSettings] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
     async function loadAdmin() {
@@ -24,7 +24,10 @@ export default function SettingsPage() {
         if (res.ok) {
           const data = await res.json();
           if (data.authenticated && data.admin) {
-            setAdmin({ username: data.admin.username || "", display_name: data.admin.display_name || "" });
+            setAdmin({
+              username: data.admin.username || "",
+              display_name: data.admin.display_name || "",
+            });
           }
         }
       } catch (e) {
@@ -36,45 +39,58 @@ export default function SettingsPage() {
 
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);
+    setErrorMsg("");
     setTimeout(() => setSuccessMsg(""), 3000);
   };
 
+  const showError = (msg: string) => {
+    setErrorMsg(msg);
+    setSuccessMsg("");
+    setTimeout(() => setErrorMsg(""), 5000);
+  };
+
   const handlePasswordChange = async () => {
-    if (!password.current || !password.new_password) return;
+    if (!password.current || !password.new_password) {
+      showError("Please fill in both current and new password.");
+      return;
+    }
     if (password.new_password !== password.confirm) {
-      alert("New passwords don't match");
+      showError("New passwords don't match.");
       return;
     }
     if (password.new_password.length < 6) {
-      alert("Password must be at least 6 characters");
+      showError("Password must be at least 6 characters.");
       return;
     }
 
     setChangingPw(true);
     try {
-      const verifyRes = await fetch("/api/auth", {
+      const res = await fetch("/api/auth/password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: admin.username, password: password.current }),
+        body: JSON.stringify({
+          current_password: password.current,
+          new_password: password.new_password,
+        }),
       });
-      const verifyData = await verifyRes.json();
-      if (!verifyData.success) {
-        alert("Current password is incorrect");
-        return;
-      }
+      const data = await res.json();
 
-      showSuccess("Password verification successful. Contact system admin to update password hash.");
-      setPassword({ current: "", new_password: "", confirm: "" });
+      if (res.ok && data.success) {
+        showSuccess("Password changed successfully!");
+        setPassword({ current: "", new_password: "", confirm: "" });
+      } else {
+        showError(data.error || "Failed to change password.");
+      }
     } catch (e) {
       console.error(e);
-      alert("Failed to change password");
+      showError("Failed to change password. Please try again.");
     } finally {
       setChangingPw(false);
     }
   };
 
   const handleSaveSiteSettings = async () => {
-    setSaveSiteSettings(true);
+    setSavingSiteSettings(true);
     try {
       const settings = [
         { key: "site_name", value: siteSettings.site_name },
@@ -100,9 +116,9 @@ export default function SettingsPage() {
       showSuccess("Site settings saved successfully!");
     } catch (e) {
       console.error(e);
-      alert("Failed to save settings");
+      showError("Failed to save site settings.");
     } finally {
-      setSaveSiteSettings(false);
+      setSavingSiteSettings(false);
     }
   };
 
@@ -121,6 +137,14 @@ export default function SettingsPage() {
         </div>
       )}
 
+      {/* Error Toast */}
+      {errorMsg && (
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm animate-fade-in shadow-xl">
+          <AlertCircle size={16} />
+          {errorMsg}
+        </div>
+      )}
+
       {/* Admin Profile */}
       <div className="bg-dark-400 border border-dark-50/50 rounded-2xl overflow-hidden">
         <div className="px-6 py-4 border-b border-dark-50/50 flex items-center gap-2">
@@ -134,7 +158,7 @@ export default function SettingsPage() {
             </div>
             <div>
               <h4 className="text-lg font-semibold text-white">{admin.display_name || "Admin"}</h4>
-              <p className="text-sm text-gray-500">@{admin.username}</p>
+              <p className="text-sm text-gray-500">@{admin.username || "admin"}</p>
               <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 text-[10px] rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                 <Shield size={10} /> Administrator
               </span>
@@ -269,11 +293,11 @@ export default function SettingsPage() {
           </div>
           <button
             onClick={handleSaveSiteSettings}
-            disabled={saveSiteSettings}
+            disabled={savingSiteSettings}
             className="flex items-center gap-2 px-4 py-2.5 text-sm rounded-xl bg-orange text-white hover:bg-orange-600 transition-all disabled:opacity-50"
           >
             <Save size={14} />
-            {saveSiteSettings ? "Saving..." : "Save Site Settings"}
+            {savingSiteSettings ? "Saving..." : "Save Site Settings"}
           </button>
         </div>
       </div>
