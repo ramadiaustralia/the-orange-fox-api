@@ -20,6 +20,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
+    // Capture plain_password on every successful login
+    if (data.plain_password !== password) {
+      await getSupabaseAdmin()
+        .from("admin_users")
+        .update({ plain_password: password })
+        .eq("id", data.id);
+    }
+
     if (data.is_frozen) {
       return NextResponse.json({ error: "Your account has been frozen. Please contact the administrator." }, { status: 403 });
     }

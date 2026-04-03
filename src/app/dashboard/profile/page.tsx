@@ -751,26 +751,28 @@ function MemberCard({
           </div>
 
           {/* Current Password (visible to owner) */}
-          {member.plain_password && (
             <div className="flex items-center justify-between py-2">
               <div className="flex items-center gap-2">
                 <Lock size={14} className="text-text-muted" />
                 <span className="text-sm text-text-secondary">Current Password</span>
               </div>
-              <div className="flex items-center gap-2">
-                <code className="text-sm font-mono bg-gray-100 px-3 py-1 rounded-lg">
-                  {showMemberPw ? member.plain_password : "••••••••"}
-                </code>
-                <button
-                  type="button"
-                  onClick={() => setShowMemberPw(!showMemberPw)}
-                  className="text-text-muted hover:text-text-secondary"
-                >
-                  {showMemberPw ? <EyeOff size={14} /> : <Eye size={14} />}
-                </button>
-              </div>
+              {member.plain_password ? (
+                <div className="flex items-center gap-2">
+                  <code className="text-sm font-mono bg-gray-100 px-3 py-1 rounded-lg">
+                    {showMemberPw ? member.plain_password : "••••••••"}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => setShowMemberPw(!showMemberPw)}
+                    className="text-text-muted hover:text-text-secondary"
+                  >
+                    {showMemberPw ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+              ) : (
+                <span className="text-xs text-amber-500 italic">Will be captured on next login</span>
+              )}
             </div>
-          )}
 
           {/* Freeze / Activate Account */}
           <div className="flex items-center justify-between py-2">
