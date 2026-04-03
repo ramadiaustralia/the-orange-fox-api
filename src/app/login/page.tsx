@@ -127,7 +127,7 @@ export default function LoginPage() {
               style={{ animation: "glow-pulse 2s ease-in-out infinite" }}
             />
             <span className="text-[0.65rem] uppercase tracking-[3px] text-white/60 font-heading">
-              Company Website Portal
+              Company Portal
             </span>
           </div>
         </div>
@@ -159,7 +159,7 @@ export default function LoginPage() {
           <h1 className="font-heading font-bold text-[0.7rem] tracking-[2px] text-orange uppercase mb-1">
             THE ORANGE FOX
           </h1>
-          <p className="text-sm text-white/40">Content Management System</p>
+          <p className="text-sm text-white/40">Company Portal</p>
         </div>
 
         {/* Login Card */}

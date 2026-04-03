@@ -1,7 +1,6 @@
 "use client";
 import { useRouter, usePathname } from "next/navigation";
 import { Menu, LogOut } from "lucide-react";
-import Image from "next/image";
 import type { UserProfile } from "@/context/AuthContext";
 import NotificationDropdown from "@/components/NotificationDropdown";
 import MessagingDropdown from "@/components/MessagingDropdown";
@@ -19,7 +18,7 @@ const pageMeta: Record<string, { title: string; description: string }> = {
   "/dashboard/orders": { title: "Orders", description: "Track and manage orders" },
   "/dashboard/tech-stack": { title: "Tech Stack", description: "Manage technologies" },
   "/dashboard/menus": { title: "Menus", description: "Configure navigation" },
-  "/dashboard/messages": { title: "Messages", description: "Customer inquiries" },
+  "/dashboard/messages": { title: "Customer Project Request", description: "Manage customer project requests" },
   "/dashboard/contact": { title: "Contact", description: "Contact details" },
   "/dashboard/seo": { title: "SEO & Analytics", description: "Search optimisation" },
   "/dashboard/settings": { title: "Settings", description: "System configuration" },
@@ -81,13 +80,10 @@ export default function Topbar({ user, onMenuClick }: TopbarProps) {
           title={displayName}
         >
           {user?.profile_pic_url ? (
-            <Image
+            <img
               src={user.profile_pic_url}
               alt={displayName}
-              width={32}
-              height={32}
-              className="rounded-full object-cover"
-              style={{ width: 32, height: 32 }}
+              className="w-8 h-8 rounded-full object-cover"
             />
           ) : (
             <div className="w-8 h-8 rounded-full bg-[#D4692A]/10 flex items-center justify-center text-[#D4692A] text-xs font-bold">

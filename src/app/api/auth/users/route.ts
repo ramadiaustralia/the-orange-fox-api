@@ -16,14 +16,31 @@ async function requireOwner(req: NextRequest) {
   return data;
 }
 
-// GET all users
+// GET all users (all authenticated users can list, only owner sees sensitive fields)
 export async function GET(req: NextRequest) {
-  const owner = await requireOwner(req);
-  if (!owner) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  const token = req.cookies.get("fox_admin_token")?.value;
+  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const payload = await verifyToken(token);
+  if (!payload) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // Check if the user is the owner
+  const { data: requester } = await getSupabaseAdmin()
+    .from("admin_users")
+    .select("id, role")
+    .eq("id", payload.sub)
+    .single();
+
+  if (!requester) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const isOwner = requester.role === "owner";
+
+  const selectFields = isOwner
+    ? "id, username, email, display_name, position, role, permissions, profile_pic_url, plain_password, is_frozen, created_at"
+    : "id, email, display_name, position, role, profile_pic_url";
 
   const { data, error } = await getSupabaseAdmin()
     .from("admin_users")
-    .select("id, username, email, display_name, position, role, permissions, profile_pic_url, plain_password, is_frozen, created_at")
+    .select(selectFields)
     .order("created_at", { ascending: true });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

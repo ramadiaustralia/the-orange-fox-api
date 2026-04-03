@@ -97,10 +97,12 @@ export default function PostForm({ user, onPostCreated }: PostFormProps) {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                file_url: uploadData.data?.url || uploadData.url,
-                file_name: file.name,
-                file_type: file.type,
-                file_size: file.size,
+                attachments: [{
+                  file_url: uploadData.data?.url || uploadData.url,
+                  file_name: file.name,
+                  file_type: file.type,
+                  file_size: file.size,
+                }],
               }),
             });
           }

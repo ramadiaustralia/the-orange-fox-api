@@ -181,7 +181,7 @@ export default function PostCard({
       try {
         const res = await fetch(`/api/posts/${post.id}/comments`);
         const json = await res.json();
-        setComments(json.data || []);
+        setComments(json.comments || []);
       } catch {
         console.error("Failed to load comments");
       } finally {
@@ -201,8 +201,8 @@ export default function PostCard({
         body: JSON.stringify({ content: commentText.trim() }),
       });
       const json = await res.json();
-      if (json.data) {
-        setComments((prev) => [...prev, json.data]);
+      if (json.comment) {
+        setComments((prev) => [...prev, json.comment]);
         setCommentCount((c) => c + 1);
       }
       setCommentText("");

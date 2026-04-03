@@ -31,7 +31,7 @@ const navSections = [
   {
     label: null,
     items: [
-      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/dashboard", label: "Company Timeline", icon: LayoutDashboard },
     ],
   },
   {
@@ -115,7 +115,7 @@ export default function Sidebar({ collapsed, onToggle, mobile, onClose }: Sideba
             />
             <div className="flex items-center gap-2">
               <span className="font-heading font-bold text-white text-sm tracking-wide">The Orange Fox</span>
-              <span className="bg-[#D4692A]/15 text-[#D4692A] text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">CMS</span>
+              <span className="bg-[#D4692A]/15 text-[#D4692A] text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">PORTAL</span>
             </div>
           </div>
         )}

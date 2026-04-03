@@ -55,21 +55,26 @@ export async function GET(req: NextRequest) {
     userMap.set(u.id, u);
   }
 
-  const conversations = partnerIds.map((partnerId) => {
+  const rawConversations = partnerIds.map((partnerId) => {
     const conv = conversationMap.get(partnerId)!;
     return {
       user: userMap.get(partnerId) || { id: partnerId },
-      lastMessage: conv.lastMessage,
-      unreadCount: conv.unreadCount,
+      last_message: (conv.lastMessage as Record<string, unknown>).content as string || "",
+      unread_count: conv.unreadCount,
+      _created_at: (conv.lastMessage as Record<string, unknown>).created_at as string,
     };
   });
 
   // Sort by last message time (most recent first)
-  conversations.sort((a, b) => {
-    const aTime = new Date(a.lastMessage.created_at as string).getTime();
-    const bTime = new Date(b.lastMessage.created_at as string).getTime();
+  rawConversations.sort((a, b) => {
+    const aTime = new Date(a._created_at).getTime();
+    const bTime = new Date(b._created_at).getTime();
     return bTime - aTime;
   });
+
+  // Remove internal sort key before returning
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const conversations = rawConversations.map(({ _created_at, ...rest }) => rest);
 
   return NextResponse.json({ conversations });
 }

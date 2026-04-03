@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Bell } from "lucide-react";
-import Image from "next/image";
 
 interface NotificationDropdownProps {
   currentUserId: string;
@@ -71,11 +70,9 @@ function getNotificationText(n: Notification): string {
 function ActorAvatar({ actor, size = 36 }: { actor: NotificationActor; size?: number }) {
   if (actor.profile_pic_url) {
     return (
-      <Image
+      <img
         src={actor.profile_pic_url}
         alt={actor.display_name}
-        width={size}
-        height={size}
         className="rounded-full object-cover flex-shrink-0"
         style={{ width: size, height: size }}
       />

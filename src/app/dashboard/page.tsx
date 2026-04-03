@@ -106,8 +106,8 @@ export default function DashboardPage() {
     try {
       const res = await fetch("/api/posts");
       const json = await res.json();
-      if (json.data) {
-        setPosts(json.data);
+      if (json.posts) {
+        setPosts(json.posts);
       }
     } catch (err) {
       console.error("Failed to fetch posts:", err);

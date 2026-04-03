@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { MessageSquare, ArrowLeft, Send } from "lucide-react";
-import Image from "next/image";
 import type { UserProfile } from "@/context/AuthContext";
 
 interface MessagingDropdownProps {
@@ -66,11 +65,9 @@ function formatTime(dateStr: string) {
 function Avatar({ user, size = 36 }: { user: { display_name: string; profile_pic_url: string | null }; size?: number }) {
   if (user.profile_pic_url) {
     return (
-      <Image
+      <img
         src={user.profile_pic_url}
         alt={user.display_name}
-        width={size}
-        height={size}
         className="rounded-full object-cover flex-shrink-0"
         style={{ width: size, height: size }}
       />
