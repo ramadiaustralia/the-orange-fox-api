@@ -182,7 +182,7 @@ export default function NotificationDropdown({ currentUserId }: NotificationDrop
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute top-full right-0 mt-2 w-96 max-h-[500px] bg-white rounded-2xl shadow-2xl border border-[#e8e4e0] overflow-hidden z-50 animate-fade-in flex flex-col">
+        <div className="fixed left-3 right-3 top-[68px] sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96 max-h-[80vh] sm:max-h-[500px] bg-white rounded-2xl shadow-2xl border border-[#e8e4e0] overflow-hidden z-50 animate-fade-in flex flex-col">
           {/* Header */}
           <div className="px-4 py-3 border-b border-[#e8e4e0] flex items-center justify-between">
             <h3 className="text-sm font-semibold text-[#1a1a1a]" style={{ fontFamily: "var(--font-heading)" }}>

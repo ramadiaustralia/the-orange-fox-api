@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
-import { Mail, MailOpen, MessageSquare, Send, Clock, User, Package, ChevronDown, ChevronUp, RefreshCw, Filter, Trash2 } from "lucide-react";
+import { Mail, MailOpen, MessageSquare, Send, Clock, User, Package, ChevronDown, ChevronUp, RefreshCw, Filter, Trash2, Paperclip, Image as ImageIcon, Video, FileText, X, Download } from "lucide-react";
 import { usePermission } from "@/hooks/usePermission";
 import AccessDenied from "@/components/AccessDenied";
 
@@ -8,6 +8,7 @@ interface Reply {
   type: string;
   message: string;
   timestamp: string;
+  attachments?: { url: string; name: string; type: string; size: number }[];
 }
 
 interface Message {
@@ -35,6 +36,8 @@ export default function MessagesPage() {
   const [sending, setSending] = useState<Record<string, boolean>>({});
   const [deleting, setDeleting] = useState<Record<string, boolean>>({});
   const [filter, setFilter] = useState("all");
+  const [replyFiles, setReplyFiles] = useState<Record<string, { url: string; name: string; type: string; size: number }[]>>({});
+  const [uploading, setUploading] = useState<Record<string, boolean>>({});
 
   const loadMessages = useCallback(async () => {
     setLoading(true);
@@ -65,6 +68,22 @@ export default function MessagesPage() {
     }
   };
 
+  const handleFileUpload = async (msgId: string, files: FileList) => {
+    setUploading(p => ({ ...p, [msgId]: true }));
+    const uploaded: { url: string; name: string; type: string; size: number }[] = [];
+    for (const file of Array.from(files)) {
+      const form = new FormData();
+      form.append("file", file);
+      try {
+        const res = await fetch("/api/upload", { method: "POST", body: form });
+        const data = await res.json();
+        if (data.url) uploaded.push({ url: data.url, name: data.fileName, type: data.fileType, size: data.fileSize });
+      } catch {}
+    }
+    setReplyFiles(p => ({ ...p, [msgId]: [...(p[msgId] || []), ...uploaded] }));
+    setUploading(p => ({ ...p, [msgId]: false }));
+  };
+
   const sendReply = async (id: string) => {
     const reply = replyText[id];
     if (!reply?.trim()) return;
@@ -73,9 +92,10 @@ export default function MessagesPage() {
       await fetch("/api/messages", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, admin_reply: reply }),
+        body: JSON.stringify({ id, admin_reply: reply, attachments: replyFiles[id] || [] }),
       });
       setReplyText((p) => ({ ...p, [id]: "" }));
+      setReplyFiles((p) => ({ ...p, [id]: [] }));
       loadMessages();
     } finally {
       setSending((p) => ({ ...p, [id]: false }));
@@ -157,7 +177,7 @@ export default function MessagesPage() {
               <div key={msg.id} className={`bg-white border rounded-2xl shadow-sm transition-all duration-200 ${
                 msg.status === "unread" ? "border-[#D4692A]/20" : "border-[#f0ece8]"
               }`}>
-                <div className="px-6 py-4 flex items-center gap-4 cursor-pointer hover:bg-[#fafafa] transition-colors rounded-2xl" onClick={() => toggleExpand(msg)}>
+                <div className="px-4 sm:px-6 py-4 flex items-center gap-3 sm:gap-4 cursor-pointer hover:bg-[#fafafa] transition-colors rounded-2xl" onClick={() => toggleExpand(msg)}>
                   <div className="flex-shrink-0">
                     {msg.status === "unread" ? (
                       <div className="w-10 h-10 rounded-xl bg-[#D4692A]/10 flex items-center justify-center"><Mail size={16} className="text-[#D4692A]" /></div>
@@ -174,8 +194,8 @@ export default function MessagesPage() {
                       {hasCustomerReply && <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20">NEW REPLY</span>}
                     </div>
                     <p className="text-sm text-[#999999] truncate">{msg.subject || "No subject"}</p>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-[#555555]">
-                      <span>{msg.email}</span>
+                    <div className="flex items-center gap-3 mt-1 text-xs text-[#555555] flex-wrap">
+                      <span className="truncate max-w-[180px] sm:max-w-none">{msg.email}</span>
                       <span className="flex items-center gap-1"><Clock size={10} /> {new Date(msg.created_at).toLocaleDateString()}</span>
                       {replies.length > 0 && <span className="text-[#D4692A]">{replies.length} {replies.length === 1 ? "reply" : "replies"}</span>}
                     </div>
@@ -190,7 +210,7 @@ export default function MessagesPage() {
                 </div>
 
                 {isExpanded && (
-                  <div className="px-6 pb-6 animate-fade-in border-t border-[#f0ece8] mt-0 pt-4">
+                  <div className="px-4 sm:px-6 pb-4 sm:pb-6 animate-fade-in border-t border-[#f0ece8] mt-0 pt-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <div className="space-y-2 text-sm">
                         <div className="flex items-center gap-2 text-[#555555]"><User size={12} /> <span className="text-[#1a1a1a]">{msg.name}</span></div>
@@ -214,6 +234,24 @@ export default function MessagesPage() {
                           {r.type === "admin" ? "🦊 Team Reply" : "💬 Customer Reply"} • {new Date(r.timestamp).toLocaleString()}
                         </p>
                         <p className="text-sm text-[#555555] whitespace-pre-wrap">{r.message}</p>
+                        {r.attachments && r.attachments.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            {r.attachments.map((att: { url: string; name: string; type: string; size: number }, ai: number) => (
+                              att.type?.startsWith("image/") ? (
+                                <a key={ai} href={att.url} target="_blank" rel="noopener noreferrer">
+                                  <img src={att.url} alt={att.name} className="max-w-xs max-h-48 rounded-lg border border-[#e8e4e0] mt-1" />
+                                </a>
+                              ) : att.type?.startsWith("video/") ? (
+                                <video key={ai} src={att.url} controls preload="metadata" className="max-w-xs max-h-48 rounded-lg mt-1" />
+                              ) : (
+                                <a key={ai} href={att.url} target="_blank" rel="noopener noreferrer"
+                                  className="flex items-center gap-2 px-3 py-2 bg-white/50 border border-[#e8e4e0] rounded-lg text-sm text-[#555] hover:text-[#D4692A] transition-colors mt-1 w-fit">
+                                  <FileText size={14} /> {att.name} <Download size={12} className="text-[#999]" />
+                                </a>
+                              )
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ))}
 
@@ -228,6 +266,38 @@ export default function MessagesPage() {
                         placeholder="Type your reply..."
                         className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-3 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all min-h-[100px] resize-y placeholder:text-[#999999]"
                       />
+                      {/* Attachment Buttons */}
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        <input type="file" id={`img-${msg.id}`} accept="image/*" multiple className="hidden" onChange={(e) => e.target.files && handleFileUpload(msg.id, e.target.files)} />
+                        <input type="file" id={`vid-${msg.id}`} accept="video/*" multiple className="hidden" onChange={(e) => e.target.files && handleFileUpload(msg.id, e.target.files)} />
+                        <input type="file" id={`doc-${msg.id}`} accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip" multiple className="hidden" onChange={(e) => e.target.files && handleFileUpload(msg.id, e.target.files)} />
+                        <button type="button" onClick={() => document.getElementById(`img-${msg.id}`)?.click()} className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-[#e8e4e0] text-[#555] hover:text-[#D4692A] hover:border-[#D4692A]/30 transition-colors">
+                          <ImageIcon size={12} /> Photo
+                        </button>
+                        <button type="button" onClick={() => document.getElementById(`vid-${msg.id}`)?.click()} className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-[#e8e4e0] text-[#555] hover:text-[#D4692A] hover:border-[#D4692A]/30 transition-colors">
+                          <Video size={12} /> Video
+                        </button>
+                        <button type="button" onClick={() => document.getElementById(`doc-${msg.id}`)?.click()} className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-[#e8e4e0] text-[#555] hover:text-[#D4692A] hover:border-[#D4692A]/30 transition-colors">
+                          <FileText size={12} /> File
+                        </button>
+                        {uploading[msg.id] && <span className="text-xs text-[#999]">Uploading...</span>}
+                      </div>
+
+                      {/* Attachment Preview */}
+                      {replyFiles[msg.id]?.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {replyFiles[msg.id].map((f, fi) => (
+                            <div key={fi} className="flex items-center gap-2 px-3 py-1.5 bg-[#f5f2ef] border border-[#e8e4e0] rounded-lg text-xs text-[#555]">
+                              {f.type?.startsWith("image/") ? <ImageIcon size={12} className="text-[#D4692A]" /> : f.type?.startsWith("video/") ? <Video size={12} className="text-[#D4692A]" /> : <FileText size={12} className="text-[#D4692A]" />}
+                              <span className="max-w-[120px] truncate">{f.name}</span>
+                              <button type="button" onClick={() => setReplyFiles(p => ({ ...p, [msg.id]: p[msg.id].filter((_, i) => i !== fi) }))} className="text-[#999] hover:text-red-500 transition-colors">
+                                <X size={12} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
                       <div className="flex justify-end mt-3">
                         <button onClick={() => sendReply(msg.id)}
                           disabled={sending[msg.id] || !replyText[msg.id]?.trim()}

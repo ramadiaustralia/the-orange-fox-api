@@ -3,7 +3,7 @@
 import { useAuth } from "@/context/AuthContext";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { Search, Send, Paperclip, FileText, Download, X, ArrowLeft, MessageSquare } from "lucide-react";
+import { Search, Send, Paperclip, FileText, Download, X, ArrowLeft, MessageSquare, Trash2, RotateCcw } from "lucide-react";
 
 interface TeamMember {
   id: string;
@@ -26,6 +26,7 @@ interface Message {
   receiver_id: string;
   content: string;
   is_read: boolean;
+  is_unsent?: boolean;
   created_at: string;
   attachment_url: string | null;
   attachment_name: string | null;
@@ -316,6 +317,27 @@ export default function TeamMessagesPage() {
     setShowSidebar(false);
   };
 
+  const handleUnsend = async (messageId: string) => {
+    try {
+      const res = await fetch("/api/internal-messages", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: messageId, action: "unsend" }),
+      });
+      if (res.ok) await fetchMessages();
+    } catch { /* ignore */ }
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!confirm("Delete this message permanently?")) return;
+    try {
+      const res = await fetch(`/api/internal-messages?id=${messageId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) await fetchMessages();
+    } catch { /* ignore */ }
+  };
+
   const handleBack = () => {
     setActiveChat(null);
     setShowSidebar(true);
@@ -346,6 +368,9 @@ export default function TeamMessagesPage() {
 
   const isImageAttachment = (type: string | null) =>
     type?.startsWith("image/") || false;
+
+  const isVideoAttachment = (type: string | null) =>
+    type?.startsWith("video/") || false;
 
   if (!user) {
     return (
@@ -480,6 +505,7 @@ export default function TeamMessagesPage() {
               ) : (
                 messages.map((msg) => {
                   const isSent = msg.sender_id === user.id;
+                  const isUnsent = msg.is_unsent === true || msg.content === "__UNSENT__";
                   return (
                     <div
                       key={msg.id}
@@ -490,93 +516,120 @@ export default function TeamMessagesPage() {
                           <Avatar user={activeChat} size={28} />
                         </div>
                       )}
-                      <div
-                        className={`max-w-[65%] px-4 py-2.5 rounded-2xl text-sm ${
-                          isSent
-                            ? "bg-[#D4692A] text-white rounded-br-md"
-                            : "bg-white border border-[#e8e4e0] text-[#1a1a1a] rounded-bl-md shadow-sm"
-                        }`}
-                      >
-                        {/* Attachment */}
-                        {msg.attachment_url && (
-                          <div className="mb-2">
-                            {isImageAttachment(msg.attachment_type) ? (
-                              <a
-                                href={msg.attachment_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                <img
-                                  src={msg.attachment_url}
-                                  alt={msg.attachment_name || "Image"}
-                                  className="rounded-lg max-w-full max-h-48 object-cover"
-                                />
-                              </a>
-                            ) : (
-                              <a
-                                href={msg.attachment_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`flex items-center gap-2 p-2.5 rounded-lg ${
-                                  isSent
-                                    ? "bg-white/10"
-                                    : "bg-gray-50 border border-gray-100"
-                                }`}
-                              >
-                                <FileText
-                                  size={18}
-                                  className={isSent ? "text-white/70" : "text-gray-400"}
-                                />
-                                <div className="min-w-0 flex-1">
-                                  <p
-                                    className={`text-xs font-medium truncate ${
-                                      isSent ? "text-white" : "text-gray-700"
-                                    }`}
-                                  >
-                                    {msg.attachment_name || "File"}
-                                  </p>
-                                  <p
-                                    className={`text-[10px] ${
-                                      isSent ? "text-white/50" : "text-gray-400"
-                                    }`}
-                                  >
-                                    {formatFileSize(msg.attachment_size)}
-                                  </p>
-                                </div>
-                                <Download
-                                  size={14}
-                                  className={isSent ? "text-white/60" : "text-gray-400"}
-                                />
-                              </a>
-                            )}
+                      <div className="relative group">
+                        {isSent && !isUnsent && (
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -left-8 top-1/2 -translate-y-1/2 flex flex-col gap-1">
+                            <button onClick={() => handleUnsend(msg.id)} title="Unsend" className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-orange-500 transition-colors">
+                              <RotateCcw size={14} />
+                            </button>
+                            <button onClick={() => handleDeleteMessage(msg.id)} title="Delete" className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors">
+                              <Trash2 size={14} />
+                            </button>
                           </div>
                         )}
-
-                        {msg.content && (
-                          <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                        )}
                         <div
-                          className={`flex items-center gap-1.5 mt-1.5 ${
-                            isSent ? "justify-end" : ""
+                          className={`max-w-[65%] px-4 py-2.5 rounded-2xl text-sm ${
+                            isUnsent
+                              ? "bg-gray-100 border border-gray-200 text-gray-400 italic"
+                              : isSent
+                                ? "bg-[#D4692A] text-white rounded-br-md"
+                                : "bg-white border border-[#e8e4e0] text-[#1a1a1a] rounded-bl-md shadow-sm"
                           }`}
                         >
-                          <p
-                            className={`text-[10px] ${
-                              isSent ? "text-white/50" : "text-[#999]"
+                          {isUnsent ? (
+                            <p className="text-sm italic text-gray-400">🚫 This message was unsent</p>
+                          ) : (
+                            <>
+                              {/* Attachment */}
+                              {msg.attachment_url && (
+                                <div className="mb-2">
+                                  {isImageAttachment(msg.attachment_type) ? (
+                                    <a
+                                      href={msg.attachment_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      <img
+                                        src={msg.attachment_url}
+                                        alt={msg.attachment_name || "Image"}
+                                        className="rounded-lg max-w-full max-h-48 object-cover"
+                                      />
+                                    </a>
+                                  ) : isVideoAttachment(msg.attachment_type) ? (
+                                    <video
+                                      src={msg.attachment_url}
+                                      controls
+                                      preload="metadata"
+                                      className="rounded-lg max-w-full max-h-48"
+                                    />
+                                  ) : (
+                                    <a
+                                      href={msg.attachment_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className={`flex items-center gap-2 p-2.5 rounded-lg ${
+                                        isSent
+                                          ? "bg-white/10"
+                                          : "bg-gray-50 border border-gray-100"
+                                      }`}
+                                    >
+                                      <FileText
+                                        size={18}
+                                        className={isSent ? "text-white/70" : "text-gray-400"}
+                                      />
+                                      <div className="min-w-0 flex-1">
+                                        <p
+                                          className={`text-xs font-medium truncate ${
+                                            isSent ? "text-white" : "text-gray-700"
+                                          }`}
+                                        >
+                                          {msg.attachment_name || "File"}
+                                        </p>
+                                        <p
+                                          className={`text-[10px] ${
+                                            isSent ? "text-white/50" : "text-gray-400"
+                                          }`}
+                                        >
+                                          {formatFileSize(msg.attachment_size)}
+                                        </p>
+                                      </div>
+                                      <Download
+                                        size={14}
+                                        className={isSent ? "text-white/60" : "text-gray-400"}
+                                      />
+                                    </a>
+                                  )}
+                                </div>
+                              )}
+
+                              {msg.content && (
+                                <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                              )}
+                            </>
+                          )}
+                          <div
+                            className={`flex items-center gap-1.5 mt-1.5 ${
+                              isSent ? "justify-end" : ""
                             }`}
                           >
-                            {formatMessageTime(msg.created_at)}
-                          </p>
+                            <p
+                              className={`text-[10px] ${
+                                isUnsent ? "text-gray-300" : isSent ? "text-white/50" : "text-[#999]"
+                              }`}
+                            >
+                              {formatMessageTime(msg.created_at)}
+                            </p>
+                          </div>
+                          {isSent && !isUnsent && (
+                            <span
+                              className={`text-[9px] ${
+                                msg.is_read ? "text-blue-200" : "text-white/40"
+                              }`}
+                            >
+                              {msg.is_read ? "✓✓ Read" : "✓ Sent"}
+                            </span>
+                          )}
                         </div>
-                        {isSent && (
-                          <span
-                            className={`text-[9px] ${
-                              msg.is_read ? "text-blue-200" : "text-white/40"
-                            }`}
-                          >
-                            {msg.is_read ? "✓✓ Read" : "✓ Sent"}
-                          </span>
-                        )}
                       </div>
                     </div>
                   );

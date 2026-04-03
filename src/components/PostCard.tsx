@@ -86,6 +86,10 @@ function isImageType(type: string) {
   return type.startsWith("image/");
 }
 
+function isVideoType(type: string) {
+  return type.startsWith("video/");
+}
+
 function formatFileSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -153,7 +157,8 @@ export default function PostCard({
 
   const isAuthor = currentUserId === post.author.id;
   const imageAttachments = post.attachments.filter((a) => isImageType(a.file_type));
-  const fileAttachments = post.attachments.filter((a) => !isImageType(a.file_type));
+  const videoAttachments = post.attachments.filter((a) => isVideoType(a.file_type));
+  const fileAttachments = post.attachments.filter((a) => !isImageType(a.file_type) && !isVideoType(a.file_type));
 
   /* ── Like ── */
   const handleLike = useCallback(async () => {
@@ -341,6 +346,21 @@ export default function PostCard({
                 className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
               />
             </a>
+          ))}
+        </div>
+      )}
+
+      {/* ── Video Attachments ── */}
+      {videoAttachments.length > 0 && (
+        <div className="px-5 pt-3 space-y-2">
+          {videoAttachments.map((att) => (
+            <video
+              key={att.id}
+              src={att.file_url}
+              controls
+              preload="metadata"
+              className="w-full rounded-xl max-h-96"
+            />
           ))}
         </div>
       )}

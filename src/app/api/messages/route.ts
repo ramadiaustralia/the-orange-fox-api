@@ -44,6 +44,7 @@ export async function PATCH(req: NextRequest) {
       type: "admin",
       message: updates.admin_reply,
       timestamp: new Date().toISOString(),
+      ...(body.attachments?.length ? { attachments: body.attachments } : {}),
     });
     updates.replies = replies;
 
@@ -58,6 +59,17 @@ export async function PATCH(req: NextRequest) {
 
         const replyUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "https://the-orange-fox-api.vercel.app"}/reply/${id}`;
 
+        const attachmentHtml = body.attachments?.length ? `
+              <div style="margin-top:12px;padding:12px;background:#f5f2ef;border-radius:8px;">
+                <p style="color:#999;font-size:11px;margin:0 0 8px;">📎 Attachments:</p>
+                ${body.attachments.map((a: {url: string; name: string; type: string}) => {
+                  if (a.type?.startsWith("image/")) {
+                    return `<div style="margin-bottom:8px;"><img src="${a.url}" alt="${a.name}" style="max-width:100%;max-height:200px;border-radius:8px;" /><br/><a href="${a.url}" style="color:#D4692A;font-size:12px;">${a.name}</a></div>`;
+                  }
+                  return `<div style="margin-bottom:4px;"><a href="${a.url}" style="color:#D4692A;font-size:13px;text-decoration:none;">📄 ${a.name}</a></div>`;
+                }).join("")}
+              </div>` : "";
+
         await transporter.sendMail({
           from: '"The Orange Fox" <theorgfox@gmail.com>',
           to: current.email,
@@ -71,6 +83,7 @@ export async function PATCH(req: NextRequest) {
               <div style="background:#f9f7f5;border-radius:12px;padding:20px;margin-bottom:16px;">
                 <p style="color:#555;font-size:14px;margin:0 0 8px;"><strong>Hi ${current.name},</strong></p>
                 <p style="color:#555;font-size:14px;margin:0;white-space:pre-wrap;">${updates.admin_reply}</p>
+                ${attachmentHtml}
               </div>
               <div style="text-align:center;margin:24px 0;">
                 <a href="${replyUrl}" style="display:inline-block;background:#D4692A;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px;">Reply to this message</a>

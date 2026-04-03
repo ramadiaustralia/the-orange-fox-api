@@ -13,9 +13,10 @@ export async function GET(req: NextRequest) {
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const db = getSupabaseAdmin();
+  const { searchParams } = new URL(req.url);
+  const statusFilter = searchParams.get("status");
 
-  // Fetch posts with author info and attachments
-  const { data: posts, error } = await db
+  let query = db
     .from("posts")
     .select(`
       *,
@@ -26,6 +27,18 @@ export async function GET(req: NextRequest) {
     `)
     .order("created_at", { ascending: false });
 
+  if (statusFilter === "pending") {
+    // Only owner can view pending posts
+    if (admin.role !== "owner") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    query = query.eq("status", "pending");
+  } else {
+    query = query.eq("status", "approved");
+  }
+
+  const { data: posts, error } = await query;
+
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const enrichedPosts = (posts || []).map((post: Record<string, unknown>) => {
@@ -35,6 +48,7 @@ export async function GET(req: NextRequest) {
       id: post.id,
       author_id: post.author_id,
       content: post.content,
+      status: post.status,
       created_at: post.created_at,
       updated_at: post.updated_at,
       author: post.author,
@@ -58,15 +72,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Content is required" }, { status: 400 });
     }
 
+    const { data: userData } = await getSupabaseAdmin()
+      .from("admin_users")
+      .select("role")
+      .eq("id", admin.sub)
+      .single();
+
+    const postStatus = userData?.role === "owner" ? "approved" : "pending";
+
     const { data: post, error } = await getSupabaseAdmin()
       .from("posts")
-      .insert({ author_id: admin.sub, content: content.trim() })
+      .insert({ author_id: admin.sub, content: content.trim(), status: postStatus })
       .select()
       .single();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    return NextResponse.json({ post });
+    return NextResponse.json({ post, status: postStatus });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Server error";
     return NextResponse.json({ error: message }, { status: 500 });

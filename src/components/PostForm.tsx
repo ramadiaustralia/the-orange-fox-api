@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { ImageIcon, Paperclip, X, Loader2, Send } from "lucide-react";
+import { ImageIcon, Paperclip, X, Loader2, Send, Video, Clock } from "lucide-react";
 import type { UserProfile } from "@/context/AuthContext";
 
 interface PostFormProps {
   user: UserProfile;
   onPostCreated: () => void;
+  isOwner?: boolean;
 }
 
 interface AttachedFile {
@@ -14,12 +15,14 @@ interface AttachedFile {
   preview?: string;
 }
 
-export default function PostForm({ user, onPostCreated }: PostFormProps) {
+export default function PostForm({ user, onPostCreated, isOwner }: PostFormProps) {
   const [content, setContent] = useState("");
   const [files, setFiles] = useState<AttachedFile[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [pendingNote, setPendingNote] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const firstName = user.display_name?.split(" ")[0] || "there";
@@ -46,9 +49,10 @@ export default function PostForm({ user, onPostCreated }: PostFormProps) {
     if (!newFiles) return;
     const added: AttachedFile[] = Array.from(newFiles).map((file) => {
       const isImage = file.type.startsWith("image/");
+      const isVideo = file.type.startsWith("video/");
       return {
         file,
-        preview: isImage ? URL.createObjectURL(file) : undefined,
+        preview: isImage || isVideo ? URL.createObjectURL(file) : undefined,
       };
     });
     setFiles((prev) => [...prev, ...added]);
@@ -115,6 +119,10 @@ export default function PostForm({ user, onPostCreated }: PostFormProps) {
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto";
       }
+      if (!isOwner) {
+        setPendingNote(true);
+        setTimeout(() => setPendingNote(false), 5000);
+      }
       onPostCreated();
     } catch (err) {
       console.error("Failed to create post:", err);
@@ -158,20 +166,28 @@ export default function PostForm({ user, onPostCreated }: PostFormProps) {
             style={{ minHeight: "48px" }}
           />
 
-          {/* Image previews */}
+          {/* Image & Video previews */}
           {files.some((f) => f.preview) && (
             <div className="flex flex-wrap gap-2 mt-3">
               {files
                 .filter((f) => f.preview)
                 .map((f, i) => {
                   const globalIdx = files.indexOf(f);
+                  const isVideo = f.file.type.startsWith("video/");
                   return (
                     <div key={i} className="relative group">
-                      <img
-                        src={f.preview}
-                        alt={f.file.name}
-                        className="w-20 h-20 rounded-xl object-cover border border-border-light"
-                      />
+                      {isVideo ? (
+                        <video
+                          src={f.preview}
+                          className="w-20 h-20 rounded-xl object-cover border border-border-light"
+                        />
+                      ) : (
+                        <img
+                          src={f.preview}
+                          alt={f.file.name}
+                          className="w-20 h-20 rounded-xl object-cover border border-border-light"
+                        />
+                      )}
                       <button
                         onClick={() => removeFile(globalIdx)}
                         className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
@@ -237,6 +253,23 @@ export default function PostForm({ user, onPostCreated }: PostFormProps) {
 
               <button
                 type="button"
+                onClick={() => videoInputRef.current?.click()}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-text-secondary hover:bg-[#f5f2ef] hover:text-[#D4692A] transition-all duration-200"
+              >
+                <Video size={16} />
+                <span className="hidden sm:inline">Video</span>
+              </button>
+              <input
+                ref={videoInputRef}
+                type="file"
+                accept="video/mp4,video/webm,video/quicktime,video/*"
+                multiple
+                className="hidden"
+                onChange={(e) => addFiles(e.target.files)}
+              />
+
+              <button
+                type="button"
                 onClick={() => fileInputRef.current?.click()}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-text-secondary hover:bg-[#f5f2ef] hover:text-[#D4692A] transition-all duration-200"
               >
@@ -272,6 +305,13 @@ export default function PostForm({ user, onPostCreated }: PostFormProps) {
               )}
             </button>
           </div>
+
+          {pendingNote && (
+            <div className="mt-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700 flex items-center gap-2">
+              <Clock size={14} />
+              Your post has been submitted and is awaiting approval from the CEO.
+            </div>
+          )}
         </div>
       </div>
     </div>

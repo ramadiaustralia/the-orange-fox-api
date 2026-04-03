@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 // POST: Customer submits a reply
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { id, message } = body;
+  const { id, message, attachments } = body;
   if (!id || !message?.trim()) {
     return NextResponse.json({ error: "ID and message required" }, { status: 400, headers: CORS });
   }
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
   }
 
   const replies = Array.isArray(current.replies) ? current.replies : [];
-  replies.push({ type: "customer", message: message.trim(), timestamp: new Date().toISOString() });
+  replies.push({ type: "customer", message: message.trim(), timestamp: new Date().toISOString(), ...(attachments?.length ? { attachments } : {}) });
 
   const { error: updateErr } = await getSupabaseAdmin()
     .from("contact_messages")

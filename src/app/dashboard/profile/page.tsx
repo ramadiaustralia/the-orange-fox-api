@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import {
-  UserCircle, Camera, Save, X, Plus, Trash2, Shield, Lock,
+  UserCircle, Camera, Save, X, Plus, Trash2, Shield, ShieldCheck, Lock,
   Eye, EyeOff, ChevronDown, ChevronUp, Check, AlertCircle,
   ArrowLeft,
 } from "lucide-react";
@@ -84,6 +84,10 @@ export default function ProfilePage() {
   const [showNewPw, setShowNewPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
 
+  /* ── Pending posts state ── */
+  const [pendingPosts, setPendingPosts] = useState<any[]>([]);
+  const [loadingPending, setLoadingPending] = useState(false);
+
   /* ── Team state ── */
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [loadingTeam, setLoadingTeam] = useState(false);
@@ -108,12 +112,45 @@ export default function ProfilePage() {
     setLoadingTeam(false);
   }, [isOwner]);
 
+  /* ── Load pending posts ── */
+  const loadPendingPosts = useCallback(async () => {
+    if (!isOwner) return;
+    setLoadingPending(true);
+    try {
+      const res = await fetch("/api/posts?status=pending");
+      const data = await res.json();
+      setPendingPosts(data.posts || []);
+    } catch { /* ignore */ }
+    setLoadingPending(false);
+  }, [isOwner]);
+
   useEffect(() => {
     if (user) {
       setProfileForm({ display_name: user.display_name || "", position: user.position || "" });
     }
     loadTeam();
-  }, [user, loadTeam]);
+    loadPendingPosts();
+  }, [user, loadTeam, loadPendingPosts]);
+
+  /* ── Post approval handler ── */
+  const handlePostApproval = async (postId: string, status: "approved" | "rejected") => {
+    try {
+      const res = await fetch(`/api/posts/${postId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      const data = await res.json();
+      if (data.post) {
+        setToast({ message: `Post ${status}`, type: "success" });
+        loadPendingPosts();
+      } else {
+        setToast({ message: data.error || "Failed", type: "error" });
+      }
+    } catch {
+      setToast({ message: "Network error", type: "error" });
+    }
+  };
 
   /* ── Profile handlers ── */
   const saveProfile = async () => {
@@ -387,6 +424,83 @@ export default function ProfilePage() {
           </div>
         </div>
       </Reveal>
+
+      {/* ── Pending Feed Posts (Owner only) ── */}
+      {isOwner && (
+        <Reveal delay={0.15}>
+          <div className="bg-white rounded-2xl border border-border-custom p-8 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <ShieldCheck size={18} className="text-amber-500" />
+              <h3 className="font-bold text-text-primary" style={{ fontFamily: "var(--font-heading)" }}>
+                Pending Feed Posts for Review
+              </h3>
+              {pendingPosts.length > 0 && (
+                <span className="px-2.5 py-0.5 text-xs rounded-full bg-amber-100 text-amber-700 font-medium">
+                  {pendingPosts.length}
+                </span>
+              )}
+            </div>
+
+            {loadingPending ? (
+              <div className="flex justify-center py-8">
+                <div className="w-6 h-6 rounded-full border-2 border-orange border-t-transparent animate-spin" />
+              </div>
+            ) : pendingPosts.length === 0 ? (
+              <div className="text-center py-8 text-text-muted text-sm">
+                No pending posts to review. All clear! ✨
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {pendingPosts.map((post: any) => (
+                  <div key={post.id} className="border border-border-custom rounded-xl p-4">
+                    <div className="flex items-start gap-3 mb-3">
+                      {post.author?.profile_pic_url ? (
+                        <img src={post.author.profile_pic_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-orange/10 flex items-center justify-center text-orange text-sm font-bold">
+                          {post.author?.display_name?.charAt(0)?.toUpperCase() || "?"}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm text-text-primary">{post.author?.display_name || "Unknown"}</p>
+                        <p className="text-xs text-text-muted">{post.author?.position || ""} • {new Date(post.created_at).toLocaleString()}</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-text-secondary whitespace-pre-wrap mb-3">{post.content}</p>
+                    {post.attachments?.length > 0 && (
+                      <div className="flex gap-2 flex-wrap mb-3">
+                        {post.attachments.map((att: any, i: number) => (
+                          att.file_type?.startsWith("image/") ? (
+                            <img key={i} src={att.file_url} alt="" className="w-20 h-20 rounded-lg object-cover border border-border-custom" />
+                          ) : att.file_type?.startsWith("video/") ? (
+                            <video key={i} src={att.file_url} className="w-20 h-20 rounded-lg object-cover border border-border-custom" />
+                          ) : (
+                            <div key={i} className="px-3 py-2 text-xs bg-gray-50 rounded-lg border border-border-custom">{att.file_name}</div>
+                          )
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handlePostApproval(post.id, "approved")}
+                        className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl text-sm font-medium hover:bg-emerald-600 transition-colors"
+                      >
+                        <Check size={14} /> Approve
+                      </button>
+                      <button
+                        onClick={() => handlePostApproval(post.id, "rejected")}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition-colors"
+                      >
+                        <X size={14} /> Reject
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Reveal>
+      )}
 
       {/* ── Security ── */}
       <Reveal delay={0.2}>
@@ -669,7 +783,7 @@ function MemberCard({
           </div>
 
           {/* Edit fields */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input
               value={editForm.display_name}
               onChange={(e) => setEditForm({ ...editForm, display_name: e.target.value })}

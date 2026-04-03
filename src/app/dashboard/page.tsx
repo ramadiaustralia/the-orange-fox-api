@@ -258,7 +258,7 @@ export default function DashboardPage() {
       {/* ─── Post Form ─── */}
       {user && (
         <Reveal delay={0.1}>
-          <PostForm user={user} onPostCreated={handlePostCreated} />
+          <PostForm user={user} onPostCreated={handlePostCreated} isOwner={user.role === "owner"} />
         </Reveal>
       )}
 
