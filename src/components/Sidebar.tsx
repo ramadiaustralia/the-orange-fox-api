@@ -14,6 +14,7 @@ import {
   Layers,
   LogOut,
   ShoppingBag,
+  Package,
   Contact2,
 } from "lucide-react";
 
@@ -29,6 +30,7 @@ const navItems = [
   { href: "/dashboard/content", label: "Content", icon: FileEdit },
   { href: "/dashboard/pricing", label: "Pricing", icon: DollarSign },
   { href: "/dashboard/shop", label: "Shop", icon: ShoppingBag },
+  { href: "/dashboard/orders", label: "Orders", icon: Package },
   { href: "/dashboard/tech-stack", label: "Tech Stack", icon: Layers },
   { href: "/dashboard/menus", label: "Menus", icon: Menu },
   { href: "/dashboard/messages", label: "Messages", icon: MessageSquare },
