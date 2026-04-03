@@ -338,7 +338,7 @@ export default function ProfilePage() {
       {/* ── Profile Card ── */}
       <Reveal delay={0.1}>
         <div className="bg-white rounded-2xl border border-border-custom p-8 shadow-sm">
-          <div className="flex items-start gap-6">
+          <div className="flex flex-col items-center sm:flex-row sm:items-start gap-4 sm:gap-6">
             {/* Avatar */}
             <div className="relative group flex-shrink-0">
               {user.profile_pic_url ? (
@@ -394,10 +394,10 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 <>
-                  <h2 className="text-xl font-bold text-text-primary" style={{ fontFamily: "var(--font-heading)" }}>
+                  <h2 className="text-xl font-bold text-text-primary text-center sm:text-left" style={{ fontFamily: "var(--font-heading)" }}>
                     {user.display_name || "No name set"}
                   </h2>
-                  <div className="flex items-center gap-3 mt-1">
+                  <div className="flex items-center justify-center sm:justify-start gap-3 mt-1">
                     {user.position && (
                       <span className="text-sm font-medium text-orange bg-orange/10 px-3 py-0.5 rounded-full">
                         {user.position}
@@ -409,11 +409,11 @@ export default function ProfilePage() {
                       {user.role === "owner" ? "Owner" : "Team Member"}
                     </span>
                   </div>
-                  <p className="text-sm text-text-secondary mt-2">{user.email}</p>
+                  <p className="text-sm text-text-secondary mt-2 text-center sm:text-left">{user.email}</p>
                   {canEditProfile && (
                     <button
                       onClick={() => setEditingProfile(true)}
-                      className="mt-3 text-sm text-orange hover:text-orange-600 font-medium transition-colors"
+                      className="mt-3 text-sm text-orange hover:text-orange-600 font-medium transition-colors block mx-auto sm:mx-0"
                     >
                       Edit Profile
                     </button>
@@ -480,7 +480,7 @@ export default function ProfilePage() {
                         ))}
                       </div>
                     )}
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       <button
                         onClick={() => handlePostApproval(post.id, "approved")}
                         className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl text-sm font-medium hover:bg-emerald-600 transition-colors"
@@ -505,7 +505,7 @@ export default function ProfilePage() {
       {/* ── Security ── */}
       <Reveal delay={0.2}>
         <div className="bg-white rounded-2xl border border-border-custom p-8 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
             <div className="flex items-center gap-3">
               <Lock size={18} className="text-text-secondary" />
               <h3 className="font-bold text-text-primary" style={{ fontFamily: "var(--font-heading)" }}>Security</h3>
@@ -584,7 +584,7 @@ export default function ProfilePage() {
       {isOwner && (
         <Reveal delay={0.3}>
           <div className="bg-white rounded-2xl border border-border-custom p-8 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
               <div className="flex items-center gap-3">
                 <Shield size={18} className="text-text-secondary" />
                 <h3 className="font-bold text-text-primary" style={{ fontFamily: "var(--font-heading)" }}>Team Management</h3>
@@ -739,14 +739,14 @@ function MemberCard({
               <UserCircle size={20} className="text-orange/40" />
             </div>
           )}
-          <div className="text-left">
+          <div className="text-left min-w-0">
             <p className="font-semibold text-sm text-text-primary">{member.display_name || "No name"}</p>
-            <p className="text-xs text-text-muted">
+            <p className="text-xs text-text-muted truncate">
               {member.email || "No email"} {member.position && `· ${member.position}`}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-shrink-0">
           {member.is_frozen && (
             <span className="text-xs px-2.5 py-0.5 rounded-full font-medium bg-red-100 text-red-600">
               Frozen
@@ -874,7 +874,7 @@ function MemberCard({
           </div>
 
           {/* Current Password (visible to owner) */}
-            <div className="flex items-center justify-between py-2">
+            <div className="flex items-center justify-between flex-wrap gap-2 py-2">
               <div className="flex items-center gap-2">
                 <Lock size={14} className="text-text-muted" />
                 <span className="text-sm text-text-secondary">Current Password</span>
@@ -898,7 +898,7 @@ function MemberCard({
             </div>
 
           {/* Freeze / Activate Account */}
-          <div className="flex items-center justify-between py-2">
+          <div className="flex items-center justify-between flex-wrap gap-2 py-2">
             <div className="flex items-center gap-2">
               <Shield size={14} className={member.is_frozen ? "text-red-500" : "text-text-muted"} />
               <span className="text-sm text-text-secondary">
@@ -918,7 +918,7 @@ function MemberCard({
           </div>
 
           {/* Profile editable toggle */}
-          <div className="flex items-center justify-between py-2">
+          <div className="flex items-center justify-between flex-wrap gap-2 py-2">
             <span className="text-sm text-text-secondary">Allow member to edit their own profile</span>
             <button
               onClick={() => onToggleProfileEditable(member)}

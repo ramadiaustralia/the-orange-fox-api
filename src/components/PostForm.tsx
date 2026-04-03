@@ -20,6 +20,7 @@ export default function PostForm({ user, onPostCreated, isOwner }: PostFormProps
   const [files, setFiles] = useState<AttachedFile[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [pendingNote, setPendingNote] = useState(false);
+  const [migrationWarning, setMigrationWarning] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -119,7 +120,10 @@ export default function PostForm({ user, onPostCreated, isOwner }: PostFormProps
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto";
       }
-      if (!isOwner) {
+      if (postData.migration_needed) {
+        setMigrationWarning(true);
+        setTimeout(() => setMigrationWarning(false), 8000);
+      } else if (!isOwner && postData.status === "pending") {
         setPendingNote(true);
         setTimeout(() => setPendingNote(false), 5000);
       }
@@ -310,6 +314,19 @@ export default function PostForm({ user, onPostCreated, isOwner }: PostFormProps
             <div className="mt-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700 flex items-center gap-2">
               <Clock size={14} />
               Your post has been submitted and is awaiting approval from the CEO.
+            </div>
+          )}
+
+          {migrationWarning && (
+            <div className="mt-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 flex items-start gap-2">
+              <span className="mt-0.5">⚠️</span>
+              <div>
+                <p className="font-semibold">Post approval system is not active</p>
+                <p className="text-xs mt-1 text-red-600">
+                  The database migration needs to be run in Supabase Dashboard → SQL Editor. 
+                  Until then, all posts are published immediately without review.
+                </p>
+              </div>
             </div>
           )}
         </div>

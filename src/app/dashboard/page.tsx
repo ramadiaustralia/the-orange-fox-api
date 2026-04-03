@@ -100,6 +100,7 @@ export default function DashboardPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [profileUser, setProfileUser] = useState<ProfileUser | null>(null);
+  const [migrationNeeded, setMigrationNeeded] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const searchParams = useSearchParams();
 
@@ -110,6 +111,9 @@ export default function DashboardPage() {
       const json = await res.json();
       if (json.posts) {
         setPosts(json.posts);
+      }
+      if (json.migration_needed) {
+        setMigrationNeeded(true);
       }
     } catch (err) {
       console.error("Failed to fetch posts:", err);
@@ -254,6 +258,29 @@ export default function DashboardPage() {
           </div>
         </div>
       </Reveal>
+
+      {/* ─── Migration Warning Banner ─── */}
+      {migrationNeeded && user?.role === "owner" && (
+        <Reveal delay={0.05}>
+          <div className="bg-amber-50 border border-amber-300 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start gap-3">
+            <span className="text-2xl flex-shrink-0">⚠️</span>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-bold text-amber-800 text-sm" style={{ fontFamily: "var(--font-heading)" }}>
+                Database Migration Required
+              </h3>
+              <p className="text-xs text-amber-700 mt-1">
+                The post approval system is not active. Worker posts are published immediately without your review.
+                Run this SQL in <strong>Supabase Dashboard → SQL Editor</strong>:
+              </p>
+              <code className="block mt-2 p-3 bg-amber-100 rounded-lg text-xs text-amber-900 font-mono whitespace-pre-wrap break-all">
+{`ALTER TABLE posts ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'approved';
+UPDATE posts SET status = 'approved' WHERE status IS NULL;
+ALTER TABLE internal_messages ADD COLUMN IF NOT EXISTS is_unsent BOOLEAN DEFAULT FALSE;`}
+              </code>
+            </div>
+          </div>
+        </Reveal>
+      )}
 
       {/* ─── Post Form ─── */}
       {user && (
