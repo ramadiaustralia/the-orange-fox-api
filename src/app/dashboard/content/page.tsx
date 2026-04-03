@@ -4,7 +4,7 @@ import ContentEditor from "@/components/ContentEditor";
 import { RefreshCw } from "lucide-react";
 import { PAGE_INFO } from "@/lib/contentLabels";
 
-const PAGES = ["home", "about", "services", "process", "pricing", "contact", "faq", "global"];
+const PAGES = ["home", "about", "services", "process", "pricing", "shop", "contact", "faq", "global"];
 
 interface ContentItem {
   id: string;

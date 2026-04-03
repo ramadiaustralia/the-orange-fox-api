@@ -51,6 +51,10 @@ export const PAGE_INFO: Record<string, PageInfoEntry> = {
     title: "🌐 Global",
     description: "Navigation links, footer text, and site-wide content",
   },
+  shop: {
+    title: "🛒 Shop",
+    description: "Module-based product catalog with names, descriptions, features, prices, and PayPal links",
+  },
 };
 
 // ─── Section Info ────────────────────────────────────────────────────
@@ -181,6 +185,40 @@ export const SECTION_INFO: Record<string, SectionInfoEntry> = {
   footer: {
     title: "🦶 Footer",
     description: "Footer tagline, copyright text, and navigation labels",
+  },
+
+  // Shop
+  shop_header: {
+    title: "🛒 Shop Header",
+    description: "Page title, label, and introductory description for the shop",
+  },
+  shop_module_1: {
+    title: "📄 Module 1 — Landing Page",
+    description: "Landing page / add-on page module details",
+  },
+  shop_module_2: {
+    title: "📊 Module 2 — CMS System",
+    description: "CMS system module details",
+  },
+  shop_module_3: {
+    title: "🔍 Module 3 — SEO Engine",
+    description: "SEO engine module details",
+  },
+  shop_module_4: {
+    title: "📈 Module 4 — Analytics Dashboard",
+    description: "Analytics dashboard module details",
+  },
+  shop_module_5: {
+    title: "🔐 Module 5 — Authentication System",
+    description: "Authentication system module details",
+  },
+  shop_module_6: {
+    title: "💳 Module 6 — Payment Integration",
+    description: "Payment integration module details",
+  },
+  shop_cta: {
+    title: "📢 Shop CTA",
+    description: "Call-to-action section at the bottom of the shop page",
   },
 
   // Social
@@ -423,6 +461,75 @@ export const CONTENT_LABELS: Record<string, ContentLabelEntry> = {
   faq_support_3_q: { label: "Support Q3 — Question", type: "long" },
   faq_support_3_a: { label: "Support Q3 — Answer", type: "multiline" },
 
+  // ── Shop: Header ──
+  shop_label: { label: "Section Label", description: "Small label above the shop title", type: "short" },
+  shop_title: { label: "Page Title", type: "short" },
+  shop_desc: { label: "Page Description", type: "long" },
+
+  // ── Shop: Module 1 ──
+  shop_module_1_name: { label: "Module Name", type: "short" },
+  shop_module_1_desc: { label: "Module Description", type: "long" },
+  shop_module_1_f1: { label: "Feature 1", type: "short" },
+  shop_module_1_f2: { label: "Feature 2", type: "short" },
+  shop_module_1_f3: { label: "Feature 3", type: "short" },
+  shop_module_1_f4: { label: "Feature 4", type: "short" },
+  shop_module_1_price: { label: "Price", description: "Display price (e.g. $90)", type: "short" },
+  shop_module_1_paypal: { label: "PayPal Link", description: "PayPal payment URL", type: "short" },
+
+  // ── Shop: Module 2 ──
+  shop_module_2_name: { label: "Module Name", type: "short" },
+  shop_module_2_desc: { label: "Module Description", type: "long" },
+  shop_module_2_f1: { label: "Feature 1", type: "short" },
+  shop_module_2_f2: { label: "Feature 2", type: "short" },
+  shop_module_2_f3: { label: "Feature 3", type: "short" },
+  shop_module_2_f4: { label: "Feature 4", type: "short" },
+  shop_module_2_price: { label: "Price", description: "Display price (e.g. $500)", type: "short" },
+  shop_module_2_paypal: { label: "PayPal Link", description: "PayPal payment URL", type: "short" },
+
+  // ── Shop: Module 3 ──
+  shop_module_3_name: { label: "Module Name", type: "short" },
+  shop_module_3_desc: { label: "Module Description", type: "long" },
+  shop_module_3_f1: { label: "Feature 1", type: "short" },
+  shop_module_3_f2: { label: "Feature 2", type: "short" },
+  shop_module_3_f3: { label: "Feature 3", type: "short" },
+  shop_module_3_f4: { label: "Feature 4", type: "short" },
+  shop_module_3_price: { label: "Price", description: "Display price (e.g. $300)", type: "short" },
+  shop_module_3_paypal: { label: "PayPal Link", description: "PayPal payment URL", type: "short" },
+
+  // ── Shop: Module 4 ──
+  shop_module_4_name: { label: "Module Name", type: "short" },
+  shop_module_4_desc: { label: "Module Description", type: "long" },
+  shop_module_4_f1: { label: "Feature 1", type: "short" },
+  shop_module_4_f2: { label: "Feature 2", type: "short" },
+  shop_module_4_f3: { label: "Feature 3", type: "short" },
+  shop_module_4_price: { label: "Price", description: "Display price (e.g. $200)", type: "short" },
+  shop_module_4_paypal: { label: "PayPal Link", description: "PayPal payment URL", type: "short" },
+
+  // ── Shop: Module 5 ──
+  shop_module_5_name: { label: "Module Name", type: "short" },
+  shop_module_5_desc: { label: "Module Description", type: "long" },
+  shop_module_5_f1: { label: "Feature 1", type: "short" },
+  shop_module_5_f2: { label: "Feature 2", type: "short" },
+  shop_module_5_f3: { label: "Feature 3", type: "short" },
+  shop_module_5_price: { label: "Price", description: "Display price (e.g. $160)", type: "short" },
+  shop_module_5_paypal: { label: "PayPal Link", description: "PayPal payment URL", type: "short" },
+
+  // ── Shop: Module 6 ──
+  shop_module_6_name: { label: "Module Name", type: "short" },
+  shop_module_6_desc: { label: "Module Description", type: "long" },
+  shop_module_6_f1: { label: "Feature 1", type: "short" },
+  shop_module_6_f2: { label: "Feature 2", type: "short" },
+  shop_module_6_f3: { label: "Feature 3", type: "short" },
+  shop_module_6_price: { label: "Price", description: "Display price (e.g. $200)", type: "short" },
+  shop_module_6_paypal: { label: "PayPal Link", description: "PayPal payment URL", type: "short" },
+
+  // ── Shop: CTA ──
+  shop_cta_badge: { label: "CTA Badge", description: "Badge text above the CTA title", type: "short" },
+  shop_cta_title: { label: "CTA Title", type: "short" },
+  shop_cta_desc: { label: "CTA Description", type: "long" },
+  shop_cta_pricing_btn: { label: "View Pricing Button", type: "short" },
+  shop_cta_contact_btn: { label: "Contact Us Button", type: "short" },
+
   // ── Global: Navigation ──
   nav_home: { label: "Home Link", type: "short" },
   nav_about: { label: "About Link", type: "short" },
@@ -489,6 +596,16 @@ export function getSectionGroup(key: string, _dbSection?: string): string {
   if (/^faq_process_/.test(key)) return "faq_process";
   if (/^faq_pricing_/.test(key)) return "faq_pricing";
   if (/^faq_support_/.test(key)) return "faq_support";
+
+  // Shop sections
+  if (/^shop_(label|title|desc)$/.test(key)) return "shop_header";
+  if (/^shop_module_1/.test(key)) return "shop_module_1";
+  if (/^shop_module_2/.test(key)) return "shop_module_2";
+  if (/^shop_module_3/.test(key)) return "shop_module_3";
+  if (/^shop_module_4/.test(key)) return "shop_module_4";
+  if (/^shop_module_5/.test(key)) return "shop_module_5";
+  if (/^shop_module_6/.test(key)) return "shop_module_6";
+  if (/^shop_cta/.test(key)) return "shop_cta";
 
   // Global sections
   if (/^social_/.test(key)) return "social";
