@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { getSupabase } from '@/lib/supabase';
 
 interface Order {
   id: string;
@@ -25,7 +25,7 @@ const statusColors: Record<string, string> = {
 };
 
 export default function OrdersPage() {
-  const supabase = createClientComponentClient();
+  const supabase = getSupabase();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
