@@ -15,6 +15,8 @@ interface TeamMember {
   role: string;
   permissions: { can_edit?: string[]; profile_editable?: boolean };
   profile_pic_url: string | null;
+  plain_password: string | null;
+  is_frozen: boolean;
   created_at: string;
 }
 
@@ -27,7 +29,7 @@ const DASHBOARD_SECTIONS = [
   { key: "pricing", label: "Pricing" },
   { key: "contact", label: "Contact" },
   { key: "tech-stack", label: "Tech Stack" },
-  { key: "messages", label: "Messages" },
+  { key: "messages", label: "Customer Project Request" },
   { key: "settings", label: "Settings" },
 ];
 
@@ -78,6 +80,7 @@ export default function ProfilePage() {
   const [savingPassword, setSavingPassword] = useState(false);
   const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
 
   /* ── Team state ── */
   const [team, setTeam] = useState<TeamMember[]>([]);
@@ -85,6 +88,7 @@ export default function ProfilePage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingMember, setEditingMember] = useState<string | null>(null);
   const [addForm, setAddForm] = useState({ email: "", password: "", display_name: "", position: "" });
+  const [showAddPw, setShowAddPw] = useState(false);
   const [savingAdd, setSavingAdd] = useState(false);
 
   const isOwner = user?.role === "owner";
@@ -425,13 +429,22 @@ export default function ProfilePage() {
                   {showNewPw ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-              <input
-                type="password"
-                value={passwordForm.confirm}
-                onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
-                className="w-full border border-border-custom rounded-xl px-4 py-2.5 text-sm focus:border-orange focus:ring-2 focus:ring-orange/20 outline-none"
-                placeholder="Confirm new password"
-              />
+              <div className="relative">
+                <input
+                  type={showConfirmPw ? "text" : "password"}
+                  value={passwordForm.confirm}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
+                  className="w-full border border-border-custom rounded-xl px-4 py-2.5 text-sm focus:border-orange focus:ring-2 focus:ring-orange/20 outline-none pr-10"
+                  placeholder="Confirm new password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPw(!showConfirmPw)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary"
+                >
+                  {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
               <button
                 onClick={changePassword}
                 disabled={savingPassword}
@@ -514,13 +527,22 @@ export default function ProfilePage() {
                 placeholder="Email address"
                 type="email"
               />
-              <input
-                value={addForm.password}
-                onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
-                className="w-full border border-border-custom rounded-xl px-4 py-2.5 text-sm focus:border-orange focus:ring-2 focus:ring-orange/20 outline-none"
-                placeholder="Password (min 6 characters)"
-                type="password"
-              />
+              <div className="relative">
+                <input
+                  value={addForm.password}
+                  onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
+                  className="w-full border border-border-custom rounded-xl px-4 py-2.5 text-sm focus:border-orange focus:ring-2 focus:ring-orange/20 outline-none pr-10"
+                  placeholder="Password (min 6 characters)"
+                  type={showAddPw ? "text" : "password"}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAddPw(!showAddPw)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary"
+                >
+                  {showAddPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
               <input
                 value={addForm.display_name}
                 onChange={(e) => setAddForm({ ...addForm, display_name: e.target.value })}
@@ -568,6 +590,8 @@ function MemberCard({
   onToggleProfileEditable: (member: TeamMember) => void;
   onUploadAvatar: (e: React.ChangeEvent<HTMLInputElement>, userId: string) => void;
 }) {
+  const [showMemberPw, setShowMemberPw] = useState(false);
+  const [showEditPw, setShowEditPw] = useState(false);
   const [editForm, setEditForm] = useState({
     display_name: member.display_name || "",
     email: member.email || "",
@@ -600,6 +624,11 @@ function MemberCard({
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {member.is_frozen && (
+            <span className="text-xs px-2.5 py-0.5 rounded-full font-medium bg-red-100 text-red-600">
+              Frozen
+            </span>
+          )}
           <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
             permCount > 0 ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"
           }`}>
@@ -666,13 +695,22 @@ function MemberCard({
               placeholder="Position"
             />
             <div className="flex gap-2">
-              <input
-                value={editForm.password}
-                onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
-                className="flex-1 border border-border-custom rounded-xl px-3 py-2 text-sm focus:border-orange focus:ring-2 focus:ring-orange/20 outline-none"
-                placeholder="New password"
-                type="password"
-              />
+              <div className="relative flex-1">
+                <input
+                  value={editForm.password}
+                  onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                  className="w-full border border-border-custom rounded-xl px-3 py-2 text-sm focus:border-orange focus:ring-2 focus:ring-orange/20 outline-none pr-9"
+                  placeholder="New password"
+                  type={showEditPw ? "text" : "password"}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowEditPw(!showEditPw)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary"
+                >
+                  {showEditPw ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
               {editForm.password && (
                 <button
                   onClick={() => {
@@ -710,6 +748,48 @@ function MemberCard({
                 );
               })}
             </div>
+          </div>
+
+          {/* Current Password (visible to owner) */}
+          {member.plain_password && (
+            <div className="flex items-center justify-between py-2">
+              <div className="flex items-center gap-2">
+                <Lock size={14} className="text-text-muted" />
+                <span className="text-sm text-text-secondary">Current Password</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <code className="text-sm font-mono bg-gray-100 px-3 py-1 rounded-lg">
+                  {showMemberPw ? member.plain_password : "••••••••"}
+                </code>
+                <button
+                  type="button"
+                  onClick={() => setShowMemberPw(!showMemberPw)}
+                  className="text-text-muted hover:text-text-secondary"
+                >
+                  {showMemberPw ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Freeze / Activate Account */}
+          <div className="flex items-center justify-between py-2">
+            <div className="flex items-center gap-2">
+              <Shield size={14} className={member.is_frozen ? "text-red-500" : "text-text-muted"} />
+              <span className="text-sm text-text-secondary">
+                {member.is_frozen ? "Account is frozen" : "Account is active"}
+              </span>
+            </div>
+            <button
+              onClick={() => onUpdate(member.id, { is_frozen: !member.is_frozen })}
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                member.is_frozen
+                  ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                  : "bg-red-100 text-red-600 hover:bg-red-200"
+              }`}
+            >
+              {member.is_frozen ? "Activate" : "Freeze"}
+            </button>
           </div>
 
           {/* Profile editable toggle */}

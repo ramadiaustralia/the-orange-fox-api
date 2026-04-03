@@ -20,6 +20,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
+    if (data.is_frozen) {
+      return NextResponse.json({ error: "Your account has been frozen. Please contact the administrator." }, { status: 403 });
+    }
+
     const token = await signToken({
       sub: data.id,
       email: data.email,

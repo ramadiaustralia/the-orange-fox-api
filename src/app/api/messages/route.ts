@@ -44,5 +44,49 @@ export async function PATCH(req: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Send email reply to customer
+  if (updates.admin_reply && data?.email) {
+    try {
+      const nodemailer = require("nodemailer");
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: "theorgfox@gmail.com",
+          pass: "gwyz ikpb ifrz whzg",
+        },
+      });
+
+      await transporter.sendMail({
+        from: '"The Orange Fox" <theorgfox@gmail.com>',
+        to: data.email,
+        subject: `Re: ${data.subject || "Your Project Request"} - The Orange Fox`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <h2 style="color: #D4692A; margin: 0;">The Orange Fox</h2>
+              <p style="color: #999; font-size: 12px; margin: 4px 0 0;">Project Request Reply</p>
+            </div>
+            <div style="background: #f9f7f5; border-radius: 12px; padding: 20px; margin-bottom: 16px;">
+              <p style="color: #555; font-size: 14px; margin: 0 0 8px;"><strong>Hi ${data.name},</strong></p>
+              <p style="color: #555; font-size: 14px; margin: 0; white-space: pre-wrap;">${updates.admin_reply}</p>
+            </div>
+            <div style="background: #fff3ed; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+              <p style="color: #999; font-size: 12px; margin: 0 0 4px;">Your original message:</p>
+              <p style="color: #555; font-size: 13px; margin: 0; white-space: pre-wrap;">${data.message}</p>
+            </div>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+            <p style="color: #999; font-size: 11px; text-align: center; margin: 0;">
+              &copy; ${new Date().getFullYear()} The Orange Fox. All rights reserved.
+            </p>
+          </div>
+        `,
+      });
+    } catch (emailError) {
+      console.error("Failed to send email reply:", emailError);
+      // Don't fail the request if email fails - the reply is still saved in DB
+    }
+  }
+
   return NextResponse.json({ data });
 }

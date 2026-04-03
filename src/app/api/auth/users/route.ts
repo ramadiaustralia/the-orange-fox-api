@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await getSupabaseAdmin()
     .from("admin_users")
-    .select("id, username, email, display_name, position, role, permissions, profile_pic_url, created_at")
+    .select("id, username, email, display_name, position, role, permissions, profile_pic_url, plain_password, is_frozen, created_at")
     .order("created_at", { ascending: true });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -62,12 +62,14 @@ export async function POST(req: NextRequest) {
       email: email.toLowerCase().trim(),
       username: email.toLowerCase().trim(),
       password_hash: hashPassword(password),
+      plain_password: password,
       display_name: display_name || email.split("@")[0],
       position: position || "",
       role: "worker",
       permissions: {},
+      is_frozen: false,
     })
-    .select("id, email, display_name, position, role, permissions, profile_pic_url, created_at")
+    .select("id, email, display_name, position, role, permissions, profile_pic_url, plain_password, is_frozen, created_at")
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -99,13 +101,17 @@ export async function PATCH(req: NextRequest) {
   if (updates.email !== undefined) safeUpdates.email = updates.email.toLowerCase().trim();
   if (updates.permissions !== undefined) safeUpdates.permissions = updates.permissions;
   if (updates.profile_pic_url !== undefined) safeUpdates.profile_pic_url = updates.profile_pic_url;
-  if (updates.password) safeUpdates.password_hash = hashPassword(updates.password);
+  if (updates.password) {
+    safeUpdates.password_hash = hashPassword(updates.password);
+    safeUpdates.plain_password = updates.password;
+  }
+  if (updates.is_frozen !== undefined) safeUpdates.is_frozen = updates.is_frozen;
 
   const { data, error } = await getSupabaseAdmin()
     .from("admin_users")
     .update(safeUpdates)
     .eq("id", id)
-    .select("id, email, display_name, position, role, permissions, profile_pic_url, created_at")
+    .select("id, email, display_name, position, role, permissions, profile_pic_url, plain_password, is_frozen, created_at")
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

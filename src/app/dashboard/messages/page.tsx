@@ -20,7 +20,7 @@ interface Message {
 
 export default function MessagesPage() {
   const { hasAccess, isOwner } = usePermission("messages");
-  if (hasAccess === false) return <AccessDenied section="Messages" />;
+  if (hasAccess === false) return <AccessDenied section="Customer Project Request" />;
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,14 +99,14 @@ export default function MessagesPage() {
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#1a1a1a] flex items-center gap-3" style={{ fontFamily: "var(--font-heading)" }}>
-            Messages
+            Customer Project Request
             {unreadCount > 0 && (
               <span className="px-2.5 py-1 text-xs rounded-full bg-[#D4692A]/10 text-[#D4692A] border border-[#D4692A]/20">
                 {unreadCount} unread
               </span>
             )}
           </h1>
-          <p className="text-sm text-[#999999] mt-1">Manage contact form submissions</p>
+          <p className="text-sm text-[#999999] mt-1">Manage customer project requests and reply directly to their email</p>
         </div>
         <button
           onClick={loadMessages}
@@ -143,8 +143,8 @@ export default function MessagesPage() {
       ) : messages.length === 0 ? (
         <div className="text-center py-20 bg-white border border-[#f0ece8] rounded-2xl shadow-sm">
           <MessageSquare size={40} className="mx-auto text-[#999999] opacity-40 mb-3" />
-          <p className="text-lg font-semibold text-[#1a1a1a]">No messages</p>
-          <p className="text-sm text-[#999999] mt-1">{filter !== "all" ? "Try a different filter" : "Messages will appear here"}</p>
+          <p className="text-lg font-semibold text-[#1a1a1a]">No project requests</p>
+          <p className="text-sm text-[#999999] mt-1">{filter !== "all" ? "Try a different filter" : "Customer project requests will appear here"}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -233,7 +233,7 @@ export default function MessagesPage() {
                     {/* Reply Form */}
                     <div>
                       <label className="block text-xs font-medium text-[#555555] mb-1.5">
-                        {msg.admin_reply ? "Update Reply" : "Write Reply"}
+                        {msg.admin_reply ? "Update Reply" : "Write Reply"} <span className="text-[#999999]">(will be sent to {msg.email})</span>
                       </label>
                       <textarea
                         value={replyText[msg.id] || ""}

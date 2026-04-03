@@ -4,6 +4,8 @@ import {
   Save,
   User,
   Lock,
+  Eye,
+  EyeOff,
   Globe,
   Shield,
   CheckCircle2,
@@ -42,6 +44,9 @@ export default function SettingsPage() {
   const [gaId, setGaId] = useState("");
   const [googleApiKey, setGoogleApiKey] = useState("");
   const [savingGa, setSavingGa] = useState(false);
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [changingPw, setChangingPw] = useState(false);
   const [savingSiteSettings, setSavingSiteSettings] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
@@ -365,34 +370,61 @@ export default function SettingsPage() {
         <div className="p-6 space-y-4">
           <div>
             <label className="block text-xs font-medium text-[#555555] mb-1.5">Current Password</label>
-            <input
-              type="password"
-              value={password.current}
-              onChange={(e) => setPassword({ ...password, current: e.target.value })}
-              className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999]"
-              placeholder="Enter current password"
-            />
+            <div className="relative">
+              <input
+                type={showCurrentPw ? "text" : "password"}
+                value={password.current}
+                onChange={(e) => setPassword({ ...password, current: e.target.value })}
+                className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999] pr-10"
+                placeholder="Enter current password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrentPw(!showCurrentPw)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#999999] hover:text-[#555555] transition-colors"
+              >
+                {showCurrentPw ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-[#555555] mb-1.5">New Password</label>
-              <input
-                type="password"
-                value={password.new_password}
-                onChange={(e) => setPassword({ ...password, new_password: e.target.value })}
-                className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999]"
-                placeholder="Enter new password"
-              />
+              <div className="relative">
+                <input
+                  type={showNewPw ? "text" : "password"}
+                  value={password.new_password}
+                  onChange={(e) => setPassword({ ...password, new_password: e.target.value })}
+                  className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999] pr-10"
+                  placeholder="Enter new password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPw(!showNewPw)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#999999] hover:text-[#555555] transition-colors"
+                >
+                  {showNewPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
             <div>
               <label className="block text-xs font-medium text-[#555555] mb-1.5">Confirm New Password</label>
-              <input
-                type="password"
-                value={password.confirm}
-                onChange={(e) => setPassword({ ...password, confirm: e.target.value })}
-                className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999]"
-                placeholder="Confirm new password"
-              />
+              <div className="relative">
+                <input
+                  type={showConfirmPw ? "text" : "password"}
+                  value={password.confirm}
+                  onChange={(e) => setPassword({ ...password, confirm: e.target.value })}
+                  className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999] pr-10"
+                  placeholder="Confirm new password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPw(!showConfirmPw)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#999999] hover:text-[#555555] transition-colors"
+                >
+                  {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
           </div>
           <button

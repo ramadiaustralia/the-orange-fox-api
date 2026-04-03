@@ -14,12 +14,18 @@ export async function GET(req: NextRequest) {
 
   const { data } = await getSupabaseAdmin()
     .from("admin_users")
-    .select("id, email, display_name, position, role, permissions, profile_pic_url")
+    .select("id, email, display_name, position, role, permissions, profile_pic_url, is_frozen")
     .eq("id", admin.sub)
     .single();
 
   if (!data) {
     return NextResponse.json({ authenticated: false }, { status: 401 });
+  }
+
+  if (data.is_frozen) {
+    const response = NextResponse.json({ authenticated: false, frozen: true }, { status: 403 });
+    response.cookies.set("fox_admin_token", "", { maxAge: 0, path: "/" });
+    return response;
   }
 
   return NextResponse.json({

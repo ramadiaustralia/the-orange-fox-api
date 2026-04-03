@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { Eye, EyeOff } from "lucide-react";
 import AnimatedBackground from "@/components/AnimatedBackground";
 
 export default function LoginPage() {
@@ -11,6 +12,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [revealed, setRevealed] = useState(false);
+  const [showPw, setShowPw] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setRevealed(true), 100);
@@ -187,14 +189,23 @@ export default function LoginPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-white/70 mb-1.5">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 outline-none transition-all duration-200 focus:border-orange focus:ring-2 focus:ring-orange/20 placeholder-white/30"
-                placeholder="Enter your password"
-                required
-              />
+              <div className="relative">
+                <input
+                  type={showPw ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 outline-none transition-all duration-200 focus:border-orange focus:ring-2 focus:ring-orange/20 placeholder-white/30 pr-10"
+                  placeholder="Enter your password"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw(!showPw)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
+                >
+                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
             <button
               type="submit"

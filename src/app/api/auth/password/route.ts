@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     // Update the password in the database
     const { error: updateError } = await supabase
       .from("admin_users")
-      .update({ password_hash: newHash })
+      .update({ password_hash: newHash, plain_password: new_password })
       .eq("id", payload.sub);
 
     if (updateError) {
