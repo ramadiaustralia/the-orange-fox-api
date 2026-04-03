@@ -541,8 +541,9 @@ export default function TeamMessagesPage() {
                           ) : (
                             <>
                               {/* Attachment */}
+                              
                               {msg.attachment_url && (
-                                <div className="mb-2">
+                                <div className="mb-2 min-w-[220px]">
                                   {isImageAttachment(msg.attachment_type) ? (
                                     <a
                                       href={msg.attachment_url}
