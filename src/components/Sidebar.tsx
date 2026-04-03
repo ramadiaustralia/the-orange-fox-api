@@ -18,6 +18,7 @@ import {
   ShoppingBag,
   Package,
   Contact2,
+  Send,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -31,7 +32,7 @@ const navSections = [
   {
     label: null,
     items: [
-      { href: "/dashboard", label: "Company Timeline", icon: LayoutDashboard },
+      { href: "/dashboard", label: "Team Feed", icon: LayoutDashboard },
     ],
   },
   {
@@ -53,6 +54,7 @@ const navSections = [
   {
     label: "COMMUNICATE",
     items: [
+      { href: "/dashboard/team-messages", label: "Team Messages", icon: Send },
       { href: "/dashboard/messages", label: "Customer Project Request", icon: MessageSquare },
       { href: "/dashboard/contact", label: "Contact", icon: Contact2 },
     ],

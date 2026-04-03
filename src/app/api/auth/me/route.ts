@@ -28,6 +28,13 @@ export async function GET(req: NextRequest) {
     return response;
   }
 
+  // Update last_active_at for online status
+  getSupabaseAdmin()
+    .from("admin_users")
+    .update({ last_active_at: new Date().toISOString() })
+    .eq("id", admin.sub)
+    .then(() => {});
+
   return NextResponse.json({
     authenticated: true,
     admin: {

@@ -11,7 +11,7 @@ interface TopbarProps {
 }
 
 const pageMeta: Record<string, { title: string; description: string }> = {
-  "/dashboard": { title: "Home", description: "Team timeline & updates" },
+  "/dashboard": { title: "Home", description: "Team feed & updates" },
   "/dashboard/content": { title: "Content Editor", description: "Edit website content" },
   "/dashboard/pricing": { title: "Pricing", description: "Manage packages and pricing" },
   "/dashboard/shop": { title: "Shop", description: "Manage your products" },
@@ -21,6 +21,7 @@ const pageMeta: Record<string, { title: string; description: string }> = {
   "/dashboard/messages": { title: "Customer Project Request", description: "Manage customer project requests" },
   "/dashboard/contact": { title: "Contact", description: "Contact details" },
   "/dashboard/seo": { title: "SEO & Analytics", description: "Search optimisation" },
+  "/dashboard/team-messages": { title: "Team Messages", description: "Internal team communication" },
   "/dashboard/settings": { title: "Settings", description: "System configuration" },
 };
 

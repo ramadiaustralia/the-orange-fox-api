@@ -4,7 +4,9 @@ import { useAuth } from "@/context/AuthContext";
 import {
   UserCircle, Camera, Save, X, Plus, Trash2, Shield, Lock,
   Eye, EyeOff, ChevronDown, ChevronUp, Check, AlertCircle,
+  ArrowLeft,
 } from "lucide-react";
+import Link from "next/link";
 
 /* ── Types ── */
 interface TeamMember {
@@ -277,6 +279,13 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
+      <Link
+        href="/dashboard"
+        className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-orange transition-colors mb-4"
+      >
+        <ArrowLeft size={16} />
+        Back to Team Feed
+      </Link>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* ── Page Header ── */}

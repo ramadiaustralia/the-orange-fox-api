@@ -3,6 +3,7 @@
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState, useRef, useCallback } from "react";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { Clock, Eye, RefreshCw } from "lucide-react";
 import PostForm from "@/components/PostForm";
 import PostCard, { Post } from "@/components/PostCard";
@@ -100,6 +101,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [profileUser, setProfileUser] = useState<ProfileUser | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const searchParams = useSearchParams();
 
   /* ── Fetch posts ── */
   const fetchPosts = useCallback(async () => {
@@ -135,6 +137,19 @@ export default function DashboardPage() {
   const handleProfileClick = useCallback((u: ProfileUser) => {
     setProfileUser(u);
   }, []);
+
+  // Scroll to post when ?post= param is present
+  useEffect(() => {
+    const postId = searchParams.get("post");
+    if (postId && posts.length > 0) {
+      const el = document.getElementById(`post-${postId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-2", "ring-orange", "ring-offset-2");
+        setTimeout(() => el.classList.remove("ring-2", "ring-orange", "ring-offset-2"), 3000);
+      }
+    }
+  }, [searchParams, posts]);
 
   return (
     <div className="space-y-6 relative max-w-2xl mx-auto">
@@ -275,12 +290,14 @@ export default function DashboardPage() {
         ) : (
           posts.map((post, i) => (
             <Reveal key={post.id} delay={Math.min(i * 0.05, 0.3)}>
-              <PostCard
-                post={post}
-                currentUserId={user?.id || ""}
-                onUpdate={fetchPosts}
-                onProfileClick={handleProfileClick}
-              />
+              <div id={`post-${post.id}`}>
+                <PostCard
+                  post={post}
+                  currentUserId={user?.id || ""}
+                  onUpdate={fetchPosts}
+                  onProfileClick={handleProfileClick}
+                />
+              </div>
             </Reveal>
           ))
         )}

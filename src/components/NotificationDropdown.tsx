@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
 
 interface NotificationDropdownProps {
@@ -89,6 +90,7 @@ function ActorAvatar({ actor, size = 36 }: { actor: NotificationActor; size?: nu
 }
 
 export default function NotificationDropdown({ currentUserId }: NotificationDropdownProps) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -153,6 +155,10 @@ export default function NotificationDropdown({ currentUserId }: NotificationDrop
   const handleNotificationClick = (notification: Notification) => {
     if (!notification.is_read) {
       markAsRead([notification.id]);
+    }
+    if (notification.post_id) {
+      setOpen(false);
+      router.push(`/dashboard?post=${notification.post_id}`);
     }
   };
 

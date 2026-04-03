@@ -165,7 +165,7 @@ export default function LoginPage() {
         {/* Login Card */}
         <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
           <h2 className="font-heading text-lg font-semibold text-white mb-1">
-            Welcome to our Fox Team
+            Hello, Fox Team!
           </h2>
           <p className="text-sm text-white/50 mb-6">Sign in with your email to continue</p>
 

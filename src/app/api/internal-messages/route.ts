@@ -84,9 +84,9 @@ export async function POST(req: NextRequest) {
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const { receiverId, content } = await req.json();
-    if (!receiverId || !content || !content.trim()) {
-      return NextResponse.json({ error: "receiverId and content are required" }, { status: 400 });
+    const { receiverId, content, attachmentUrl, attachmentName, attachmentType, attachmentSize } = await req.json();
+    if (!receiverId || (!content?.trim() && !attachmentUrl)) {
+      return NextResponse.json({ error: "receiverId and content or attachment are required" }, { status: 400 });
     }
 
     const { data: message, error } = await getSupabaseAdmin()
@@ -94,8 +94,14 @@ export async function POST(req: NextRequest) {
       .insert({
         sender_id: admin.sub,
         receiver_id: receiverId,
-        content: content.trim(),
+        content: content?.trim() || "",
         is_read: false,
+        ...(attachmentUrl && {
+          attachment_url: attachmentUrl,
+          attachment_name: attachmentName || "file",
+          attachment_type: attachmentType || "",
+          attachment_size: attachmentSize || 0,
+        }),
       })
       .select()
       .single();

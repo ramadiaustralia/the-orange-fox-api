@@ -35,8 +35,8 @@ export async function GET(req: NextRequest) {
   const isOwner = requester.role === "owner";
 
   const selectFields = isOwner
-    ? "id, username, email, display_name, position, role, permissions, profile_pic_url, plain_password, is_frozen, created_at"
-    : "id, email, display_name, position, role, profile_pic_url";
+    ? "id, username, email, display_name, position, role, permissions, profile_pic_url, plain_password, is_frozen, created_at, last_active_at"
+    : "id, email, display_name, position, role, profile_pic_url, last_active_at";
 
   const { data, error } = await getSupabaseAdmin()
     .from("admin_users")
