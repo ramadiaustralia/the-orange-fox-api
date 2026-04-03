@@ -180,23 +180,27 @@ export default function DashboardPage() {
     load();
   }, []);
 
+  const isOwner = user?.role === 'owner';
+  const userPerms = user?.permissions?.can_edit || [];
+  const hasPerm = (key: string) => isOwner || userPerms.includes(key);
+
   const statCards = [
-    { label: 'Pages', value: stats.pages, icon: FileEdit, accent: 'from-orange-500/20 to-orange-500/5', href: '/dashboard/content' },
-    { label: 'Content Items', value: stats.contentItems, icon: Layers, accent: 'from-blue-500/20 to-blue-500/5', href: '/dashboard/content' },
-    { label: 'Messages', value: stats.messages, icon: MessageSquare, accent: 'from-emerald-500/20 to-emerald-500/5', badge: stats.unreadMessages > 0 ? `${stats.unreadMessages} new` : undefined, href: '/dashboard/messages' },
-    { label: 'Menu Items', value: stats.menuItems, icon: Menu, accent: 'from-purple-500/20 to-purple-500/5', href: '/dashboard/menus' },
-  ];
+    { label: 'Pages', value: stats.pages, icon: FileEdit, accent: 'from-orange-500/20 to-orange-500/5', href: '/dashboard/content', perm: 'content' },
+    { label: 'Content Items', value: stats.contentItems, icon: Layers, accent: 'from-blue-500/20 to-blue-500/5', href: '/dashboard/content', perm: 'content' },
+    { label: 'Messages', value: stats.messages, icon: MessageSquare, accent: 'from-emerald-500/20 to-emerald-500/5', badge: stats.unreadMessages > 0 ? `${stats.unreadMessages} new` : undefined, href: '/dashboard/messages', perm: 'messages' },
+    { label: 'Menu Items', value: stats.menuItems, icon: Menu, accent: 'from-purple-500/20 to-purple-500/5', href: '/dashboard/menus', perm: 'menus' },
+  ].filter(c => hasPerm(c.perm));
 
   const quickActions = [
-    { label: 'Edit Content', desc: 'Update pages & sections', href: '/dashboard/content', icon: FileEdit },
-    { label: 'Manage Menus', desc: 'Edit site navigation', href: '/dashboard/menus', icon: Menu },
-    { label: 'Messages', desc: 'View contact inquiries', href: '/dashboard/messages', icon: MessageSquare },
-    { label: 'SEO Settings', desc: 'Optimize search rankings', href: '/dashboard/seo', icon: Search },
-    { label: 'Pricing', desc: 'Update pricing tables', href: '/dashboard/pricing', icon: DollarSign },
-    { label: 'Orders', desc: 'Track customer purchases', href: '/dashboard/orders', icon: Package },
-    { label: 'Tech Stack', desc: 'Manage technologies', href: '/dashboard/tech-stack', icon: Layers },
-    { label: 'View Website', desc: 'See live site', href: 'https://the-orange-fox-web.vercel.app', icon: Globe, external: true },
-  ];
+    { label: 'Edit Content', desc: 'Update pages & sections', href: '/dashboard/content', icon: FileEdit, perm: 'content' },
+    { label: 'Manage Menus', desc: 'Edit site navigation', href: '/dashboard/menus', icon: Menu, perm: 'menus' },
+    { label: 'Messages', desc: 'View contact inquiries', href: '/dashboard/messages', icon: MessageSquare, perm: 'messages' },
+    { label: 'SEO Settings', desc: 'Optimize search rankings', href: '/dashboard/seo', icon: Search, perm: 'seo' },
+    { label: 'Pricing', desc: 'Update pricing tables', href: '/dashboard/pricing', icon: DollarSign, perm: 'pricing' },
+    { label: 'Orders', desc: 'Track customer purchases', href: '/dashboard/orders', icon: Package, perm: 'orders' },
+    { label: 'Tech Stack', desc: 'Manage technologies', href: '/dashboard/tech-stack', icon: Layers, perm: 'tech-stack' },
+    { label: 'View Website', desc: 'See live site', href: 'https://the-orange-fox-web.vercel.app', icon: Globe, external: true, perm: '' },
+  ].filter(a => !a.perm || hasPerm(a.perm));
 
   return (
     <div className="space-y-8 relative">
@@ -339,7 +343,7 @@ export default function DashboardPage() {
         </Reveal>
 
         {/* SEO Score */}
-        <Reveal delay={0.2}>
+        {hasPerm('seo') && <Reveal delay={0.2}>
           <div className="bg-white rounded-2xl border border-border-light p-6 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] h-full flex flex-col">
             <div className="flex items-center gap-3 mb-5">
               <div className="w-5 h-[1.5px] bg-orange" />
@@ -392,11 +396,11 @@ export default function DashboardPage() {
               )}
             </div>
           </div>
-        </Reveal>
+        </Reveal>}
       </div>
 
       {/* ─── Content Coverage ─── */}
-      <Reveal delay={0.1}>
+      {hasPerm('content') && <Reveal delay={0.1}>
         <div className="bg-white rounded-2xl border border-border-light p-6 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
@@ -448,7 +452,7 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
-      </Reveal>
+      </Reveal>}
     </div>
   );
 }

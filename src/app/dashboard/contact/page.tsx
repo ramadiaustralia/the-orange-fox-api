@@ -12,6 +12,9 @@ import {
   AlertCircle,
   Globe,
 } from "lucide-react";
+import { usePermission } from "@/hooks/usePermission";
+import AccessDenied from "@/components/AccessDenied";
+
 
 interface ContactField {
   key: string;
@@ -75,6 +78,9 @@ const contactFields: ContactField[] = [
 ];
 
 export default function ContactPage() {
+  const { hasAccess, isOwner } = usePermission("contact");
+  if (hasAccess === false) return <AccessDenied section="Contact" />;
+
   const [contactData, setContactData] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);

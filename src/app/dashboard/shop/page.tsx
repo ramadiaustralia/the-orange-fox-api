@@ -1,6 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import { ShoppingBag, Save, CheckCircle2, AlertCircle, Loader2, ExternalLink, FileText, Monitor, Search, BarChart3, Shield, CreditCard } from "lucide-react";
+import { usePermission } from "@/hooks/usePermission";
+import AccessDenied from "@/components/AccessDenied";
+
 
 interface ContentItem {
   id: string;
@@ -30,6 +33,9 @@ const MODULES: ModuleConfig[] = [
 ];
 
 export default function ShopPage() {
+  const { hasAccess, isOwner } = usePermission("shop");
+  if (hasAccess === false) return <AccessDenied section="Shop" />;
+
   const [allContent, setAllContent] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [editValues, setEditValues] = useState<Record<string, string>>({});

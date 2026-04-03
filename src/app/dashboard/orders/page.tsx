@@ -2,6 +2,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { getSupabase } from '@/lib/supabase';
 import { Package, AlertCircle, DollarSign, RefreshCw, ArrowUpRight, X } from 'lucide-react';
+import { usePermission } from "@/hooks/usePermission";
+import AccessDenied from "@/components/AccessDenied";
+
 
 interface Order {
   id: string;
@@ -26,6 +29,9 @@ const statusStyles: Record<string, string> = {
 };
 
 export default function OrdersPage() {
+  const { hasAccess, isOwner } = usePermission("orders");
+  if (hasAccess === false) return <AccessDenied section="Orders" />;
+
   const supabase = getSupabase();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);

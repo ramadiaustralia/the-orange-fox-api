@@ -1,6 +1,9 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { Plus, Trash2, Eye, EyeOff, ChevronUp, ChevronDown, Save, X, GripVertical } from "lucide-react";
+import { usePermission } from "@/hooks/usePermission";
+import AccessDenied from "@/components/AccessDenied";
+
 
 interface MenuItem {
   id: string;
@@ -21,6 +24,9 @@ const LOCATIONS = [
 ];
 
 export default function MenusPage() {
+  const { hasAccess, isOwner } = usePermission("menus");
+  if (hasAccess === false) return <AccessDenied section="Menus" />;
+
   const [activeLocation, setActiveLocation] = useState("header");
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);

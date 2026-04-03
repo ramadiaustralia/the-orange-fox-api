@@ -1,6 +1,9 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { Mail, MailOpen, MessageSquare, Send, Clock, User, Package, ChevronDown, ChevronUp, RefreshCw, Filter } from "lucide-react";
+import { usePermission } from "@/hooks/usePermission";
+import AccessDenied from "@/components/AccessDenied";
+
 
 interface Message {
   id: string;
@@ -16,6 +19,9 @@ interface Message {
 }
 
 export default function MessagesPage() {
+  const { hasAccess, isOwner } = usePermission("messages");
+  if (hasAccess === false) return <AccessDenied section="Messages" />;
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);

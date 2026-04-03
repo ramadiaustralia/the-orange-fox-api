@@ -12,6 +12,9 @@ import {
   Loader2,
   PackageOpen,
 } from "lucide-react";
+import { usePermission } from "@/hooks/usePermission";
+import AccessDenied from "@/components/AccessDenied";
+
 
 interface TechItem {
   name: string;
@@ -19,6 +22,9 @@ interface TechItem {
 }
 
 export default function TechStackPage() {
+  const { hasAccess, isOwner } = usePermission("tech-stack");
+  if (hasAccess === false) return <AccessDenied section="Tech Stack" />;
+
   const [items, setItems] = useState<TechItem[]>([]);
   const [contentId, setContentId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);

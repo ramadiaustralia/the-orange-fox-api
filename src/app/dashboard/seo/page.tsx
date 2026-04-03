@@ -21,6 +21,9 @@ import {
   RefreshCw,
   Copy,
 } from "lucide-react";
+import { usePermission } from "@/hooks/usePermission";
+import AccessDenied from "@/components/AccessDenied";
+
 
 const PAGES = ["home", "about", "services", "process", "pricing", "contact", "faq", "global"];
 
@@ -168,6 +171,9 @@ const PAGE_SEO_CONTEXT: Record<string, { focus: string; keywords: string[]; titl
 };
 
 export default function SeoPage() {
+  const { hasAccess, isOwner } = usePermission("seo");
+  if (hasAccess === false) return <AccessDenied section="SEO & Analytics" />;
+
   const [activePage, setActivePage] = useState("home");
   const [seo, setSeo] = useState<SeoData>(emptySeo("home"));
   const [loading, setLoading] = useState(true);

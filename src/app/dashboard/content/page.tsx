@@ -3,6 +3,9 @@ import { useEffect, useState, useCallback } from "react";
 import ContentEditor from "@/components/ContentEditor";
 import { RefreshCw } from "lucide-react";
 import { PAGE_INFO } from "@/lib/contentLabels";
+import { usePermission } from "@/hooks/usePermission";
+import AccessDenied from "@/components/AccessDenied";
+
 
 const PAGES = ["home", "about", "services", "process", "pricing", "shop", "contact", "faq", "global"];
 
@@ -18,6 +21,9 @@ interface ContentItem {
 }
 
 export default function ContentPage() {
+  const { hasAccess, isOwner } = usePermission("content");
+  if (hasAccess === false) return <AccessDenied section="Content Editor" />;
+
   const [activePage, setActivePage] = useState("home");
   const [items, setItems] = useState<ContentItem[]>([]);
   const [allCounts, setAllCounts] = useState<Record<string, number>>({});

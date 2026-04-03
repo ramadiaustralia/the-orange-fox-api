@@ -1,6 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import { DollarSign, Save, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { usePermission } from "@/hooks/usePermission";
+import AccessDenied from "@/components/AccessDenied";
+
 
 interface ContentItem {
   id: string;
@@ -30,6 +33,9 @@ const PACKAGES: PackageConfig[] = [
 const FEATURE_KEYS = ["f1", "f2", "f3", "f4", "f5", "f6", "f7"];
 
 export default function PricingPage() {
+  const { hasAccess, isOwner } = usePermission("pricing");
+  if (hasAccess === false) return <AccessDenied section="Pricing" />;
+
   const [allContent, setAllContent] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [prices, setPrices] = useState<Record<string, string>>({});

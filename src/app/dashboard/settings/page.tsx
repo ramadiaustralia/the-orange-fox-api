@@ -16,8 +16,14 @@ import {
   Instagram,
   Github,
 } from "lucide-react";
+import { usePermission } from "@/hooks/usePermission";
+import AccessDenied from "@/components/AccessDenied";
+
 
 export default function SettingsPage() {
+  const { hasAccess, isOwner } = usePermission("settings");
+  if (hasAccess === false) return <AccessDenied section="Settings" />;
+
   const [admin, setAdmin] = useState({ email: "", display_name: "" });
   const [password, setPassword] = useState({ current: "", new_password: "", confirm: "" });
   const [siteSettings, setSiteSettings] = useState({
