@@ -106,7 +106,36 @@ export default function SettingsPage() {
       }
     }
 
+    async function loadSiteSettings() {
+      try {
+        const res = await fetch("/api/content");
+        if (res.ok) {
+          const data = await res.json();
+          const items = data.data || [];
+          const siteItems = items.filter(
+            (item: { page: string; section: string }) =>
+              item.page === "global" && item.section === "site_settings"
+          );
+          const settings: Record<string, string> = {};
+          siteItems.forEach((item: { content_key: string; content_value: string }) => {
+            settings[item.content_key] = item.content_value;
+          });
+          setSiteSettings((prev) => ({
+            ...prev,
+            ...(settings.site_name && { site_name: settings.site_name }),
+            ...(settings.site_url && { site_url: settings.site_url }),
+            ...(settings.logo_url !== undefined && { logo_url: settings.logo_url }),
+            ...(settings.contact_email && { contact_email: settings.contact_email }),
+            ...(settings.default_locale && { default_locale: settings.default_locale }),
+          }));
+        }
+      } catch (e) {
+        console.error("Failed to load site settings", e);
+      }
+    }
+
     loadAdmin();
+    loadSiteSettings();
     loadSocialLinks();
     loadGaId();
   }, []);

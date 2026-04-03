@@ -28,11 +28,18 @@ export async function POST(req: NextRequest) {
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { data, error } = await getSupabaseAdmin().from("site_content").insert({
-    ...body,
-    updated_by: admin.username,
-    updated_at: new Date().toISOString(),
-  }).select().single();
+  const { data, error } = await getSupabaseAdmin()
+    .from("site_content")
+    .upsert(
+      {
+        ...body,
+        updated_by: admin.username,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "page,section,content_key,locale" }
+    )
+    .select()
+    .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ data });

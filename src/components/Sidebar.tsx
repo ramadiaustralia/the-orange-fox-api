@@ -14,6 +14,7 @@ import {
   Layers,
   LogOut,
   ShoppingBag,
+  Contact2,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -31,6 +32,7 @@ const navItems = [
   { href: "/dashboard/tech-stack", label: "Tech Stack", icon: Layers },
   { href: "/dashboard/menus", label: "Menus", icon: Menu },
   { href: "/dashboard/messages", label: "Messages", icon: MessageSquare },
+  { href: "/dashboard/contact", label: "Contact", icon: Contact2 },
   { href: "/dashboard/seo", label: "SEO & Analytics", icon: Search },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
