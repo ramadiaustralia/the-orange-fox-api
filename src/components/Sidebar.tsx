@@ -15,7 +15,6 @@ import {
   DollarSign,
   Layers,
   LogOut,
-  UserCircle,
   ShoppingBag,
   Package,
   Contact2,
@@ -67,7 +66,6 @@ const navSections = [
   {
     label: "SYSTEM",
     items: [
-      { href: "/dashboard/profile", label: "My Profile", icon: UserCircle },
       { href: "/dashboard/settings", label: "Settings", icon: Settings },
     ],
   },

@@ -1,14 +1,18 @@
 "use client";
 import { useRouter, usePathname } from "next/navigation";
-import { Menu, LogOut, Bell } from "lucide-react";
+import { Menu, LogOut } from "lucide-react";
+import Image from "next/image";
+import type { UserProfile } from "@/context/AuthContext";
+import NotificationDropdown from "@/components/NotificationDropdown";
+import MessagingDropdown from "@/components/MessagingDropdown";
 
 interface TopbarProps {
-  adminName: string;
+  user: UserProfile | null;
   onMenuClick: () => void;
 }
 
 const pageMeta: Record<string, { title: string; description: string }> = {
-  "/dashboard": { title: "Dashboard", description: "Overview and quick access" },
+  "/dashboard": { title: "Home", description: "Team timeline & updates" },
   "/dashboard/content": { title: "Content Editor", description: "Edit website content" },
   "/dashboard/pricing": { title: "Pricing", description: "Manage packages and pricing" },
   "/dashboard/shop": { title: "Shop", description: "Manage your products" },
@@ -21,7 +25,7 @@ const pageMeta: Record<string, { title: string; description: string }> = {
   "/dashboard/settings": { title: "Settings", description: "System configuration" },
 };
 
-export default function Topbar({ adminName, onMenuClick }: TopbarProps) {
+export default function Topbar({ user, onMenuClick }: TopbarProps) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -34,6 +38,9 @@ export default function Topbar({ adminName, onMenuClick }: TopbarProps) {
     title: pathname.split("/").pop()?.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) || "Dashboard",
     description: "",
   };
+
+  const displayName = user?.display_name || "Admin";
+  const initial = displayName.charAt(0).toUpperCase();
 
   return (
     <header className="h-16 bg-white border-b border-[#e8e4e0] flex items-center justify-between px-4 lg:px-8 sticky top-0 z-40">
@@ -57,25 +64,46 @@ export default function Topbar({ adminName, onMenuClick }: TopbarProps) {
       </div>
 
       {/* Right Side */}
-      <div className="flex items-center gap-3">
-        <button className="relative p-2 rounded-xl hover:bg-[#f5f2ef] text-[#999999] hover:text-[#1a1a1a] transition-all">
-          <Bell size={18} />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#D4692A]" />
+      <div className="flex items-center gap-2">
+        {/* Notifications */}
+        {user && <NotificationDropdown currentUserId={user.id} />}
+
+        {/* Messaging */}
+        {user && <MessagingDropdown currentUser={user} />}
+
+        {/* Divider */}
+        <div className="w-px h-6 bg-[#e8e4e0] mx-1" />
+
+        {/* User Avatar → Profile */}
+        <button
+          onClick={() => router.push("/dashboard/profile")}
+          className="rounded-full overflow-hidden hover:ring-2 hover:ring-[#D4692A]/30 transition-all"
+          title={displayName}
+        >
+          {user?.profile_pic_url ? (
+            <Image
+              src={user.profile_pic_url}
+              alt={displayName}
+              width={32}
+              height={32}
+              className="rounded-full object-cover"
+              style={{ width: 32, height: 32 }}
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-[#D4692A]/10 flex items-center justify-center text-[#D4692A] text-xs font-bold">
+              {initial}
+            </div>
+          )}
         </button>
 
-        <div className="flex items-center gap-3 pl-3 border-l border-[#e8e4e0]">
-          <div className="w-8 h-8 rounded-xl bg-[#D4692A]/10 flex items-center justify-center text-[#D4692A] text-xs font-bold">
-            {adminName?.charAt(0)?.toUpperCase() || "A"}
-          </div>
-          <span className="hidden sm:block text-sm font-medium text-[#1a1a1a]">{adminName}</span>
-          <button
-            onClick={handleLogout}
-            className="p-2 rounded-xl hover:bg-red-500/10 text-[#999999] hover:text-red-400 transition-all"
-            title="Logout"
-          >
-            <LogOut size={16} />
-          </button>
-        </div>
+        {/* Logout */}
+        <button
+          onClick={handleLogout}
+          className="p-2 rounded-xl hover:bg-red-500/10 text-[#999999] hover:text-red-400 transition-all"
+          title="Logout"
+        >
+          <LogOut size={16} />
+        </button>
       </div>
     </header>
   );

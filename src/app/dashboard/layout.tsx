@@ -47,7 +47,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Sidebar collapsed={false} onToggle={() => {}} mobile onClose={() => setMobileOpen(false)} />
         )}
         <div className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
-          <Topbar adminName={user?.display_name || "Admin"} onMenuClick={() => setMobileOpen(true)} />
+          <Topbar user={user} onMenuClick={() => setMobileOpen(true)} />
           <main className="flex-1 overflow-y-auto p-6 lg:p-8 animate-fade-in">
             {children}
           </main>
