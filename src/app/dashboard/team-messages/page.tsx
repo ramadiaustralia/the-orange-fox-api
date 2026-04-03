@@ -516,7 +516,7 @@ export default function TeamMessagesPage() {
                           <Avatar user={activeChat} size={28} />
                         </div>
                       )}
-                      <div className="relative group">
+                      <div className="relative group max-w-[80%] sm:max-w-[65%]">
                         {isSent && !isUnsent && (
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -left-8 top-1/2 -translate-y-1/2 flex flex-col gap-1">
                             <button onClick={() => handleUnsend(msg.id)} title="Unsend" className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-orange-500 transition-colors">
@@ -528,7 +528,7 @@ export default function TeamMessagesPage() {
                           </div>
                         )}
                         <div
-                          className={`max-w-[65%] px-4 py-2.5 rounded-2xl text-sm ${
+                          className={`px-4 py-2.5 rounded-2xl text-sm ${
                             isUnsent
                               ? "bg-gray-100 border border-gray-200 text-gray-400 italic"
                               : isSent

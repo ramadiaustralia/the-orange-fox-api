@@ -313,7 +313,7 @@ export default function PostForm({ user, onPostCreated, isOwner }: PostFormProps
           {pendingNote && (
             <div className="mt-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700 flex items-center gap-2">
               <Clock size={14} />
-              Your post has been submitted and is awaiting approval from the CEO.
+              Your post has been submitted and is awaiting review.
             </div>
           )}
 
