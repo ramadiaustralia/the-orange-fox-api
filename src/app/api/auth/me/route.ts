@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
+import { getSupabaseAdmin } from "@/lib/supabase";
 
 export async function GET(req: NextRequest) {
   const token = req.cookies.get("fox_admin_token")?.value;
@@ -10,11 +11,27 @@ export async function GET(req: NextRequest) {
   if (!admin) {
     return NextResponse.json({ authenticated: false }, { status: 401 });
   }
+
+  const { data } = await getSupabaseAdmin()
+    .from("admin_users")
+    .select("id, email, display_name, position, role, permissions, profile_pic_url")
+    .eq("id", admin.sub)
+    .single();
+
+  if (!data) {
+    return NextResponse.json({ authenticated: false }, { status: 401 });
+  }
+
   return NextResponse.json({
     authenticated: true,
     admin: {
-      username: admin.username,
-      display_name: admin.display_name,
+      id: data.id,
+      email: data.email,
+      display_name: data.display_name,
+      position: data.position || "",
+      role: data.role || "worker",
+      permissions: data.permissions || {},
+      profile_pic_url: data.profile_pic_url,
     },
   });
 }

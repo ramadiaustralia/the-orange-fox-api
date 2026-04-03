@@ -4,15 +4,15 @@ import { signToken, hashPassword } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
-    const { username, password } = await req.json();
-    if (!username || !password) {
-      return NextResponse.json({ error: "Username and password required" }, { status: 400 });
+    const { email, password } = await req.json();
+    if (!email || !password) {
+      return NextResponse.json({ error: "Email and password required" }, { status: 400 });
     }
     const passwordHash = hashPassword(password);
     const { data, error } = await getSupabaseAdmin()
       .from("admin_users")
       .select("*")
-      .eq("username", username)
+      .eq("email", email.toLowerCase().trim())
       .eq("password_hash", passwordHash)
       .single();
 
@@ -22,13 +22,20 @@ export async function POST(req: NextRequest) {
 
     const token = await signToken({
       sub: data.id,
-      username: data.username,
+      email: data.email,
       display_name: data.display_name,
+      role: data.role || "worker",
+      position: data.position || "",
     });
 
     const response = NextResponse.json({
       success: true,
-      admin: { username: data.username, display_name: data.display_name },
+      admin: {
+        email: data.email,
+        display_name: data.display_name,
+        role: data.role,
+        position: data.position,
+      },
     });
 
     response.cookies.set("fox_admin_token", token, {

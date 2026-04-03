@@ -1,4 +1,5 @@
 'use client';
+import { useAuth } from '@/context/AuthContext';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import {
@@ -111,11 +112,13 @@ function getGreeting() {
   const h = new Date().getHours();
   if (h < 12) return 'Good morning';
   if (h < 17) return 'Good afternoon';
-  return 'Good evening';
+  if (h < 21) return 'Good evening';
+  return 'Good night';
 }
 
 /* ── page ── */
 export default function DashboardPage() {
+  const { user } = useAuth();
   const [stats, setStats] = useState<Stats>({
     pages: 8, contentItems: 0, messages: 0, unreadMessages: 0, menuItems: 0,
   });
@@ -230,7 +233,7 @@ export default function DashboardPage() {
                   </span>
                 </div>
                 <h1 className="text-xl lg:text-2xl font-bold text-white" style={{ fontFamily: 'var(--font-heading)' }}>
-                  {getGreeting()}
+                  {getGreeting()}{user?.display_name ? `, ${user.display_name.split(" ")[0]}` : ""}
                 </h1>
                 <p className="text-sm text-white/40 mt-0.5 flex items-center gap-1.5">
                   <Clock size={12} />

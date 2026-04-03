@@ -1,4 +1,5 @@
 "use client";
+import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -14,6 +15,7 @@ import {
   DollarSign,
   Layers,
   LogOut,
+  UserCircle,
   ShoppingBag,
   Package,
   Contact2,
@@ -65,13 +67,29 @@ const navSections = [
   {
     label: "SYSTEM",
     items: [
+      { href: "/dashboard/profile", label: "My Profile", icon: UserCircle },
       { href: "/dashboard/settings", label: "Settings", icon: Settings },
     ],
   },
 ];
 
+
+const hrefToPermission: Record<string, string> = {
+  "/dashboard/content": "content",
+  "/dashboard/menus": "menus",
+  "/dashboard/tech-stack": "tech-stack",
+  "/dashboard/pricing": "pricing",
+  "/dashboard/shop": "shop",
+  "/dashboard/orders": "orders",
+  "/dashboard/messages": "messages",
+  "/dashboard/contact": "contact",
+  "/dashboard/seo": "seo",
+  "/dashboard/settings": "settings",
+};
+
 export default function Sidebar({ collapsed, onToggle, mobile, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const { user } = useAuth();
   const router = useRouter();
 
   const isActive = (href: string) => {
@@ -138,7 +156,12 @@ export default function Sidebar({ collapsed, onToggle, mobile, onClose }: Sideba
             )}
 
             <div className="space-y-0.5">
-              {section.items.map((item) => {
+              {section.items.filter((item) => {
+                if (!user || user.role === 'owner') return true;
+                const perm = hrefToPermission[item.href];
+                if (!perm) return true; // Dashboard, Profile always visible
+                return user.permissions?.can_edit?.includes(perm);
+              }).map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.href);
                 return (
