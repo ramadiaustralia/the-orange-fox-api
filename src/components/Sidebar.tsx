@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
@@ -84,12 +85,18 @@ export default function Sidebar({ collapsed, onToggle, mobile, onClose }: Sideba
   };
 
   const content = (
-    <div className={`flex flex-col h-full bg-[#1c1c1c] border-r border-white/[0.06] ${collapsed && !mobile ? 'w-[72px]' : 'w-64'} transition-all duration-300`}>
+    <div className={`flex flex-col h-full bg-[#141414] border-r border-white/[0.06] ${collapsed && !mobile ? 'w-[72px]' : 'w-64'} transition-all duration-300`}>
       {/* Logo Area */}
       <div className="flex items-center justify-between px-5 py-5 border-b border-white/[0.06]">
         {(!collapsed || mobile) && (
           <div className="flex items-center gap-3">
-            <span className="text-2xl leading-none">🦊</span>
+            <Image
+              src="/logo.png"
+              alt="The Orange Fox"
+              width={32}
+              height={32}
+              className="rounded-lg"
+            />
             <div className="flex items-center gap-2">
               <span className="font-heading font-bold text-white text-sm tracking-wide">The Orange Fox</span>
               <span className="bg-[#D4692A]/15 text-[#D4692A] text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">CMS</span>
@@ -97,7 +104,15 @@ export default function Sidebar({ collapsed, onToggle, mobile, onClose }: Sideba
           </div>
         )}
         {collapsed && !mobile && (
-          <span className="text-2xl mx-auto leading-none">🦊</span>
+          <div className="mx-auto">
+            <Image
+              src="/logo.png"
+              alt="The Orange Fox"
+              width={28}
+              height={28}
+              className="rounded-lg"
+            />
+          </div>
         )}
         {mobile && (
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/[0.05] text-white/30 hover:text-white/60 transition-colors">
@@ -110,21 +125,19 @@ export default function Sidebar({ collapsed, onToggle, mobile, onClose }: Sideba
       <nav className="flex-1 py-4 px-3 overflow-y-auto">
         {navSections.map((section, sectionIndex) => (
           <div key={section.label || "overview"}>
-            {/* Section label or divider */}
             {section.label && (
               <>
                 {collapsed && !mobile ? (
                   <div className="my-2 border-t border-white/[0.06]" />
                 ) : (
-                  <div className={`text-[10px] uppercase tracking-wider text-white/25 font-medium px-4 mb-1 ${sectionIndex === 0 ? 'mt-0' : 'mt-4'}`}>
+                  <div className={`text-[10px] uppercase tracking-wider text-white/25 font-medium px-4 mb-1 ${sectionIndex === 0 ? 'mt-0' : 'mt-5'}`}>
                     {section.label}
                   </div>
                 )}
               </>
             )}
 
-            {/* Nav items */}
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {section.items.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.href);
@@ -151,14 +164,12 @@ export default function Sidebar({ collapsed, onToggle, mobile, onClose }: Sideba
 
       {/* Bottom Area */}
       <div className="px-5 py-4 border-t border-white/[0.06]">
-        {/* Version */}
         {!collapsed && (
           <div className="text-center mb-3">
             <span className="text-[10px] text-white/20 font-mono">v2.0</span>
           </div>
         )}
 
-        {/* Collapse Button (desktop only) */}
         {!mobile && (
           <button
             onClick={onToggle}
@@ -169,10 +180,9 @@ export default function Sidebar({ collapsed, onToggle, mobile, onClose }: Sideba
           </button>
         )}
 
-        {/* Logout */}
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-white/30 hover:text-white/60 hover:bg-white/[0.05] transition-colors text-sm"
+          className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors text-sm"
         >
           <LogOut size={16} className="flex-shrink-0" />
           {(!collapsed || mobile) && <span>Logout</span>}

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import {
   FileEdit,
   Menu,
@@ -75,7 +76,6 @@ export default function DashboardPage() {
 
         const allItems: ContentItem[] = content.data || [];
 
-        // Count items per page
         const counts: Record<string, number> = {};
         PAGES.forEach((p) => {
           counts[p] = allItems.filter((item) => item.page === p).length;
@@ -91,7 +91,6 @@ export default function DashboardPage() {
           menuItems: menus.data?.length || 0,
         });
 
-        // Fetch SEO score for home
         try {
           const seoRes = await fetch("/api/seo?page=home");
           const seoJson = await seoRes.json();
@@ -122,15 +121,15 @@ export default function DashboardPage() {
 
   const cards = [
     {
-      label: "Total Pages",
+      label: "Pages",
       value: stats.pages,
       icon: FileEdit,
-      desc: "Website pages managed",
+      desc: "Managed website pages",
     },
     {
       label: "Content Items",
       value: stats.contentItems,
-      icon: FileEdit,
+      icon: Layers,
       desc: "Across all pages",
     },
     {
@@ -154,37 +153,37 @@ export default function DashboardPage() {
     { label: "SEO Settings", href: "/dashboard/seo", icon: Search },
     { label: "Edit Pricing", href: "/dashboard/pricing", icon: DollarSign },
     { label: "View Orders", href: "/dashboard/orders", icon: Package },
-    { label: "Manage Tech Stack", href: "/dashboard/tech-stack", icon: Layers },
+    { label: "Tech Stack", href: "/dashboard/tech-stack", icon: Layers },
   ];
 
   return (
     <div className="space-y-6">
-      {/* Welcome Header */}
+      {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <h1
-            className="text-2xl font-bold text-[#1a1a1a] flex items-center gap-2"
+            className="text-2xl font-bold text-[#1a1a1a]"
             style={{ fontFamily: "var(--font-heading)" }}
           >
-            Welcome to the Den <span className="text-3xl">🦊</span>
+            Dashboard
           </h1>
           <p className="text-sm text-[#999999] mt-1">
-            Manage your website content, SEO, and more from your CMS dashboard
+            Overview and quick access to your tools
           </p>
         </div>
         <a
           href="https://the-orange-fox-web.vercel.app"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-[#D4692A]/10 border border-[#D4692A]/20 text-[#D4692A] hover:bg-[#D4692A]/20 transition-all duration-200"
+          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-[#D4692A] text-white hover:bg-[#b85520] transition-all duration-200 shadow-sm"
         >
           <ExternalLink size={14} />
-          View Live Website
+          View Live Site
         </a>
       </div>
 
-      {/* Stats Grid — Dark hero-style cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 stagger-enter">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {cards.map((card) => {
           const Icon = card.icon;
           return (
@@ -220,9 +219,9 @@ export default function DashboardPage() {
         })}
       </div>
 
-      {/* SEO Score Overview + Live Website Preview */}
+      {/* SEO Score + Live Website */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* SEO Score Card */}
+        {/* SEO Score */}
         <div className="bg-white border border-[#f0ece8] rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(212,105,42,0.06)] hover:border-[#D4692A]/30 p-6">
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp size={18} className="text-[#D4692A]" />
@@ -230,7 +229,7 @@ export default function DashboardPage() {
               className="text-lg font-semibold text-[#1a1a1a]"
               style={{ fontFamily: "var(--font-heading)" }}
             >
-              SEO Score — Home
+              SEO Score
             </h3>
           </div>
           {loading || seoScore === null ? (
@@ -260,20 +259,20 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="text-sm text-[#555555]">
-                  {seoScore >= 80 ? "Your homepage SEO is looking great!" : seoScore >= 50 ? "Room for improvement — check your meta tags." : "Your homepage needs SEO attention."}
+                  {seoScore >= 80 ? "Homepage SEO is performing well." : seoScore >= 50 ? "Some meta tags need attention." : "Homepage needs SEO improvements."}
                 </p>
                 <a
                   href="/dashboard/seo"
                   className="inline-flex items-center gap-1 mt-2 text-xs text-[#D4692A] hover:text-[#b85520] transition-colors"
                 >
-                  View full SEO settings <ArrowUpRight size={12} />
+                  View SEO settings <ArrowUpRight size={12} />
                 </a>
               </div>
             </div>
           )}
         </div>
 
-        {/* Live Website Preview Card */}
+        {/* Live Website */}
         <div className="bg-white border border-[#f0ece8] rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(212,105,42,0.06)] hover:border-[#D4692A]/30 p-6">
           <div className="flex items-center gap-2 mb-4">
             <Globe size={18} className="text-[#D4692A]" />
@@ -285,9 +284,13 @@ export default function DashboardPage() {
             </h3>
           </div>
           <div className="bg-[#fafafa] rounded-xl border border-[#f0ece8] p-4 flex flex-col items-center justify-center gap-3 min-h-[120px]">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#D4692A] to-[#b85520] flex items-center justify-center text-2xl shadow-lg shadow-[#D4692A]/20">
-              🦊
-            </div>
+            <Image
+              src="/logo.png"
+              alt="The Orange Fox"
+              width={48}
+              height={48}
+              className="rounded-xl shadow-lg"
+            />
             <p className="text-sm text-[#555555] text-center">the-orange-fox-web.vercel.app</p>
             <a
               href="https://the-orange-fox-web.vercel.app"
@@ -311,10 +314,10 @@ export default function DashboardPage() {
               className="text-lg font-semibold text-[#1a1a1a]"
               style={{ fontFamily: "var(--font-heading)" }}
             >
-              Quick Actions
+              Quick Access
             </h3>
           </div>
-          <div className="grid grid-cols-2 gap-3 stagger-enter">
+          <div className="grid grid-cols-2 gap-3">
             {quickActions.map((action) => {
               const Icon = action.icon;
               return (
@@ -363,7 +366,7 @@ export default function DashboardPage() {
                   <div key={p} className="group">
                     <div className="flex items-center justify-between mb-1">
                       <a
-                        href={`/dashboard/content`}
+                        href="/dashboard/content"
                         className="text-sm text-[#555555] capitalize group-hover:text-[#D4692A] transition-colors"
                       >
                         {p}

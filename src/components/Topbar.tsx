@@ -8,16 +8,16 @@ interface TopbarProps {
 }
 
 const pageMeta: Record<string, { title: string; description: string }> = {
-  "/dashboard": { title: "Dashboard", description: "Overview of your website" },
-  "/dashboard/content": { title: "Content Editor", description: "Edit your website content" },
-  "/dashboard/pricing": { title: "Pricing", description: "Manage package prices" },
-  "/dashboard/shop": { title: "Shop", description: "Manage your store" },
-  "/dashboard/orders": { title: "Orders", description: "Track customer orders" },
+  "/dashboard": { title: "Dashboard", description: "Overview and quick access" },
+  "/dashboard/content": { title: "Content Editor", description: "Edit website content" },
+  "/dashboard/pricing": { title: "Pricing", description: "Manage packages and pricing" },
+  "/dashboard/shop": { title: "Shop", description: "Manage your products" },
+  "/dashboard/orders": { title: "Orders", description: "Track and manage orders" },
   "/dashboard/tech-stack": { title: "Tech Stack", description: "Manage technologies" },
   "/dashboard/menus": { title: "Menus", description: "Configure navigation" },
   "/dashboard/messages": { title: "Messages", description: "Customer inquiries" },
-  "/dashboard/contact": { title: "Contact", description: "Contact information" },
-  "/dashboard/seo": { title: "SEO & Analytics", description: "Search optimization" },
+  "/dashboard/contact": { title: "Contact", description: "Contact details" },
+  "/dashboard/seo": { title: "SEO & Analytics", description: "Search optimisation" },
   "/dashboard/settings": { title: "Settings", description: "System configuration" },
 };
 
@@ -32,7 +32,7 @@ export default function Topbar({ adminName, onMenuClick }: TopbarProps) {
 
   const current = pageMeta[pathname] || {
     title: pathname.split("/").pop()?.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) || "Dashboard",
-    description: "Manage your website content",
+    description: "",
   };
 
   return (
@@ -58,13 +58,11 @@ export default function Topbar({ adminName, onMenuClick }: TopbarProps) {
 
       {/* Right Side */}
       <div className="flex items-center gap-3">
-        {/* Notification Bell */}
         <button className="relative p-2 rounded-xl hover:bg-[#f5f2ef] text-[#999999] hover:text-[#1a1a1a] transition-all">
           <Bell size={18} />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#D4692A]" />
         </button>
 
-        {/* User Area */}
         <div className="flex items-center gap-3 pl-3 border-l border-[#e8e4e0]">
           <div className="w-8 h-8 rounded-xl bg-[#D4692A]/10 flex items-center justify-center text-[#D4692A] text-xs font-bold">
             {adminName?.charAt(0)?.toUpperCase() || "A"}

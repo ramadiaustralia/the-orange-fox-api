@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { getSupabase } from '@/lib/supabase';
-import { Package, AlertCircle, DollarSign, RefreshCw, ArrowUpRight } from 'lucide-react';
+import { Package, AlertCircle, DollarSign, RefreshCw, ArrowUpRight, X } from 'lucide-react';
 
 interface Order {
   id: string;
@@ -65,13 +65,13 @@ export default function OrdersPage() {
       label: 'Total Orders',
       value: orders.length,
       icon: Package,
-      desc: 'All time orders',
+      desc: 'All time',
     },
     {
       label: 'Awaiting Action',
       value: paidCount,
       icon: AlertCircle,
-      desc: 'Paid & need processing',
+      desc: 'Paid, need processing',
     },
     {
       label: 'Revenue',
@@ -83,7 +83,7 @@ export default function OrdersPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
+      {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <h1
@@ -103,7 +103,7 @@ export default function OrdersPage() {
         </button>
       </div>
 
-      {/* Stat Cards — Dark hero style */}
+      {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {statCards.map((card) => {
           const Icon = card.icon;
@@ -157,25 +157,27 @@ export default function OrdersPage() {
           </div>
         ) : orders.length === 0 ? (
           <div className="p-16 text-center">
-            <div className="text-5xl mb-4">🦊</div>
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[#D4692A]/10 flex items-center justify-center">
+              <Package size={28} className="text-[#D4692A]" />
+            </div>
             <p className="text-lg font-semibold text-[#1a1a1a] mb-1" style={{ fontFamily: "var(--font-heading)" }}>
               No orders yet
             </p>
             <p className="text-sm text-[#999999]">
-              Orders will appear here when customers complete purchases.
+              Orders will appear here when customers complete a purchase.
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#f0ece8]">
-                  <th className="text-left px-5 py-3 text-xs text-[#999999] uppercase tracking-wider font-semibold">Order</th>
-                  <th className="text-left px-5 py-3 text-xs text-[#999999] uppercase tracking-wider font-semibold">Customer</th>
-                  <th className="text-left px-5 py-3 text-xs text-[#999999] uppercase tracking-wider font-semibold">Product</th>
-                  <th className="text-left px-5 py-3 text-xs text-[#999999] uppercase tracking-wider font-semibold">Amount</th>
-                  <th className="text-left px-5 py-3 text-xs text-[#999999] uppercase tracking-wider font-semibold">Status</th>
-                  <th className="text-left px-5 py-3 text-xs text-[#999999] uppercase tracking-wider font-semibold">Date</th>
+                <tr className="border-b border-[#f0ece8] bg-[#fafafa]">
+                  <th className="text-left px-5 py-3.5 text-xs text-[#999999] uppercase tracking-wider font-semibold">Order</th>
+                  <th className="text-left px-5 py-3.5 text-xs text-[#999999] uppercase tracking-wider font-semibold">Customer</th>
+                  <th className="text-left px-5 py-3.5 text-xs text-[#999999] uppercase tracking-wider font-semibold">Product</th>
+                  <th className="text-left px-5 py-3.5 text-xs text-[#999999] uppercase tracking-wider font-semibold">Amount</th>
+                  <th className="text-left px-5 py-3.5 text-xs text-[#999999] uppercase tracking-wider font-semibold">Status</th>
+                  <th className="text-left px-5 py-3.5 text-xs text-[#999999] uppercase tracking-wider font-semibold">Date</th>
                 </tr>
               </thead>
               <tbody>
@@ -195,7 +197,7 @@ export default function OrdersPage() {
                       ${order.product_price} <span className="text-xs text-[#999999]">{order.currency}</span>
                     </td>
                     <td className="px-5 py-4">
-                      <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-medium ${statusStyles[order.status] || 'bg-[#fafafa] text-[#555555] border border-[#e8e4e0]'}`}>
+                      <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-medium capitalize ${statusStyles[order.status] || 'bg-[#fafafa] text-[#555555] border border-[#e8e4e0]'}`}>
                         {order.status}
                       </span>
                     </td>
@@ -224,8 +226,8 @@ export default function OrdersPage() {
               >
                 {selectedOrder.order_number}
               </h3>
-              <button onClick={() => setSelectedOrder(null)} className="text-[#999999] hover:text-[#555555] text-xl leading-none transition-colors">
-                &times;
+              <button onClick={() => setSelectedOrder(null)} className="p-1.5 rounded-lg hover:bg-[#f5f2ef] text-[#999999] hover:text-[#555555] transition-colors">
+                <X size={18} />
               </button>
             </div>
 
@@ -263,7 +265,7 @@ export default function OrdersPage() {
                   <button
                     key={s}
                     onClick={() => updateStatus(selectedOrder.id, s)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium capitalize transition-all ${
                       selectedOrder.status === s
                         ? statusStyles[s]
                         : 'border border-[#e8e4e0] text-[#555555] hover:border-[#D4692A]/30 hover:text-[#D4692A]'
