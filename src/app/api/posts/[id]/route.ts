@@ -65,19 +65,70 @@ export async function PATCH(
   const admin = await authenticate(req);
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Only owner can approve/reject
+  const { id } = await params;
+  const body = await req.json();
+  const { action } = body;
+
+  const db = getSupabaseAdmin();
+
+  // Handle edit action
+  if (action === "edit") {
+    const { content } = body;
+    if (!content || !content.trim()) {
+      return NextResponse.json({ error: "Content is required" }, { status: 400 });
+    }
+
+    // Fetch the post to verify ownership
+    const { data: post, error: fetchError } = await db
+      .from("posts")
+      .select("id, author_id, status")
+      .eq("id", id)
+      .single();
+
+    if (fetchError || !post) {
+      return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    }
+
+    // Only the author can edit their own post
+    if (post.author_id !== admin.sub) {
+      return NextResponse.json({ error: "Forbidden: only the author can edit this post" }, { status: 403 });
+    }
+
+    // Determine the new status after edit
+    const updateData: Record<string, unknown> = {
+      content: content.trim(),
+      edited_at: new Date().toISOString(),
+    };
+
+    // If the author is NOT the owner, set status back to pending for re-review
+    if (admin.role !== "owner") {
+      updateData.status = "pending";
+    }
+    // If the author IS the owner, keep status as approved (no change needed)
+
+    const { data, error } = await db
+      .from("posts")
+      .update(updateData)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ post: data });
+  }
+
+  // Handle approve/reject action (owner only)
   if (admin.role !== "owner") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { id } = await params;
-  const { status } = await req.json();
+  const { status } = body;
 
   if (!["approved", "rejected"].includes(status)) {
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }
 
-  const { data, error } = await getSupabaseAdmin()
+  const { data, error } = await db
     .from("posts")
     .update({ status })
     .eq("id", id)

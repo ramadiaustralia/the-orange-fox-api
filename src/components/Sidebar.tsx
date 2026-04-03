@@ -18,6 +18,7 @@ import {
   ShoppingBag,
   Package,
   Contact2,
+  FolderKanban,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -48,6 +49,12 @@ const navSections = [
       { href: "/dashboard/pricing", label: "Pricing", icon: DollarSign },
       { href: "/dashboard/shop", label: "Shop", icon: ShoppingBag },
       { href: "/dashboard/orders", label: "Orders", icon: Package },
+    ],
+  },
+  {
+    label: "PROJECTS",
+    items: [
+      { href: "/dashboard/projects", label: "Projects", icon: FolderKanban },
     ],
   },
   {

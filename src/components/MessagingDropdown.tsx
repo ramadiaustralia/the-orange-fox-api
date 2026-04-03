@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { MessageSquare, ArrowLeft, Send, Paperclip, FileText, Download, X, Trash2, RotateCcw } from "lucide-react";
+import { MessageSquare, ArrowLeft, Send, Paperclip, FileText, Download, X, Trash2, RotateCcw, Search, Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { UserProfile } from "@/context/AuthContext";
 
@@ -13,6 +13,7 @@ interface TeamMember {
   display_name: string;
   position: string;
   email: string;
+  company_id?: string;
   profile_pic_url: string | null;
   last_active_at: string | null;
 }
@@ -30,6 +31,7 @@ interface Message {
   content: string;
   is_read: boolean;
   is_unsent?: boolean;
+  edited_at?: string | null;
   created_at: string;
   attachment_url: string | null;
   attachment_name: string | null;
@@ -130,6 +132,10 @@ export default function MessagingDropdown({ currentUser }: MessagingDropdownProp
   const [sending, setSending] = useState(false);
   const [partnerTyping, setPartnerTyping] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [memberSearch, setMemberSearch] = useState("");
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const prevUnreadRef = useRef(0);
@@ -355,12 +361,50 @@ export default function MessagingDropdown({ currentUser }: MessagingDropdownProp
     } catch { /* ignore */ }
   };
 
+  const handleEditMessage = async (messageId: string) => {
+    if (!editContent.trim() || editSaving) return;
+    setEditSaving(true);
+    try {
+      const res = await fetch("/api/internal-messages", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: messageId, action: "edit", content: editContent.trim() }),
+      });
+      if (res.ok) {
+        setEditingMessageId(null);
+        setEditContent("");
+        await fetchMessages();
+      }
+    } catch { /* ignore */ }
+    finally { setEditSaving(false); }
+  };
+
+  const startEditing = (msg: Message) => {
+    setEditingMessageId(msg.id);
+    setEditContent(msg.content);
+  };
+
+  const cancelEditing = () => {
+    setEditingMessageId(null);
+    setEditContent("");
+  };
+
   // Merge team members with conversations
   const getMemberList = () => {
     const convMap = new Map<string, Conversation>();
     conversations.forEach((c) => convMap.set(c.user.id, c));
 
-    return teamMembers.map((member) => ({
+    const filtered = teamMembers.filter((m) => {
+      if (!memberSearch.trim()) return true;
+      const q = memberSearch.toLowerCase();
+      return (
+        m.display_name.toLowerCase().includes(q) ||
+        m.email.toLowerCase().includes(q) ||
+        (m.company_id && m.company_id.toLowerCase().includes(q))
+      );
+    });
+
+    return filtered.map((member) => ({
       ...member,
       lastMessage: convMap.get(member.id)?.last_message || null,
       unreadCount: convMap.get(member.id)?.unread_count || 0,
@@ -415,11 +459,28 @@ export default function MessagingDropdown({ currentUser }: MessagingDropdownProp
                 </button>
               </div>
 
+              {/* Search */}
+              <div className="px-4 py-2 border-b border-[#e8e4e0]">
+                <div className="relative">
+                  <Search
+                    size={14}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[#999]"
+                  />
+                  <input
+                    type="text"
+                    value={memberSearch}
+                    onChange={(e) => setMemberSearch(e.target.value)}
+                    placeholder="Search members..."
+                    className="w-full pl-9 pr-3 py-1.5 text-sm rounded-lg border border-[#e8e4e0] focus:outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/30 bg-white text-[#1a1a1a] placeholder:text-[#999]"
+                  />
+                </div>
+              </div>
+
               {/* Member List */}
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto max-h-[calc(80vh-60px)] sm:max-h-[440px]">
                 {getMemberList().length === 0 ? (
                   <div className="p-8 text-center text-sm text-[#999999]">
-                    No team members found
+                    {memberSearch ? "No members match your search" : "No team members found"}
                   </div>
                 ) : (
                   getMemberList().map((member) => (
@@ -461,6 +522,8 @@ export default function MessagingDropdown({ currentUser }: MessagingDropdownProp
                 <button
                   onClick={() => {
                     setActiveChat(null);
+                    setEditingMessageId(null);
+                    setEditContent("");
                     fetchConversations();
                     fetchUnreadCount();
                   }}
@@ -495,14 +558,19 @@ export default function MessagingDropdown({ currentUser }: MessagingDropdownProp
                   messages.map((msg) => {
                     const isSent = msg.sender_id === currentUser.id;
                     const isUnsent = msg.is_unsent === true || msg.content === "__UNSENT__";
+                    const isEditing = editingMessageId === msg.id;
+                    const isEdited = msg.edited_at !== null && msg.edited_at !== undefined;
                     return (
                       <div
                         key={msg.id}
                         className={`flex ${isSent ? "justify-end" : "justify-start"}`}
                       >
-                        <div className="relative group">
-                          {isSent && !isUnsent && (
-                            <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -left-8 top-1/2 -translate-y-1/2 flex flex-col gap-1">
+                        <div className="relative group w-fit max-w-[80%]">
+                          {isSent && !isUnsent && !isEditing && (
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -left-10 top-1/2 -translate-y-1/2 flex flex-col gap-1">
+                              <button onClick={() => startEditing(msg)} title="Edit" className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-blue-500 transition-colors">
+                                <Pencil size={14} />
+                              </button>
                               <button onClick={() => handleUnsend(msg.id)} title="Unsend" className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-orange-500 transition-colors">
                                 <RotateCcw size={14} />
                               </button>
@@ -511,77 +579,120 @@ export default function MessagingDropdown({ currentUser }: MessagingDropdownProp
                               </button>
                             </div>
                           )}
-                          <div
-                            className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm ${
-                              isUnsent
-                                ? "bg-gray-100 border border-gray-200 text-gray-400 italic"
-                                : isSent
-                                  ? "bg-[#D4692A] text-white rounded-br-md"
-                                  : "bg-white border border-[#e8e4e0] text-[#1a1a1a] rounded-bl-md"
-                            }`}
-                          >
-                            {isUnsent ? (
-                              <p className="text-sm italic text-gray-400">🚫 This message was unsent</p>
-                            ) : (
-                              <>
-                                {/* Attachment */}
-                                {msg.attachment_url && (
-                                  <div className="mb-1.5">
-                                    {isImageAttachment(msg.attachment_type) ? (
-                                      <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer">
-                                        <img
-                                          src={msg.attachment_url}
-                                          alt={msg.attachment_name || "Image"}
-                                          className="rounded-lg max-w-full max-h-32 object-cover"
-                                        />
-                                      </a>
-                                    ) : isVideoAttachment(msg.attachment_type) ? (
-                                      <video
-                                        src={msg.attachment_url}
-                                        controls
-                                        preload="metadata"
-                                        className="rounded-lg max-w-full max-h-32"
-                                      />
-                                    ) : (
-                                      <a
-                                        href={msg.attachment_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className={`flex items-center gap-2 p-2 rounded-lg ${
-                                          isSent ? "bg-white/10" : "bg-gray-50 border border-gray-100"
-                                        }`}
-                                      >
-                                        <FileText size={16} className={isSent ? "text-white/70" : "text-gray-400"} />
-                                        <div className="min-w-0 flex-1">
-                                          <p className={`text-xs font-medium truncate ${isSent ? "text-white" : "text-gray-700"}`}>
-                                            {msg.attachment_name || "File"}
-                                          </p>
-                                          <p className={`text-[10px] ${isSent ? "text-white/50" : "text-gray-400"}`}>
-                                            {formatFileSize(msg.attachment_size)}
-                                          </p>
-                                        </div>
-                                        <Download size={14} className={isSent ? "text-white/60" : "text-gray-400"} />
-                                      </a>
-                                    )}
-                                  </div>
-                                )}
-
-                                {msg.content && (
-                                  <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                                )}
-                              </>
-                            )}
-                            <div className={`flex items-center gap-1 mt-1 ${isSent ? "justify-end" : ""}`}>
-                              <p className={`text-[10px] ${isUnsent ? "text-gray-300" : isSent ? "text-white/60" : "text-[#999]"}`}>
-                                {formatTime(msg.created_at)}
-                              </p>
+                          {isEditing ? (
+                            <div className="bg-white border border-[#D4692A]/40 rounded-2xl p-3 shadow-sm min-w-[200px]">
+                              <input
+                                type="text"
+                                value={editContent}
+                                onChange={(e) => setEditContent(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleEditMessage(msg.id);
+                                  }
+                                  if (e.key === "Escape") cancelEditing();
+                                }}
+                                autoFocus
+                                className="w-full px-2.5 py-1.5 text-sm rounded-lg border border-[#e8e4e0] focus:outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/30 bg-white text-[#1a1a1a]"
+                              />
+                              <div className="flex items-center justify-end gap-2 mt-2">
+                                <button
+                                  onClick={cancelEditing}
+                                  className="px-2.5 py-1 text-xs rounded-lg text-[#999] hover:bg-gray-100 transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  onClick={() => handleEditMessage(msg.id)}
+                                  disabled={!editContent.trim() || editSaving}
+                                  className="px-2.5 py-1 text-xs rounded-lg bg-[#D4692A] text-white hover:bg-[#c05e24] disabled:opacity-40 transition-colors"
+                                >
+                                  {editSaving ? "Saving..." : "Save"}
+                                </button>
+                              </div>
                             </div>
-                            {isSent && !isUnsent && (
-                              <span className={`text-[9px] ${msg.is_read ? "text-blue-200" : "text-white/40"}`}>
-                                {msg.is_read ? "✓✓ Read" : "✓ Sent"}
-                              </span>
-                            )}
-                          </div>
+                          ) : (
+                            <div
+                              className={`px-3 py-2 rounded-2xl text-sm ${
+                                isUnsent
+                                  ? "bg-gray-100 border border-gray-200 text-gray-400 italic"
+                                  : isSent
+                                    ? "bg-[#D4692A] text-white rounded-br-md"
+                                    : "bg-white border border-[#e8e4e0] text-[#1a1a1a] rounded-bl-md"
+                              }`}
+                            >
+                              {isUnsent ? (
+                                <p className="text-sm italic text-gray-400">🚫 This message was unsent</p>
+                              ) : (
+                                <>
+                                  {/* Attachment */}
+                                  {msg.attachment_url && (
+                                    <div className="mb-1.5">
+                                      {isImageAttachment(msg.attachment_type) ? (
+                                        <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer">
+                                          <img
+                                            src={msg.attachment_url}
+                                            alt={msg.attachment_name || "Image"}
+                                            className="rounded-lg max-w-full max-h-32 object-cover"
+                                          />
+                                        </a>
+                                      ) : isVideoAttachment(msg.attachment_type) ? (
+                                        <video
+                                          src={msg.attachment_url}
+                                          controls
+                                          preload="metadata"
+                                          className="rounded-lg max-w-full max-h-32"
+                                        />
+                                      ) : (
+                                        <a
+                                          href={msg.attachment_url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className={`flex items-center gap-2 p-2 rounded-lg ${
+                                            isSent ? "bg-white/10" : "bg-gray-50 border border-gray-100"
+                                          }`}
+                                        >
+                                          <FileText size={16} className={isSent ? "text-white/70" : "text-gray-400"} />
+                                          <div className="min-w-0 flex-1">
+                                            <p className={`text-xs font-medium truncate ${isSent ? "text-white" : "text-gray-700"}`}>
+                                              {msg.attachment_name || "File"}
+                                            </p>
+                                            <p className={`text-[10px] ${isSent ? "text-white/50" : "text-gray-400"}`}>
+                                              {formatFileSize(msg.attachment_size)}
+                                            </p>
+                                          </div>
+                                          <Download size={14} className={isSent ? "text-white/60" : "text-gray-400"} />
+                                        </a>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {msg.content && (
+                                    <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                                  )}
+                                </>
+                              )}
+                              <div className={`flex items-center gap-1 mt-1 ${isSent ? "justify-end" : ""}`}>
+                                <p className={`text-[10px] ${isUnsent ? "text-gray-300" : isSent ? "text-white/60" : "text-[#999]"}`}>
+                                  {formatTime(msg.created_at)}
+                                </p>
+                                {isEdited && !isUnsent && (
+                                  <span
+                                    className={`text-[10px] italic ${
+                                      isSent ? "text-white/40" : "text-[#aaa]"
+                                    }`}
+                                  >
+                                    (edited)
+                                  </span>
+                                )}
+                              </div>
+                              {isSent && !isUnsent && (
+                                <span className={`text-[9px] ${msg.is_read ? "text-blue-200" : "text-white/40"}`}>
+                                  {msg.is_read ? "✓✓ Read" : "✓ Sent"}
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );

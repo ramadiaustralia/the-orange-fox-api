@@ -4,17 +4,26 @@ import { signToken, hashPassword } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password } = await req.json();
-    if (!email || !password) {
-      return NextResponse.json({ error: "Email and password required" }, { status: 400 });
+    const { email, password, company_id } = await req.json();
+
+    if (!password || (!email && !company_id)) {
+      return NextResponse.json({ error: "Email or Company ID and password required" }, { status: 400 });
     }
+
     const passwordHash = hashPassword(password);
-    const { data, error } = await getSupabaseAdmin()
+
+    let query = getSupabaseAdmin()
       .from("admin_users")
       .select("*")
-      .eq("email", email.toLowerCase().trim())
-      .eq("password_hash", passwordHash)
-      .single();
+      .eq("password_hash", passwordHash);
+
+    if (email) {
+      query = query.eq("email", email.toLowerCase().trim());
+    } else {
+      query = query.eq("company_id", company_id.trim());
+    }
+
+    const { data, error } = await query.single();
 
     if (error || !data) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });

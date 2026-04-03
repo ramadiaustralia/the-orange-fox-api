@@ -147,7 +147,7 @@ export async function PATCH(req: NextRequest) {
   const admin = await authenticate(req);
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { id, action } = await req.json();
+  const { id, action, content } = await req.json();
   if (!id) return NextResponse.json({ error: "Message ID required" }, { status: 400 });
 
   if (action === "unsend") {
@@ -190,6 +190,40 @@ export async function PATCH(req: NextRequest) {
 
       if (fallbackError) return NextResponse.json({ error: fallbackError.message }, { status: 500 });
     }
+    return NextResponse.json({ success: true });
+  }
+
+  if (action === "edit") {
+    if (!content || !content.trim()) {
+      return NextResponse.json({ error: "Content is required for editing" }, { status: 400 });
+    }
+
+    // Verify the message belongs to the sender
+    const { data: msg } = await getSupabaseAdmin()
+      .from("internal_messages")
+      .select("sender_id, content, is_unsent")
+      .eq("id", id)
+      .single();
+
+    if (!msg || msg.sender_id !== admin.sub) {
+      return NextResponse.json({ error: "Cannot edit this message" }, { status: 403 });
+    }
+
+    // Don't allow editing unsent messages
+    if (msg.is_unsent || msg.content === "__UNSENT__") {
+      return NextResponse.json({ error: "Cannot edit an unsent message" }, { status: 400 });
+    }
+
+    // Update content and set edited_at
+    const { error } = await getSupabaseAdmin()
+      .from("internal_messages")
+      .update({
+        content: content.trim(),
+        edited_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ success: true });
   }
 

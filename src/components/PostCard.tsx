@@ -11,6 +11,9 @@ import {
   Loader2,
   ChevronDown,
   ChevronUp,
+  Pencil,
+  X,
+  Check,
 } from "lucide-react";
 
 /* ── Types ── */
@@ -43,6 +46,7 @@ export interface Post {
   id: string;
   content: string;
   created_at: string;
+  edited_at?: string | null;
   author: PostAuthor;
   attachments: Attachment[];
   like_count: number;
@@ -155,6 +159,14 @@ export default function PostCard({
   const [commentCount, setCommentCount] = useState(post.comment_count);
   const [deleting, setDeleting] = useState(false);
 
+  /* ── Edit state ── */
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(post.content);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editSuccess, setEditSuccess] = useState("");
+  const [displayContent, setDisplayContent] = useState(post.content);
+  const [wasEdited, setWasEdited] = useState(!!post.edited_at);
+
   const isAuthor = currentUserId === post.author.id;
   const imageAttachments = post.attachments.filter((a) => isImageType(a.file_type));
   const videoAttachments = post.attachments.filter((a) => isVideoType(a.file_type));
@@ -231,6 +243,47 @@ export default function PostCard({
     }
   }, [post.id, onUpdate]);
 
+  /* ── Edit ── */
+  const handleEditStart = useCallback(() => {
+    setEditContent(displayContent);
+    setIsEditing(true);
+    setEditSuccess("");
+  }, [displayContent]);
+
+  const handleEditCancel = useCallback(() => {
+    setIsEditing(false);
+    setEditContent(displayContent);
+    setEditSuccess("");
+  }, [displayContent]);
+
+  const handleEditSave = useCallback(async () => {
+    if (!editContent.trim() || editSubmitting) return;
+    setEditSubmitting(true);
+    setEditSuccess("");
+
+    try {
+      const res = await fetch(`/api/posts/${post.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: editContent.trim(), action: "edit" }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setDisplayContent(editContent.trim());
+        setIsEditing(false);
+        setWasEdited(true);
+        setEditSuccess("Post updated and submitted for review");
+        setTimeout(() => setEditSuccess(""), 3000);
+      } else {
+        alert(json.error || "Failed to update post");
+      }
+    } catch {
+      alert("Failed to update post");
+    } finally {
+      setEditSubmitting(false);
+    }
+  }, [editContent, editSubmitting, post.id]);
+
   /* ── Comment like ── */
   const handleCommentLike = useCallback(
     async (commentId: string, index: number) => {
@@ -294,32 +347,84 @@ export default function PostCard({
                 {post.author.position}
               </span>
             )}
+            {wasEdited && (
+              <span className="text-[0.6rem] px-1.5 py-0.5 rounded-full bg-gray-100 text-text-muted font-medium">
+                (edited)
+              </span>
+            )}
           </div>
           <p className="text-xs text-text-muted mt-0.5">
             {timeAgo(post.created_at)}
           </p>
         </div>
 
-        {/* Delete */}
+        {/* Edit & Delete */}
         {isAuthor && (
-          <button
-            onClick={handleDelete}
-            className="p-1.5 rounded-lg text-text-muted hover:text-red-500 hover:bg-red-50 transition-all duration-200"
-            title="Delete post"
-          >
-            <Trash2 size={16} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={handleEditStart}
+              className="p-1.5 rounded-lg text-text-muted hover:text-[#D4692A] hover:bg-[#D4692A]/5 transition-all duration-200"
+              title="Edit post"
+            >
+              <Pencil size={16} />
+            </button>
+            <button
+              onClick={handleDelete}
+              className="p-1.5 rounded-lg text-text-muted hover:text-red-500 hover:bg-red-50 transition-all duration-200"
+              title="Delete post"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
         )}
       </div>
 
-      {/* ── Content ── */}
-      {post.content && (
-        <div className="px-5 pt-3">
-          <p className="text-sm text-text-primary leading-relaxed whitespace-pre-wrap">
-            {post.content}
-          </p>
+      {/* ── Edit Success Message ── */}
+      {editSuccess && (
+        <div className="mx-5 mt-2 p-2 rounded-lg bg-green-50 border border-green-200 text-green-700 text-xs flex items-center gap-1.5">
+          <Check size={14} />
+          {editSuccess}
         </div>
       )}
+
+      {/* ── Content ── */}
+      {isEditing ? (
+        <div className="px-5 pt-3">
+          <textarea
+            value={editContent}
+            onChange={(e) => setEditContent(e.target.value)}
+            className="w-full text-sm text-text-primary leading-relaxed rounded-xl px-4 py-3 bg-[#f5f2ef] border border-border-light focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 resize-none outline-none"
+            rows={4}
+          />
+          <div className="flex items-center gap-2 mt-2">
+            <button
+              onClick={handleEditSave}
+              disabled={!editContent.trim() || editSubmitting}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#D4692A] text-white text-xs font-medium hover:bg-[#B85A24] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {editSubmitting ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : (
+                <Check size={12} />
+              )}
+              Save
+            </button>
+            <button
+              onClick={handleEditCancel}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 text-text-secondary text-xs font-medium hover:bg-gray-200 transition-colors"
+            >
+              <X size={12} />
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : displayContent ? (
+        <div className="px-5 pt-3">
+          <p className="text-sm text-text-primary leading-relaxed whitespace-pre-wrap">
+            {displayContent}
+          </p>
+        </div>
+      ) : null}
 
       {/* ── Image Attachments ── */}
       {imageAttachments.length > 0 && (

@@ -94,6 +94,7 @@ export async function GET(req: NextRequest) {
       status: post.status || "approved",
       created_at: post.created_at,
       updated_at: post.updated_at,
+      edited_at: post.edited_at || null,
       author: post.author,
       attachments: post.attachments,
       like_count: likes.length,

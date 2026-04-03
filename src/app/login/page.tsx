@@ -8,11 +8,13 @@ import AnimatedBackground from "@/components/AnimatedBackground";
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
+  const [companyId, setCompanyId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const [showPw, setShowPw] = useState(false);
+  const [loginMode, setLoginMode] = useState<"email" | "company_id">("email");
 
   useEffect(() => {
     const t = setTimeout(() => setRevealed(true), 100);
@@ -24,10 +26,15 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
+      const body =
+        loginMode === "email"
+          ? { email, password }
+          : { company_id: companyId, password };
+
       const res = await fetch("/api/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (data.success) {
@@ -167,7 +174,9 @@ export default function LoginPage() {
           <h2 className="font-heading text-lg font-semibold text-white mb-1">
             Hello, Fox Team!
           </h2>
-          <p className="text-sm text-white/50 mb-6">Sign in with your email to continue</p>
+          <p className="text-sm text-white/50 mb-6">
+            Sign in with your {loginMode === "email" ? "email" : "company ID"} to continue
+          </p>
 
           {error && (
             <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
@@ -176,17 +185,31 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-white/70 mb-1.5">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 outline-none transition-all duration-200 focus:border-orange focus:ring-2 focus:ring-orange/20 placeholder-white/30"
-                placeholder="Enter your email"
-                required
-              />
-            </div>
+            {loginMode === "email" ? (
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-1.5">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 outline-none transition-all duration-200 focus:border-orange focus:ring-2 focus:ring-orange/20 placeholder-white/30"
+                  placeholder="Enter your email"
+                  required
+                />
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-1.5">Company ID</label>
+                <input
+                  type="text"
+                  value={companyId}
+                  onChange={(e) => setCompanyId(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 outline-none transition-all duration-200 focus:border-orange focus:ring-2 focus:ring-orange/20 placeholder-white/30"
+                  placeholder="Enter your company ID"
+                  required
+                />
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-white/70 mb-1.5">Password</label>
               <div className="relative">
@@ -226,6 +249,22 @@ export default function LoginPage() {
               )}
             </button>
           </form>
+
+          {/* Login mode toggle */}
+          <div className="mt-4 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setLoginMode(loginMode === "email" ? "company_id" : "email");
+                setError("");
+              }}
+              className="text-xs text-white/40 hover:text-orange transition-colors duration-200"
+            >
+              {loginMode === "email"
+                ? "Sign in with Company ID instead"
+                : "Sign in with Email instead"}
+            </button>
+          </div>
         </div>
 
         <p className="text-center text-white/30 text-xs mt-6">

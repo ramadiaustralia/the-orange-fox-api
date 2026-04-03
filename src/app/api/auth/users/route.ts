@@ -35,8 +35,8 @@ export async function GET(req: NextRequest) {
   const isOwner = requester.role === "owner";
 
   const selectFields = isOwner
-    ? "id, username, email, display_name, position, role, permissions, profile_pic_url, plain_password, is_frozen, created_at, last_active_at"
-    : "id, email, display_name, position, role, profile_pic_url, last_active_at";
+    ? "id, username, email, display_name, position, role, permissions, profile_pic_url, plain_password, is_frozen, created_at, last_active_at, company_id"
+    : "id, email, display_name, position, role, profile_pic_url, last_active_at, company_id";
 
   const { data, error } = await getSupabaseAdmin()
     .from("admin_users")
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
   const owner = await requireOwner(req);
   if (!owner) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
-  const { email, password, display_name, position } = await req.json();
+  const { email, password, display_name, position, company_id } = await req.json();
 
   if (!email || !password) {
     return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
@@ -85,8 +85,9 @@ export async function POST(req: NextRequest) {
       role: "worker",
       permissions: {},
       is_frozen: false,
+      ...(company_id !== undefined && { company_id }),
     })
-    .select("id, email, display_name, position, role, permissions, profile_pic_url, plain_password, is_frozen, created_at")
+    .select("id, email, display_name, position, role, permissions, profile_pic_url, plain_password, is_frozen, created_at, company_id")
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -123,12 +124,13 @@ export async function PATCH(req: NextRequest) {
     safeUpdates.plain_password = updates.password;
   }
   if (updates.is_frozen !== undefined) safeUpdates.is_frozen = updates.is_frozen;
+  if (updates.company_id !== undefined) safeUpdates.company_id = updates.company_id;
 
   const { data, error } = await getSupabaseAdmin()
     .from("admin_users")
     .update(safeUpdates)
     .eq("id", id)
-    .select("id, email, display_name, position, role, permissions, profile_pic_url, plain_password, is_frozen, created_at")
+    .select("id, email, display_name, position, role, permissions, profile_pic_url, plain_password, is_frozen, created_at, company_id")
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
