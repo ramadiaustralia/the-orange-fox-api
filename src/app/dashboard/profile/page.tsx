@@ -38,7 +38,7 @@ function useReveal() {
     const el = ref.current;
     if (!el) return;
     const obs = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) { el.classList.add("revealed"); obs.unobserve(el); }
+      if (e.isIntersecting) { el.classList.add("visible"); obs.unobserve(el); }
     }, { threshold: 0.1 });
     obs.observe(el);
     return () => obs.disconnect();
