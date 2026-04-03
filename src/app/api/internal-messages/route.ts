@@ -162,6 +162,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Cannot unsend this message" }, { status: 403 });
     }
 
+    // Try with is_unsent column first (requires migration), fallback without it
     const { error } = await getSupabaseAdmin()
       .from("internal_messages")
       .update({
@@ -174,7 +175,21 @@ export async function PATCH(req: NextRequest) {
       })
       .eq("id", id);
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      // Fallback: is_unsent column may not exist yet
+      const { error: fallbackError } = await getSupabaseAdmin()
+        .from("internal_messages")
+        .update({
+          content: "__UNSENT__",
+          attachment_url: null,
+          attachment_name: null,
+          attachment_type: null,
+          attachment_size: null,
+        })
+        .eq("id", id);
+
+      if (fallbackError) return NextResponse.json({ error: fallbackError.message }, { status: 500 });
+    }
     return NextResponse.json({ success: true });
   }
 

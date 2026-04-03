@@ -16,30 +16,53 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const statusFilter = searchParams.get("status");
 
-  let query = db
-    .from("posts")
-    .select(`
-      *,
-      author:admin_users!author_id(id, display_name, position, profile_pic_url),
-      attachments:post_attachments(*),
-      likes:post_likes(id, user_id),
-      comments:post_comments(id)
-    `)
-    .order("created_at", { ascending: false });
+  const selectQuery = `
+    *,
+    author:admin_users!author_id(id, display_name, position, profile_pic_url),
+    attachments:post_attachments(*),
+    likes:post_likes(id, user_id),
+    comments:post_comments(id)
+  `;
 
+  let posts: Record<string, unknown>[] | null = null;
+
+  // Try with status filter first (requires migration)
   if (statusFilter === "pending") {
-    // Only owner can view pending posts
     if (admin.role !== "owner") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    query = query.eq("status", "pending");
+    const { data, error } = await db
+      .from("posts")
+      .select(selectQuery)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      // If status column doesn't exist, return empty for pending
+      return NextResponse.json({ posts: [] });
+    }
+    posts = data;
   } else {
-    query = query.eq("status", "approved");
+    // Try filtering by approved status
+    const { data, error } = await db
+      .from("posts")
+      .select(selectQuery)
+      .eq("status", "approved")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      // Fallback: status column may not exist yet, fetch all posts
+      const { data: fallbackData, error: fallbackError } = await db
+        .from("posts")
+        .select(selectQuery)
+        .order("created_at", { ascending: false });
+
+      if (fallbackError) return NextResponse.json({ error: fallbackError.message }, { status: 500 });
+      posts = fallbackData;
+    } else {
+      posts = data;
+    }
   }
-
-  const { data: posts, error } = await query;
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const enrichedPosts = (posts || []).map((post: Record<string, unknown>) => {
     const likes = (post.likes as Array<{ id: string; user_id: string }>) || [];
@@ -48,7 +71,7 @@ export async function GET(req: NextRequest) {
       id: post.id,
       author_id: post.author_id,
       content: post.content,
-      status: post.status,
+      status: post.status || "approved",
       created_at: post.created_at,
       updated_at: post.updated_at,
       author: post.author,
@@ -78,15 +101,27 @@ export async function POST(req: NextRequest) {
       .eq("id", admin.sub)
       .single();
 
-    const postStatus = userData?.role === "owner" ? "approved" : "pending";
+    const isOwnerUser = userData?.role === "owner";
+    const postStatus = isOwnerUser ? "approved" : "pending";
 
+    // Try inserting with status field (requires migration)
     const { data: post, error } = await getSupabaseAdmin()
       .from("posts")
       .insert({ author_id: admin.sub, content: content.trim(), status: postStatus })
       .select()
       .single();
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      // Fallback: status column may not exist yet, insert without it
+      const { data: fallbackPost, error: fallbackError } = await getSupabaseAdmin()
+        .from("posts")
+        .insert({ author_id: admin.sub, content: content.trim() })
+        .select()
+        .single();
+
+      if (fallbackError) return NextResponse.json({ error: fallbackError.message }, { status: 500 });
+      return NextResponse.json({ post: fallbackPost, status: "approved" });
+    }
 
     return NextResponse.json({ post, status: postStatus });
   } catch (err: unknown) {

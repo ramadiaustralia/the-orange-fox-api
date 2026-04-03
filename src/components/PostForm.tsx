@@ -82,7 +82,7 @@ export default function PostForm({ user, onPostCreated, isOwner }: PostFormProps
 
       if (!postRes.ok) throw new Error("Failed to create post");
       const postData = await postRes.json();
-      const postId = postData.data?.id;
+      const postId = postData.post?.id;
 
       // 2. Upload files and attach
       if (postId && files.length > 0) {

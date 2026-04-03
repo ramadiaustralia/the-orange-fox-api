@@ -28,7 +28,7 @@ export async function PATCH(req: NextRequest) {
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { id, ...updates } = body;
+  const { id, attachments: bodyAttachments, ...updates } = body;
   if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
 
   if (updates.admin_reply) {
@@ -44,7 +44,7 @@ export async function PATCH(req: NextRequest) {
       type: "admin",
       message: updates.admin_reply,
       timestamp: new Date().toISOString(),
-      ...(body.attachments?.length ? { attachments: body.attachments } : {}),
+      ...(bodyAttachments?.length ? { attachments: bodyAttachments } : {}),
     });
     updates.replies = replies;
 
@@ -59,10 +59,10 @@ export async function PATCH(req: NextRequest) {
 
         const replyUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "https://the-orange-fox-api.vercel.app"}/reply/${id}`;
 
-        const attachmentHtml = body.attachments?.length ? `
+        const attachmentHtml = bodyAttachments?.length ? `
               <div style="margin-top:12px;padding:12px;background:#f5f2ef;border-radius:8px;">
                 <p style="color:#999;font-size:11px;margin:0 0 8px;">📎 Attachments:</p>
-                ${body.attachments.map((a: {url: string; name: string; type: string}) => {
+                ${bodyAttachments.map((a: {url: string; name: string; type: string}) => {
                   if (a.type?.startsWith("image/")) {
                     return `<div style="margin-bottom:8px;"><img src="${a.url}" alt="${a.name}" style="max-width:100%;max-height:200px;border-radius:8px;" /><br/><a href="${a.url}" style="color:#D4692A;font-size:12px;">${a.name}</a></div>`;
                   }
