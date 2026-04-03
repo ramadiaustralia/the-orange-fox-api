@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 export default function SettingsPage() {
-  const [admin, setAdmin] = useState({ username: "", display_name: "" });
+  const [admin, setAdmin] = useState({ email: "", display_name: "" });
   const [password, setPassword] = useState({ current: "", new_password: "", confirm: "" });
   const [siteSettings, setSiteSettings] = useState({
     site_name: "The Orange Fox",
@@ -49,7 +49,7 @@ export default function SettingsPage() {
           const data = await res.json();
           if (data.authenticated && data.admin) {
             setAdmin({
-              username: data.admin.username || "",
+              email: data.admin.email || "",
               display_name: data.admin.display_name || "",
             });
           }
@@ -322,7 +322,7 @@ export default function SettingsPage() {
             </div>
             <div>
               <h4 className="text-lg font-semibold text-[#1a1a1a]">{admin.display_name || "Admin"}</h4>
-              <p className="text-sm text-[#555555]">@{admin.username || "admin"}</p>
+              <p className="text-sm text-[#555555]">{admin.email || "No email"}</p>
               <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 text-[10px] rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                 <Shield size={10} /> Administrator
               </span>
@@ -333,7 +333,7 @@ export default function SettingsPage() {
             <div>
               <label className="block text-xs font-medium text-[#555555] mb-1.5">Username</label>
               <input
-                value={admin.username}
+                value={admin.email}
                 disabled
                 className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#555555] text-sm rounded-xl px-4 py-2.5 cursor-not-allowed"
               />

@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     .upsert(
       {
         ...body,
-        updated_by: admin.username,
+        updated_by: admin.email,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "page,section,content_key,locale" }
@@ -56,7 +56,7 @@ export async function PATCH(req: NextRequest) {
 
   const { data, error } = await getSupabaseAdmin()
     .from("site_content")
-    .update({ ...updates, updated_by: admin.username, updated_at: new Date().toISOString() })
+    .update({ ...updates, updated_by: admin.email, updated_at: new Date().toISOString() })
     .eq("id", id)
     .select()
     .single();
