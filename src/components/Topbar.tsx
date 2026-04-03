@@ -1,18 +1,38 @@
 "use client";
-import { useRouter } from "next/navigation";
-import { Menu, LogOut, Bell, Search } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
+import { Menu, LogOut, Bell } from "lucide-react";
 
 interface TopbarProps {
   adminName: string;
   onMenuClick: () => void;
 }
 
+const pageMeta: Record<string, { title: string; description: string }> = {
+  "/dashboard": { title: "Dashboard", description: "Overview of your website" },
+  "/dashboard/content": { title: "Content Editor", description: "Edit your website content" },
+  "/dashboard/pricing": { title: "Pricing", description: "Manage package prices" },
+  "/dashboard/shop": { title: "Shop", description: "Manage your store" },
+  "/dashboard/orders": { title: "Orders", description: "Track customer orders" },
+  "/dashboard/tech-stack": { title: "Tech Stack", description: "Manage technologies" },
+  "/dashboard/menus": { title: "Menus", description: "Configure navigation" },
+  "/dashboard/messages": { title: "Messages", description: "Customer inquiries" },
+  "/dashboard/contact": { title: "Contact", description: "Contact information" },
+  "/dashboard/seo": { title: "SEO & Analytics", description: "Search optimization" },
+  "/dashboard/settings": { title: "Settings", description: "System configuration" },
+};
+
 export default function Topbar({ adminName, onMenuClick }: TopbarProps) {
   const router = useRouter();
+  const pathname = usePathname();
 
   const handleLogout = async () => {
     await fetch("/api/auth", { method: "DELETE" });
     router.push("/login");
+  };
+
+  const current = pageMeta[pathname] || {
+    title: pathname.split("/").pop()?.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) || "Dashboard",
+    description: "Manage your website content",
   };
 
   return (
@@ -26,23 +46,18 @@ export default function Topbar({ adminName, onMenuClick }: TopbarProps) {
           <Menu size={20} />
         </button>
         <div className="hidden sm:block">
-          <h2 className="font-heading text-sm font-semibold text-[#1a1a1a]">Welcome back</h2>
-          <p className="text-xs text-[#999999]">Manage your website content</p>
+          <h2
+            className="text-sm font-semibold text-[#1a1a1a]"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            {current.title}
+          </h2>
+          <p className="text-xs text-[#999999]">{current.description}</p>
         </div>
       </div>
 
       {/* Right Side */}
       <div className="flex items-center gap-3">
-        {/* Search Bar */}
-        <div className="hidden md:flex items-center gap-2 bg-[#fafafa] border border-[#f0ece8] rounded-xl px-4 py-2 text-sm">
-          <Search size={15} className="text-[#999999]" />
-          <input
-            type="text"
-            placeholder="Search..."
-            className="bg-transparent outline-none text-[#1a1a1a] placeholder:text-[#999999] w-40 lg:w-52"
-          />
-        </div>
-
         {/* Notification Bell */}
         <button className="relative p-2 rounded-xl hover:bg-[#f5f2ef] text-[#999999] hover:text-[#1a1a1a] transition-all">
           <Bell size={18} />

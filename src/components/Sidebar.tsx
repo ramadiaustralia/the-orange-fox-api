@@ -25,18 +25,48 @@ interface SidebarProps {
   onClose?: () => void;
 }
 
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/content", label: "Content", icon: FileEdit },
-  { href: "/dashboard/pricing", label: "Pricing", icon: DollarSign },
-  { href: "/dashboard/shop", label: "Shop", icon: ShoppingBag },
-  { href: "/dashboard/orders", label: "Orders", icon: Package },
-  { href: "/dashboard/tech-stack", label: "Tech Stack", icon: Layers },
-  { href: "/dashboard/menus", label: "Menus", icon: Menu },
-  { href: "/dashboard/messages", label: "Messages", icon: MessageSquare },
-  { href: "/dashboard/contact", label: "Contact", icon: Contact2 },
-  { href: "/dashboard/seo", label: "SEO & Analytics", icon: Search },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings },
+const navSections = [
+  {
+    label: null,
+    items: [
+      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    ],
+  },
+  {
+    label: "CONTENT",
+    items: [
+      { href: "/dashboard/content", label: "Content Editor", icon: FileEdit },
+      { href: "/dashboard/menus", label: "Menus", icon: Menu },
+      { href: "/dashboard/tech-stack", label: "Tech Stack", icon: Layers },
+    ],
+  },
+  {
+    label: "COMMERCE",
+    items: [
+      { href: "/dashboard/pricing", label: "Pricing", icon: DollarSign },
+      { href: "/dashboard/shop", label: "Shop", icon: ShoppingBag },
+      { href: "/dashboard/orders", label: "Orders", icon: Package },
+    ],
+  },
+  {
+    label: "COMMUNICATE",
+    items: [
+      { href: "/dashboard/messages", label: "Messages", icon: MessageSquare },
+      { href: "/dashboard/contact", label: "Contact", icon: Contact2 },
+    ],
+  },
+  {
+    label: "ANALYTICS",
+    items: [
+      { href: "/dashboard/seo", label: "SEO & Analytics", icon: Search },
+    ],
+  },
+  {
+    label: "SYSTEM",
+    items: [
+      { href: "/dashboard/settings", label: "Settings", icon: Settings },
+    ],
+  },
 ];
 
 export default function Sidebar({ collapsed, onToggle, mobile, onClose }: SidebarProps) {
@@ -77,26 +107,46 @@ export default function Sidebar({ collapsed, onToggle, mobile, onClose }: Sideba
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const active = isActive(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={mobile ? onClose : undefined}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-all duration-200 group ${
-                active
-                  ? "bg-[#D4692A]/10 text-[#D4692A] font-medium"
-                  : "text-white/50 hover:text-white hover:bg-white/[0.05]"
-              }`}
-            >
-              <Icon size={18} className={`w-[18px] h-[18px] flex-shrink-0 ${active ? "text-[#D4692A]" : "text-white/40 group-hover:text-white"}`} />
-              {(!collapsed || mobile) && <span className="font-heading">{item.label}</span>}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 py-4 px-3 overflow-y-auto">
+        {navSections.map((section, sectionIndex) => (
+          <div key={section.label || "overview"}>
+            {/* Section label or divider */}
+            {section.label && (
+              <>
+                {collapsed && !mobile ? (
+                  <div className="my-2 border-t border-white/[0.06]" />
+                ) : (
+                  <div className={`text-[10px] uppercase tracking-wider text-white/25 font-medium px-4 mb-1 ${sectionIndex === 0 ? 'mt-0' : 'mt-4'}`}>
+                    {section.label}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Nav items */}
+            <div className="space-y-1">
+              {section.items.map((item) => {
+                const Icon = item.icon;
+                const active = isActive(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={mobile ? onClose : undefined}
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-all duration-200 group ${
+                      active
+                        ? "bg-[#D4692A]/10 text-[#D4692A] font-medium"
+                        : "text-white/50 hover:text-white hover:bg-white/[0.05]"
+                    }`}
+                  >
+                    <Icon size={18} className={`w-[18px] h-[18px] flex-shrink-0 ${active ? "text-[#D4692A]" : "text-white/40 group-hover:text-white"}`} />
+                    {(!collapsed || mobile) && <span className="font-heading">{item.label}</span>}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       {/* Bottom Area */}

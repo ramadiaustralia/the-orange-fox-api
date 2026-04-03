@@ -13,6 +13,7 @@ import {
   Layers,
   Globe,
   TrendingUp,
+  Package,
 } from "lucide-react";
 
 interface Stats {
@@ -152,6 +153,7 @@ export default function DashboardPage() {
     { label: "View Messages", href: "/dashboard/messages", icon: MessageSquare },
     { label: "SEO Settings", href: "/dashboard/seo", icon: Search },
     { label: "Edit Pricing", href: "/dashboard/pricing", icon: DollarSign },
+    { label: "View Orders", href: "/dashboard/orders", icon: Package },
     { label: "Manage Tech Stack", href: "/dashboard/tech-stack", icon: Layers },
   ];
 
