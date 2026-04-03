@@ -34,59 +34,72 @@ export async function PATCH(req: NextRequest) {
   if (updates.admin_reply) {
     updates.replied_at = new Date().toISOString();
     updates.status = "replied";
-  }
 
-  const { data, error } = await getSupabaseAdmin()
-    .from("contact_messages")
-    .update(updates)
-    .eq("id", id)
-    .select()
-    .single();
+    // Fetch current replies array
+    const { data: current } = await getSupabaseAdmin()
+      .from("contact_messages").select("replies,name,email,subject,message").eq("id", id).single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    const replies = Array.isArray(current?.replies) ? current.replies : [];
+    replies.push({
+      type: "admin",
+      message: updates.admin_reply,
+      timestamp: new Date().toISOString(),
+    });
+    updates.replies = replies;
 
-  // Send email reply to customer
-  if (updates.admin_reply && data?.email) {
-    try {
-      const nodemailer = require("nodemailer");
-      const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: "theorgfox@gmail.com",
-          pass: "gwyz ikpb ifrz whzg",
-        },
-      });
+    // Send email
+    if (current?.email) {
+      try {
+        const nodemailer = require("nodemailer");
+        const transporter = nodemailer.createTransport({
+          service: "gmail",
+          auth: { user: "theorgfox@gmail.com", pass: "gwyz ikpb ifrz whzg" },
+        });
 
-      await transporter.sendMail({
-        from: '"The Orange Fox" <theorgfox@gmail.com>',
-        to: data.email,
-        subject: `Re: ${data.subject || "Your Project Request"} - The Orange Fox`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="text-align: center; margin-bottom: 24px;">
-              <h2 style="color: #D4692A; margin: 0;">The Orange Fox</h2>
-              <p style="color: #999; font-size: 12px; margin: 4px 0 0;">Project Request Reply</p>
-            </div>
-            <div style="background: #f9f7f5; border-radius: 12px; padding: 20px; margin-bottom: 16px;">
-              <p style="color: #555; font-size: 14px; margin: 0 0 8px;"><strong>Hi ${data.name},</strong></p>
-              <p style="color: #555; font-size: 14px; margin: 0; white-space: pre-wrap;">${updates.admin_reply}</p>
-            </div>
-            <div style="background: #fff3ed; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
-              <p style="color: #999; font-size: 12px; margin: 0 0 4px;">Your original message:</p>
-              <p style="color: #555; font-size: 13px; margin: 0; white-space: pre-wrap;">${data.message}</p>
-            </div>
-            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-            <p style="color: #999; font-size: 11px; text-align: center; margin: 0;">
-              &copy; ${new Date().getFullYear()} The Orange Fox. All rights reserved.
-            </p>
-          </div>
-        `,
-      });
-    } catch (emailError) {
-      console.error("Failed to send email reply:", emailError);
-      // Don't fail the request if email fails - the reply is still saved in DB
+        const replyUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "https://the-orange-fox-api.vercel.app"}/reply/${id}`;
+
+        await transporter.sendMail({
+          from: '"The Orange Fox" <theorgfox@gmail.com>',
+          to: current.email,
+          subject: `Re: ${current.subject || "Your Project Request"} - The Orange Fox`,
+          html: `
+            <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+              <div style="text-align:center;margin-bottom:24px;">
+                <h2 style="color:#D4692A;margin:0;">The Orange Fox</h2>
+                <p style="color:#999;font-size:12px;margin:4px 0 0;">Project Request Reply</p>
+              </div>
+              <div style="background:#f9f7f5;border-radius:12px;padding:20px;margin-bottom:16px;">
+                <p style="color:#555;font-size:14px;margin:0 0 8px;"><strong>Hi ${current.name},</strong></p>
+                <p style="color:#555;font-size:14px;margin:0;white-space:pre-wrap;">${updates.admin_reply}</p>
+              </div>
+              <div style="text-align:center;margin:24px 0;">
+                <a href="${replyUrl}" style="display:inline-block;background:#D4692A;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px;">Reply to this message</a>
+              </div>
+              <p style="color:#999;font-size:11px;text-align:center;">Or copy this link: ${replyUrl}</p>
+              <hr style="border:none;border-top:1px solid #eee;margin:20px 0;"/>
+              <p style="color:#999;font-size:11px;text-align:center;">&copy; ${new Date().getFullYear()} The Orange Fox. All rights reserved.</p>
+            </div>`,
+        });
+      } catch (e) { console.error("Email failed:", e); }
     }
   }
 
+  const { data, error } = await getSupabaseAdmin()
+    .from("contact_messages").update(updates).eq("id", id).select().single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ data });
+}
+
+export async function DELETE(req: NextRequest) {
+  const admin = await authenticate(req);
+  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
+
+  const { error } = await getSupabaseAdmin().from("contact_messages").delete().eq("id", id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ success: true });
 }
