@@ -92,6 +92,13 @@ const hrefToPermission: Record<string, string> = {
   "/dashboard/settings": "settings",
 };
 
+// Items always visible to all badges
+const alwaysVisibleHrefs = new Set([
+  "/dashboard",        // Team Feed
+  "/dashboard/projects", // Projects
+  "/dashboard/profile",  // Profile
+]);
+
 export default function Sidebar({ collapsed, onToggle, mobile, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { user } = useAuth();
@@ -162,9 +169,26 @@ export default function Sidebar({ collapsed, onToggle, mobile, onClose }: Sideba
 
             <div className="space-y-0.5">
               {section.items.filter((item) => {
-                if (!user || user.role === 'owner') return true;
+                if (!user) return true;
+
+                const badge = user.badge;
+
+                // Owner sees everything
+                if (badge === "owner") return true;
+
+                // Always-visible items for all badges
+                if (alwaysVisibleHrefs.has(item.href)) return true;
+
                 const perm = hrefToPermission[item.href];
-                if (!perm) return true; // Dashboard, Profile always visible
+
+                // Settings: ONLY visible to Owner badge
+                if (perm === "settings") return false;
+
+                // Board: show everything except Settings (already handled above)
+                if (badge === "board") return true;
+
+                // Manager/Staff: show based on can_edit permissions
+                if (!perm) return true; // No permission mapping = always visible
                 return user.permissions?.can_edit?.includes(perm);
               }).map((item) => {
                 const Icon = item.icon;

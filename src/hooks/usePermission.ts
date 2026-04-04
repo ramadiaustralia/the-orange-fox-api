@@ -2,17 +2,32 @@ import { useAuth } from "@/context/AuthContext";
 
 /**
  * Check if the current user has access to a dashboard section.
- * Owner always has full access. Workers need explicit permission in can_edit.
+ * Owner always has full access.
+ * Board has access to everything except settings.
+ * Manager/Staff need explicit permission in can_edit.
  */
 export function usePermission(section: string) {
   const { user } = useAuth();
 
-  if (!user) return { hasAccess: false, canEdit: false, isOwner: false, user: null };
+  if (!user) return { hasAccess: false, canEdit: false, isOwner: false, isBoard: false, isManager: false, isStaff: false, user: null };
 
-  const isOwner = user.role === "owner";
-  const canEdit = isOwner || (user.permissions?.can_edit || []).includes(section);
+  const isOwner = user.badge === "owner";
+  const isBoard = user.badge === "board";
+  const isManager = user.badge === "manager";
+  const isStaff = user.badge === "staff";
 
-  return { hasAccess: canEdit, canEdit, isOwner, user };
+  let canEdit: boolean;
+  if (isOwner) {
+    canEdit = true;
+  } else if (isBoard) {
+    // Board has access to everything EXCEPT settings
+    canEdit = section !== "settings";
+  } else {
+    // Manager and Staff need explicit can_edit permission
+    canEdit = (user.permissions?.can_edit || []).includes(section);
+  }
+
+  return { hasAccess: canEdit, canEdit, isOwner, isBoard, isManager, isStaff, user };
 }
 
 /**

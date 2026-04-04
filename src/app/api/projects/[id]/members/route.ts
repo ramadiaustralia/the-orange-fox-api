@@ -8,6 +8,16 @@ async function authenticate(req: NextRequest) {
   return verifyToken(token);
 }
 
+async function getProjectLeader(projectId: string): Promise<string | null> {
+  const { data } = await getSupabaseAdmin()
+    .from("project_members")
+    .select("user_id")
+    .eq("project_id", projectId)
+    .eq("role", "leader")
+    .single();
+  return data?.user_id || null;
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -15,11 +25,22 @@ export async function POST(
   const admin = await authenticate(req);
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  if (admin.role !== "owner") {
-    return NextResponse.json({ error: "Only the owner can add members" }, { status: 403 });
+  const badge = admin.badge || "staff";
+  const { id } = await params;
+
+  // Board badge CANNOT add members
+  if (badge === "board") {
+    return NextResponse.json({ error: "Board members cannot add project members" }, { status: 403 });
   }
 
-  const { id } = await params;
+  // Owner badge can add members to any project
+  // Project leader can add members
+  if (badge !== "owner") {
+    const leaderId = await getProjectLeader(id);
+    if (leaderId !== admin.sub) {
+      return NextResponse.json({ error: "Only the project leader or owner can add members" }, { status: 403 });
+    }
+  }
 
   try {
     const { userId, role } = await req.json();
@@ -73,16 +94,30 @@ export async function DELETE(
   const admin = await authenticate(req);
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  if (admin.role !== "owner") {
-    return NextResponse.json({ error: "Only the owner can remove members" }, { status: 403 });
-  }
-
+  const badge = admin.badge || "staff";
   const { id } = await params;
   const { searchParams } = new URL(req.url);
   const userId = searchParams.get("userId");
 
   if (!userId) {
     return NextResponse.json({ error: "userId query param is required" }, { status: 400 });
+  }
+
+  // Board badge CANNOT remove members
+  if (badge === "board") {
+    return NextResponse.json({ error: "Board members cannot remove project members" }, { status: 403 });
+  }
+
+  // Owner badge can remove anyone from any project
+  if (badge !== "owner") {
+    const leaderId = await getProjectLeader(id);
+    if (leaderId !== admin.sub) {
+      return NextResponse.json({ error: "Only the project leader or owner can remove members" }, { status: 403 });
+    }
+    // Leader cannot remove themselves
+    if (userId === admin.sub) {
+      return NextResponse.json({ error: "Leader cannot remove themselves. Transfer leadership first." }, { status: 400 });
+    }
   }
 
   try {
@@ -95,6 +130,68 @@ export async function DELETE(
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
     return NextResponse.json({ success: true });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Server error";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+// PATCH handler for transfer leadership
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const admin = await authenticate(req);
+  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const badge = admin.badge || "staff";
+  const { id } = await params;
+
+  try {
+    const { newLeaderId } = await req.json();
+
+    if (!newLeaderId) {
+      return NextResponse.json({ error: "newLeaderId is required" }, { status: 400 });
+    }
+
+    const db = getSupabaseAdmin();
+
+    // Only the current leader OR owner badge can transfer
+    const leaderId = await getProjectLeader(id);
+
+    if (badge !== "owner" && leaderId !== admin.sub) {
+      return NextResponse.json({ error: "Only the project leader or owner can transfer leadership" }, { status: 403 });
+    }
+
+    // Verify the new leader is a member of the project
+    const { data: newLeaderMember } = await db
+      .from("project_members")
+      .select("id")
+      .eq("project_id", id)
+      .eq("user_id", newLeaderId)
+      .single();
+
+    if (!newLeaderMember) {
+      return NextResponse.json({ error: "New leader must be a member of the project" }, { status: 400 });
+    }
+
+    // Set old leader to 'member'
+    if (leaderId) {
+      await db
+        .from("project_members")
+        .update({ role: "member" })
+        .eq("project_id", id)
+        .eq("user_id", leaderId);
+    }
+
+    // Set new person to 'leader'
+    await db
+      .from("project_members")
+      .update({ role: "leader" })
+      .eq("project_id", id)
+      .eq("user_id", newLeaderId);
+
+    return NextResponse.json({ success: true, message: "Leadership transferred" });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Server error";
     return NextResponse.json({ error: message }, { status: 500 });

@@ -42,32 +42,69 @@ export async function GET(req: NextRequest) {
   `;
 
   const hasColumn = await hasStatusColumn();
+  const badge = admin.badge || "staff";
 
   let posts: Record<string, unknown>[] | null = null;
 
   if (hasColumn) {
     // Migration has been run — use proper status filtering
     if (statusFilter === "pending") {
-      if (admin.role !== "owner") {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      // Owner/Board/Manager can see pending posts for review. Staff cannot.
+      if (badge === "staff") {
+        // Staff can only see their own pending posts
+        const { data, error } = await db
+          .from("posts")
+          .select(selectQuery)
+          .eq("status", "pending")
+          .eq("author_id", admin.sub)
+          .order("created_at", { ascending: false });
+
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+        posts = data;
+      } else {
+        // Owner, Board, Manager can see all pending posts
+        const { data, error } = await db
+          .from("posts")
+          .select(selectQuery)
+          .eq("status", "pending")
+          .order("created_at", { ascending: false });
+
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+        posts = data;
       }
-      const { data, error } = await db
-        .from("posts")
-        .select(selectQuery)
-        .eq("status", "pending")
-        .order("created_at", { ascending: false });
-
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-      posts = data;
     } else {
-      const { data, error } = await db
-        .from("posts")
-        .select(selectQuery)
-        .eq("status", "approved")
-        .order("created_at", { ascending: false });
+      // Default: show approved posts
+      // Staff sees only approved posts + their own pending
+      if (badge === "staff") {
+        const { data: approvedPosts, error: approvedError } = await db
+          .from("posts")
+          .select(selectQuery)
+          .eq("status", "approved")
+          .order("created_at", { ascending: false });
 
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-      posts = data;
+        if (approvedError) return NextResponse.json({ error: approvedError.message }, { status: 500 });
+
+        const { data: myPendingPosts, error: pendingError } = await db
+          .from("posts")
+          .select(selectQuery)
+          .eq("status", "pending")
+          .eq("author_id", admin.sub)
+          .order("created_at", { ascending: false });
+
+        if (pendingError) return NextResponse.json({ error: pendingError.message }, { status: 500 });
+
+        posts = [...(approvedPosts || []), ...(myPendingPosts || [])];
+      } else {
+        // Owner/Board/Manager see approved posts by default
+        const { data, error } = await db
+          .from("posts")
+          .select(selectQuery)
+          .eq("status", "approved")
+          .order("created_at", { ascending: false });
+
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+        posts = data;
+      }
     }
   } else {
     // Migration NOT run — return all posts (no status column to filter on)
@@ -117,18 +154,12 @@ export async function POST(req: NextRequest) {
     }
 
     const hasColumn = await hasStatusColumn();
-
-    const { data: userData } = await getSupabaseAdmin()
-      .from("admin_users")
-      .select("role")
-      .eq("id", admin.sub)
-      .single();
-
-    const isOwnerUser = userData?.role === "owner";
+    const badge = admin.badge || "staff";
 
     if (hasColumn) {
       // Migration run — use proper approval flow
-      const postStatus = isOwnerUser ? "approved" : "pending";
+      // Owner + Board → auto-approved; Manager + Staff → pending
+      const postStatus = (badge === "owner" || badge === "board") ? "approved" : "pending";
 
       const { data: post, error } = await getSupabaseAdmin()
         .from("posts")

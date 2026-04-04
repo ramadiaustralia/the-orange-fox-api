@@ -14,6 +14,9 @@ import {
   Pencil,
   X,
   Check,
+  Clock,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 
 /* ── Types ── */
@@ -23,6 +26,7 @@ interface PostAuthor {
   position: string;
   profile_pic_url: string | null;
   email: string;
+  badge?: string;
 }
 
 interface Attachment {
@@ -48,6 +52,8 @@ export interface Post {
   created_at: string;
   edited_at?: string | null;
   author: PostAuthor;
+  author_badge?: string;
+  status?: string;
   attachments: Attachment[];
   like_count: number;
   comment_count: number;
@@ -57,6 +63,7 @@ export interface Post {
 interface PostCardProps {
   post: Post;
   currentUserId: string;
+  currentUserBadge?: string;
   onUpdate: () => void;
   onProfileClick: (user: PostAuthor) => void;
 }
@@ -98,6 +105,20 @@ function formatFileSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/**
+ * Determine if the current user can review (approve/reject) a post based on badges.
+ * - Owner: can review any pending post
+ * - Board: can review pending posts by manager/staff (not owner/board)
+ * - Manager: can review pending posts by staff (not owner/board/manager)
+ * - Staff: no review buttons
+ */
+function canReviewPost(currentBadge: string, authorBadge: string): boolean {
+  if (currentBadge === "owner") return true;
+  if (currentBadge === "board") return authorBadge === "manager" || authorBadge === "staff";
+  if (currentBadge === "manager") return authorBadge === "staff";
+  return false;
 }
 
 /* ── Avatar Sub-component ── */
@@ -145,6 +166,7 @@ function Avatar({
 export default function PostCard({
   post,
   currentUserId,
+  currentUserBadge = "staff",
   onUpdate,
   onProfileClick,
 }: PostCardProps) {
@@ -158,6 +180,7 @@ export default function PostCard({
   const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [commentCount, setCommentCount] = useState(post.comment_count);
   const [deleting, setDeleting] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
 
   /* ── Edit state ── */
   const [isEditing, setIsEditing] = useState(false);
@@ -166,11 +189,34 @@ export default function PostCard({
   const [editSuccess, setEditSuccess] = useState("");
   const [displayContent, setDisplayContent] = useState(post.content);
   const [wasEdited, setWasEdited] = useState(!!post.edited_at);
+  const [postStatus, setPostStatus] = useState(post.status || "approved");
 
   const isAuthor = currentUserId === post.author.id;
+  const authorBadge = post.author_badge || post.author.badge || "staff";
+  const showReviewButtons = post.status === "pending" && canReviewPost(currentUserBadge, authorBadge);
   const imageAttachments = post.attachments.filter((a) => isImageType(a.file_type));
   const videoAttachments = post.attachments.filter((a) => isVideoType(a.file_type));
   const fileAttachments = post.attachments.filter((a) => !isImageType(a.file_type) && !isVideoType(a.file_type));
+
+  /* ── Review post ── */
+  const handleReview = useCallback(async (status: "approved" | "rejected") => {
+    setReviewing(true);
+    try {
+      const res = await fetch(`/api/posts/${post.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) {
+        setPostStatus(status);
+        onUpdate();
+      }
+    } catch {
+      console.error("Failed to review post");
+    } finally {
+      setReviewing(false);
+    }
+  }, [post.id, onUpdate]);
 
   /* ── Like ── */
   const handleLike = useCallback(async () => {
@@ -326,6 +372,16 @@ export default function PostCard({
       className={`bg-white rounded-2xl border border-border-light transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] ${deleting ? "opacity-50 pointer-events-none" : ""}`}
       style={{ animation: "fadeIn 0.3s ease-out" }}
     >
+      {/* ── Pending banner ── */}
+      {postStatus === "pending" && (
+        <div className="px-5 pt-3 pb-0">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs">
+            <Clock size={12} />
+            <span>Pending review</span>
+          </div>
+        </div>
+      )}
+
       {/* ── Header ── */}
       <div className="flex items-start gap-3 p-5 pb-0">
         <Avatar
@@ -500,6 +556,29 @@ export default function PostCard({
               />
             </a>
           ))}
+        </div>
+      )}
+
+      {/* ── Review Buttons (Badge-based) ── */}
+      {showReviewButtons && postStatus === "pending" && (
+        <div className="px-5 pt-3">
+          <div className="flex items-center gap-2 p-3 bg-amber-50/50 border border-amber-200/50 rounded-xl">
+            <span className="text-xs text-amber-700 font-medium flex-1">Review this post</span>
+            <button
+              onClick={() => handleReview("approved")}
+              disabled={reviewing}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-xs font-medium hover:bg-emerald-600 transition-colors disabled:opacity-50"
+            >
+              <CheckCircle2 size={12} /> Approve
+            </button>
+            <button
+              onClick={() => handleReview("rejected")}
+              disabled={reviewing}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500 text-white text-xs font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
+            >
+              <XCircle size={12} /> Reject
+            </button>
+          </div>
         </div>
       )}
 

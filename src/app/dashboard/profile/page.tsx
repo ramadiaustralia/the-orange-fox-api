@@ -15,6 +15,7 @@ interface TeamMember {
   display_name: string;
   position: string;
   role: string;
+  badge?: string;
   permissions: { can_edit?: string[]; profile_editable?: boolean };
   profile_pic_url: string | null;
   plain_password: string | null;
@@ -34,6 +35,59 @@ const DASHBOARD_SECTIONS = [
   { key: "messages", label: "Customer Project Request" },
   { key: "settings", label: "Settings" },
 ];
+
+/* ── Badge display helpers ── */
+function getBadgeStyle(badge: string): string {
+  switch (badge) {
+    case "owner": return "bg-amber-500/10 text-amber-600 border border-amber-500/20";
+    case "board": return "bg-purple-500/10 text-purple-600 border border-purple-500/20";
+    case "manager": return "bg-blue-500/10 text-blue-600 border border-blue-500/20";
+    case "staff": return "bg-gray-500/10 text-gray-600 border border-gray-500/20";
+    default: return "bg-gray-500/10 text-gray-600 border border-gray-500/20";
+  }
+}
+
+function getBadgeLabel(badge: string): string {
+  switch (badge) {
+    case "owner": return "Owner";
+    case "board": return "Board";
+    case "manager": return "Manager";
+    case "staff": return "Staff";
+    default: return "Staff";
+  }
+}
+
+function BadgePill({ badge }: { badge: string }) {
+  return (
+    <span className={`inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full ${getBadgeStyle(badge)}`}>
+      {getBadgeLabel(badge)}
+    </span>
+  );
+}
+
+/**
+ * Determine if currentUserBadge can review posts from authorBadge
+ */
+function canReviewPosts(currentBadge: string, authorBadge?: string): boolean {
+  if (!authorBadge) return currentBadge === "owner";
+  if (currentBadge === "owner") return true;
+  if (currentBadge === "board") return authorBadge === "manager" || authorBadge === "staff";
+  if (currentBadge === "manager") return authorBadge === "staff";
+  return false;
+}
+
+/**
+ * Determine if currentUserBadge can freeze a member with memberBadge
+ * - Owner can freeze anyone except self
+ * - Board can freeze Manager and Staff (not Owner, not other Board, not self)
+ * - Manager/Staff cannot freeze anyone
+ */
+function canFreezeMember(currentBadge: string, memberBadge: string, isSelf: boolean): boolean {
+  if (isSelf) return false;
+  if (currentBadge === "owner") return true;
+  if (currentBadge === "board") return memberBadge === "manager" || memberBadge === "staff";
+  return false;
+}
 
 /* ── Reveal hook ── */
 function useReveal() {
@@ -97,12 +151,19 @@ export default function ProfilePage() {
   const [showAddPw, setShowAddPw] = useState(false);
   const [savingAdd, setSavingAdd] = useState(false);
 
-  const isOwner = user?.role === "owner";
-  const canEditProfile = isOwner || user?.permissions?.profile_editable;
+  const badge = user?.badge || "staff";
+  const isOwnerBadge = badge === "owner";
+  const isBoardBadge = badge === "board";
+  const isManagerBadge = badge === "manager";
+  const canEditProfile = isOwnerBadge || user?.permissions?.profile_editable;
+  // Owner, Board, Manager can see pending posts (with badge-based filtering)
+  const canSeePending = isOwnerBadge || isBoardBadge || isManagerBadge;
+  // Owner and Board can manage team (but Board has limited actions)
+  const canSeeTeam = isOwnerBadge;
 
   /* ── Load team ── */
   const loadTeam = useCallback(async () => {
-    if (!isOwner) return;
+    if (!canSeeTeam) return;
     setLoadingTeam(true);
     try {
       const res = await fetch("/api/auth/users");
@@ -110,11 +171,11 @@ export default function ProfilePage() {
       if (data.users) setTeam(data.users);
     } catch { /* ignore */ }
     setLoadingTeam(false);
-  }, [isOwner]);
+  }, [canSeeTeam]);
 
   /* ── Load pending posts ── */
   const loadPendingPosts = useCallback(async () => {
-    if (!isOwner) return;
+    if (!canSeePending) return;
     setLoadingPending(true);
     try {
       const res = await fetch("/api/posts?status=pending");
@@ -122,7 +183,7 @@ export default function ProfilePage() {
       setPendingPosts(data.posts || []);
     } catch { /* ignore */ }
     setLoadingPending(false);
-  }, [isOwner]);
+  }, [canSeePending]);
 
   useEffect(() => {
     if (user) {
@@ -314,6 +375,12 @@ export default function ProfilePage() {
 
   if (!user) return null;
 
+  // Filter pending posts based on badge review ability
+  const reviewablePosts = pendingPosts.filter((post: any) => {
+    const authorBadge = post.author_badge || post.author?.badge || "staff";
+    return canReviewPosts(badge, authorBadge);
+  });
+
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
       <Link
@@ -337,7 +404,7 @@ export default function ProfilePage() {
 
       {/* ── Profile Card ── */}
       <Reveal delay={0.1}>
-        <div className="bg-white rounded-2xl border border-border-custom p-8 shadow-sm">
+        <div className="bg-white rounded-2xl border border-border-custom p-6 sm:p-8 shadow-sm overflow-hidden">
           <div className="flex flex-col items-center sm:flex-row sm:items-start gap-4 sm:gap-6">
             {/* Avatar */}
             <div className="relative group flex-shrink-0">
@@ -361,7 +428,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Info */}
-            <div className="flex-1">
+            <div className="flex-1 min-w-0 overflow-hidden">
               {editingProfile ? (
                 <div className="space-y-3">
                   <input
@@ -394,22 +461,18 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 <>
-                  <h2 className="text-xl font-bold text-text-primary text-center sm:text-left" style={{ fontFamily: "var(--font-heading)" }}>
+                  <h2 className="text-xl font-bold text-text-primary text-center sm:text-left truncate" style={{ fontFamily: "var(--font-heading)" }}>
                     {user.display_name || "No name set"}
                   </h2>
-                  <div className="flex items-center justify-center sm:justify-start gap-3 mt-1">
+                  <div className="flex items-center justify-center sm:justify-start gap-2 mt-1 flex-wrap">
                     {user.position && (
-                      <span className="text-sm font-medium text-orange bg-orange/10 px-3 py-0.5 rounded-full">
+                      <span className="text-sm font-medium text-orange bg-orange/10 px-3 py-0.5 rounded-full truncate max-w-[200px]">
                         {user.position}
                       </span>
                     )}
-                    <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${
-                      user.role === "owner" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
-                    }`}>
-                      {user.role === "owner" ? "Owner" : "Team Member"}
-                    </span>
+                    <BadgePill badge={badge} />
                   </div>
-                  <p className="text-sm text-text-secondary mt-2 text-center sm:text-left">{user.email}</p>
+                  <p className="text-sm text-text-secondary mt-2 text-center sm:text-left truncate">{user.email}</p>
                   {canEditProfile && (
                     <button
                       onClick={() => setEditingProfile(true)}
@@ -425,18 +488,18 @@ export default function ProfilePage() {
         </div>
       </Reveal>
 
-      {/* ── Pending Feed Posts (Owner only) ── */}
-      {isOwner && (
+      {/* ── Pending Feed Posts (Owner/Board/Manager can review) ── */}
+      {canSeePending && (
         <Reveal delay={0.15}>
-          <div className="bg-white rounded-2xl border border-border-custom p-8 shadow-sm">
-            <div className="flex items-center gap-3 mb-6">
+          <div className="bg-white rounded-2xl border border-border-custom p-6 sm:p-8 shadow-sm overflow-hidden">
+            <div className="flex items-center gap-3 mb-6 flex-wrap">
               <ShieldCheck size={18} className="text-amber-500" />
               <h3 className="font-bold text-text-primary" style={{ fontFamily: "var(--font-heading)" }}>
                 Pending Feed Posts for Review
               </h3>
-              {pendingPosts.length > 0 && (
+              {reviewablePosts.length > 0 && (
                 <span className="px-2.5 py-0.5 text-xs rounded-full bg-amber-100 text-amber-700 font-medium">
-                  {pendingPosts.length}
+                  {reviewablePosts.length}
                 </span>
               )}
             </div>
@@ -445,28 +508,31 @@ export default function ProfilePage() {
               <div className="flex justify-center py-8">
                 <div className="w-6 h-6 rounded-full border-2 border-orange border-t-transparent animate-spin" />
               </div>
-            ) : pendingPosts.length === 0 ? (
+            ) : reviewablePosts.length === 0 ? (
               <div className="text-center py-8 text-text-muted text-sm">
                 No pending posts to review. All clear! ✨
               </div>
             ) : (
               <div className="space-y-4">
-                {pendingPosts.map((post: any) => (
-                  <div key={post.id} className="border border-border-custom rounded-xl p-4">
+                {reviewablePosts.map((post: any) => (
+                  <div key={post.id} className="border border-border-custom rounded-xl p-4 overflow-hidden">
                     <div className="flex items-start gap-3 mb-3">
                       {post.author?.profile_pic_url ? (
-                        <img src={post.author.profile_pic_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                        <img src={post.author.profile_pic_url} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-orange/10 flex items-center justify-center text-orange text-sm font-bold">
+                        <div className="w-10 h-10 rounded-full bg-orange/10 flex items-center justify-center text-orange text-sm font-bold flex-shrink-0">
                           {post.author?.display_name?.charAt(0)?.toUpperCase() || "?"}
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm text-text-primary">{post.author?.display_name || "Unknown"}</p>
-                        <p className="text-xs text-text-muted">{post.author?.position || ""} • {new Date(post.created_at).toLocaleString()}</p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-semibold text-sm text-text-primary truncate">{post.author?.display_name || "Unknown"}</p>
+                          <BadgePill badge={post.author_badge || post.author?.badge || "staff"} />
+                        </div>
+                        <p className="text-xs text-text-muted truncate">{post.author?.position || ""} • {new Date(post.created_at).toLocaleString()}</p>
                       </div>
                     </div>
-                    <p className="text-sm text-text-secondary whitespace-pre-wrap mb-3">{post.content}</p>
+                    <p className="text-sm text-text-secondary whitespace-pre-wrap mb-3 break-words">{post.content}</p>
                     {post.attachments?.length > 0 && (
                       <div className="flex gap-2 flex-wrap mb-3">
                         {post.attachments.map((att: any, i: number) => (
@@ -475,7 +541,7 @@ export default function ProfilePage() {
                           ) : att.file_type?.startsWith("video/") ? (
                             <video key={i} src={att.file_url} className="w-20 h-20 rounded-lg object-cover border border-border-custom" />
                           ) : (
-                            <div key={i} className="px-3 py-2 text-xs bg-gray-50 rounded-lg border border-border-custom">{att.file_name}</div>
+                            <div key={i} className="px-3 py-2 text-xs bg-gray-50 rounded-lg border border-border-custom truncate max-w-[150px]">{att.file_name}</div>
                           )
                         ))}
                       </div>
@@ -504,7 +570,7 @@ export default function ProfilePage() {
 
       {/* ── Security ── */}
       <Reveal delay={0.2}>
-        <div className="bg-white rounded-2xl border border-border-custom p-8 shadow-sm">
+        <div className="bg-white rounded-2xl border border-border-custom p-6 sm:p-8 shadow-sm">
           <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
             <div className="flex items-center gap-3">
               <Lock size={18} className="text-text-secondary" />
@@ -581,9 +647,9 @@ export default function ProfilePage() {
       </Reveal>
 
       {/* ── Team Management (Owner only) ── */}
-      {isOwner && (
+      {canSeeTeam && (
         <Reveal delay={0.3}>
-          <div className="bg-white rounded-2xl border border-border-custom p-8 shadow-sm">
+          <div className="bg-white rounded-2xl border border-border-custom p-6 sm:p-8 shadow-sm overflow-hidden">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
               <div className="flex items-center gap-3">
                 <Shield size={18} className="text-text-secondary" />
@@ -607,6 +673,8 @@ export default function ProfilePage() {
                   <MemberCard
                     key={member.id}
                     member={member}
+                    currentUserBadge={badge}
+                    currentUserId={user.id}
                     expanded={editingMember === member.id}
                     onToggle={() => setEditingMember(editingMember === member.id ? null : member.id)}
                     onUpdate={updateMember}
@@ -696,6 +764,8 @@ export default function ProfilePage() {
 /* ── Member Card Component ── */
 function MemberCard({
   member,
+  currentUserBadge,
+  currentUserId,
   expanded,
   onToggle,
   onUpdate,
@@ -705,6 +775,8 @@ function MemberCard({
   onUploadAvatar,
 }: {
   member: TeamMember;
+  currentUserBadge: string;
+  currentUserId: string;
   expanded: boolean;
   onToggle: () => void;
   onUpdate: (id: string, updates: Record<string, unknown>) => void;
@@ -722,31 +794,37 @@ function MemberCard({
     password: "",
   });
 
+  const memberBadge = member.badge || "staff";
+  const isOwnerBadge = currentUserBadge === "owner";
+  const isSelf = member.id === currentUserId;
+  const showFreezeButton = canFreezeMember(currentUserBadge, memberBadge, isSelf);
   const permCount = member.permissions?.can_edit?.length || 0;
 
   return (
     <div className="border border-border-custom rounded-xl overflow-hidden transition-all">
-      {/* Header */}
+      {/* Header - responsive layout */}
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+        className="w-full flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-gray-50 transition-colors gap-3"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0 overflow-hidden">
           {member.profile_pic_url ? (
-            <img src={member.profile_pic_url} alt="" className="w-10 h-10 rounded-xl object-cover" />
+            <img src={member.profile_pic_url} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
           ) : (
-            <div className="w-10 h-10 rounded-xl bg-orange/10 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-orange/10 flex items-center justify-center flex-shrink-0">
               <UserCircle size={20} className="text-orange/40" />
             </div>
           )}
-          <div className="text-left min-w-0">
-            <p className="font-semibold text-sm text-text-primary">{member.display_name || "No name"}</p>
+          <div className="text-left min-w-0 overflow-hidden">
+            <p className="font-semibold text-sm text-text-primary truncate">{member.display_name || "No name"}</p>
             <p className="text-xs text-text-muted truncate">
               {member.email || "No email"} {member.position && `· ${member.position}`}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+          {/* Badge pill */}
+          <BadgePill badge={memberBadge} />
           {member.is_frozen && (
             <span className="text-xs px-2.5 py-0.5 rounded-full font-medium bg-red-100 text-red-600">
               Frozen
@@ -763,10 +841,10 @@ function MemberCard({
 
       {/* Expanded Content */}
       {expanded && (
-        <div className="px-4 pb-4 space-y-4 border-t border-border-light">
+        <div className="px-4 pb-4 space-y-4 border-t border-border-light overflow-hidden">
           {/* Avatar upload */}
           <div className="flex items-center gap-3 pt-4">
-            <div className="relative group">
+            <div className="relative group flex-shrink-0">
               {member.profile_pic_url ? (
                 <img src={member.profile_pic_url} alt="" className="w-14 h-14 rounded-xl object-cover border border-border-custom" />
               ) : (
@@ -781,6 +859,25 @@ function MemberCard({
             </div>
             <span className="text-xs text-text-muted">Hover to change photo</span>
           </div>
+
+          {/* Badge selector (Owner only) */}
+          {isOwnerBadge && memberBadge !== "owner" && (
+            <div className="flex items-center justify-between flex-wrap gap-2 py-2">
+              <div className="flex items-center gap-2">
+                <Shield size={14} className="text-text-muted" />
+                <span className="text-sm text-text-secondary">Badge</span>
+              </div>
+              <select
+                value={memberBadge}
+                onChange={(e) => onUpdate(member.id, { badge: e.target.value })}
+                className="border border-border-custom rounded-xl px-3 py-1.5 text-sm focus:border-orange focus:ring-2 focus:ring-orange/20 outline-none bg-white"
+              >
+                <option value="board">Board</option>
+                <option value="manager">Manager</option>
+                <option value="staff">Staff</option>
+              </select>
+            </div>
+          )}
 
           {/* Edit fields */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -817,35 +914,38 @@ function MemberCard({
               className="border border-border-custom rounded-xl px-3 py-2 text-sm focus:border-orange focus:ring-2 focus:ring-orange/20 outline-none"
               placeholder="Position"
             />
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <input
-                  value={editForm.password}
-                  onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
-                  className="w-full border border-border-custom rounded-xl px-3 py-2 text-sm focus:border-orange focus:ring-2 focus:ring-orange/20 outline-none pr-9"
-                  placeholder="New password"
-                  type={showEditPw ? "text" : "password"}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowEditPw(!showEditPw)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary"
-                >
-                  {showEditPw ? <EyeOff size={14} /> : <Eye size={14} />}
-                </button>
+            {/* Password field - Owner only */}
+            {isOwnerBadge && (
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <input
+                    value={editForm.password}
+                    onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                    className="w-full border border-border-custom rounded-xl px-3 py-2 text-sm focus:border-orange focus:ring-2 focus:ring-orange/20 outline-none pr-9"
+                    placeholder="New password"
+                    type={showEditPw ? "text" : "password"}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowEditPw(!showEditPw)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary"
+                  >
+                    {showEditPw ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+                {editForm.password && (
+                  <button
+                    onClick={() => {
+                      onUpdate(member.id, { password: editForm.password });
+                      setEditForm({ ...editForm, password: "" });
+                    }}
+                    className="px-3 py-2 bg-orange text-white rounded-xl text-xs font-medium hover:bg-orange-600 transition-colors"
+                  >
+                    Set
+                  </button>
+                )}
               </div>
-              {editForm.password && (
-                <button
-                  onClick={() => {
-                    onUpdate(member.id, { password: editForm.password });
-                    setEditForm({ ...editForm, password: "" });
-                  }}
-                  className="px-3 py-2 bg-orange text-white rounded-xl text-xs font-medium hover:bg-orange-600 transition-colors"
-                >
-                  Set
-                </button>
-              )}
-            </div>
+            )}
           </div>
 
           {/* Permissions */}
@@ -873,7 +973,8 @@ function MemberCard({
             </div>
           </div>
 
-          {/* Current Password (visible to owner) */}
+          {/* Current Password (visible to owner only) */}
+          {isOwnerBadge && (
             <div className="flex items-center justify-between flex-wrap gap-2 py-2">
               <div className="flex items-center gap-2">
                 <Lock size={14} className="text-text-muted" />
@@ -896,26 +997,29 @@ function MemberCard({
                 <span className="text-xs text-amber-500 italic">Will be captured on next login</span>
               )}
             </div>
+          )}
 
           {/* Freeze / Activate Account */}
-          <div className="flex items-center justify-between flex-wrap gap-2 py-2">
-            <div className="flex items-center gap-2">
-              <Shield size={14} className={member.is_frozen ? "text-red-500" : "text-text-muted"} />
-              <span className="text-sm text-text-secondary">
-                {member.is_frozen ? "Account is frozen" : "Account is active"}
-              </span>
+          {showFreezeButton && (
+            <div className="flex items-center justify-between flex-wrap gap-2 py-2">
+              <div className="flex items-center gap-2">
+                <Shield size={14} className={member.is_frozen ? "text-red-500" : "text-text-muted"} />
+                <span className="text-sm text-text-secondary">
+                  {member.is_frozen ? "Account is frozen" : "Account is active"}
+                </span>
+              </div>
+              <button
+                onClick={() => onUpdate(member.id, { is_frozen: !member.is_frozen })}
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                  member.is_frozen
+                    ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                    : "bg-red-100 text-red-600 hover:bg-red-200"
+                }`}
+              >
+                {member.is_frozen ? "Activate" : "Freeze"}
+              </button>
             </div>
-            <button
-              onClick={() => onUpdate(member.id, { is_frozen: !member.is_frozen })}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
-                member.is_frozen
-                  ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                  : "bg-red-100 text-red-600 hover:bg-red-200"
-              }`}
-            >
-              {member.is_frozen ? "Activate" : "Freeze"}
-            </button>
-          </div>
+          )}
 
           {/* Profile editable toggle */}
           <div className="flex items-center justify-between flex-wrap gap-2 py-2">

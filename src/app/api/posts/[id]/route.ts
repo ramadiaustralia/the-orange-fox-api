@@ -17,6 +17,7 @@ export async function DELETE(
 
   const { id } = await params;
   const db = getSupabaseAdmin();
+  const badge = admin.badge || "staff";
 
   // Check post exists and verify ownership
   const { data: post, error: fetchError } = await db
@@ -29,8 +30,8 @@ export async function DELETE(
     return NextResponse.json({ error: "Post not found" }, { status: 404 });
   }
 
-  // Only author or owner role can delete
-  if (post.author_id !== admin.sub && admin.role !== "owner") {
+  // Only author or owner/board badge can delete
+  if (post.author_id !== admin.sub && badge !== "owner" && badge !== "board") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -68,6 +69,7 @@ export async function PATCH(
   const { id } = await params;
   const body = await req.json();
   const { action } = body;
+  const badge = admin.badge || "staff";
 
   const db = getSupabaseAdmin();
 
@@ -100,11 +102,12 @@ export async function PATCH(
       edited_at: new Date().toISOString(),
     };
 
-    // If the author is NOT the owner, set status back to pending for re-review
-    if (admin.role !== "owner") {
+    // Owner/Board keep approved status; Manager/Staff go back to pending
+    if (badge === "owner" || badge === "board") {
+      // Keep status as approved (no change needed)
+    } else {
       updateData.status = "pending";
     }
-    // If the author IS the owner, keep status as approved (no change needed)
 
     const { data, error } = await db
       .from("posts")
@@ -117,15 +120,51 @@ export async function PATCH(
     return NextResponse.json({ post: data });
   }
 
-  // Handle approve/reject action (owner only)
-  if (admin.role !== "owner") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
+  // Handle approve/reject action
   const { status } = body;
 
   if (!["approved", "rejected"].includes(status)) {
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+  }
+
+  // Get the post to check author's badge
+  const { data: post, error: postError } = await db
+    .from("posts")
+    .select("id, author_id")
+    .eq("id", id)
+    .single();
+
+  if (postError || !post) {
+    return NextResponse.json({ error: "Post not found" }, { status: 404 });
+  }
+
+  // Get the author's badge
+  const { data: authorData } = await db
+    .from("admin_users")
+    .select("badge")
+    .eq("id", post.author_id)
+    .single();
+
+  const authorBadge = authorData?.badge || "staff";
+
+  // Review permission logic:
+  // - Owner can review any post
+  // - Board can review posts by Manager and Staff (NOT owner or other board posts)
+  // - Manager can review posts by Staff only (NOT owner or board)
+  // - Staff CANNOT review
+  if (badge === "owner") {
+    // Owner can review any post — allowed
+  } else if (badge === "board") {
+    if (authorBadge === "owner" || authorBadge === "board") {
+      return NextResponse.json({ error: "Board members cannot review owner or other board posts" }, { status: 403 });
+    }
+  } else if (badge === "manager") {
+    if (authorBadge !== "staff") {
+      return NextResponse.json({ error: "Managers can only review staff posts" }, { status: 403 });
+    }
+  } else {
+    // Staff cannot review
+    return NextResponse.json({ error: "Staff cannot review posts" }, { status: 403 });
   }
 
   const { data, error } = await db

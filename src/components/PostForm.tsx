@@ -7,7 +7,7 @@ import type { UserProfile } from "@/context/AuthContext";
 interface PostFormProps {
   user: UserProfile;
   onPostCreated: () => void;
-  isOwner?: boolean;
+  isOwner?: boolean; // Now means "is owner OR board badge" for auto-approval display
 }
 
 interface AttachedFile {
@@ -124,6 +124,7 @@ export default function PostForm({ user, onPostCreated, isOwner }: PostFormProps
         setMigrationWarning(true);
         setTimeout(() => setMigrationWarning(false), 8000);
       } else if (!isOwner && postData.status === "pending") {
+        // isOwner here means owner or board badge — they don't see pending notice
         setPendingNote(true);
         setTimeout(() => setPendingNote(false), 5000);
       }

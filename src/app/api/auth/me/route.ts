@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
 
   const { data } = await getSupabaseAdmin()
     .from("admin_users")
-    .select("id, email, display_name, position, role, permissions, profile_pic_url, is_frozen")
+    .select("id, email, display_name, position, role, badge, permissions, profile_pic_url, is_frozen")
     .eq("id", admin.sub)
     .single();
 
@@ -43,6 +43,7 @@ export async function GET(req: NextRequest) {
       display_name: data.display_name,
       position: data.position || "",
       role: data.role || "worker",
+      badge: data.badge || "staff",
       permissions: data.permissions || {},
       profile_pic_url: data.profile_pic_url,
     },

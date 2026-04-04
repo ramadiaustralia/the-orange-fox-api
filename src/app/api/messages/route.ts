@@ -40,6 +40,10 @@ export async function PATCH(req: NextRequest) {
       .from("contact_messages").select("replies,name,email,subject,message").eq("id", id).single();
 
     const replies = Array.isArray(current?.replies) ? current.replies : [];
+
+    // Check if this is the FIRST admin reply
+    const hasExistingAdminReply = replies.some((r: { type: string }) => r.type === "admin");
+
     replies.push({
       type: "admin",
       message: updates.admin_reply,
@@ -48,8 +52,8 @@ export async function PATCH(req: NextRequest) {
     });
     updates.replies = replies;
 
-    // Send email
-    if (current?.email) {
+    // Only send email on the FIRST admin reply
+    if (!hasExistingAdminReply && current?.email) {
       try {
         const nodemailer = require("nodemailer");
         const transporter = nodemailer.createTransport({
@@ -86,15 +90,18 @@ export async function PATCH(req: NextRequest) {
                 ${attachmentHtml}
               </div>
               <div style="text-align:center;margin:24px 0;">
-                <a href="${replyUrl}" style="display:inline-block;background:#D4692A;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px;">Reply to this message</a>
+                <p style="color:#D4692A;font-size:14px;font-weight:bold;margin:0 0 12px;">📬 All future communication will happen through our portal.</p>
+                <p style="color:#777;font-size:13px;margin:0 0 16px;">You don't need to reply via email — use the portal link below instead.</p>
+                <a href="${replyUrl}" style="display:inline-block;background:#D4692A;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:15px;">Open Your Portal</a>
               </div>
-              <p style="color:#999;font-size:11px;text-align:center;">Or copy this link: ${replyUrl}</p>
+              <p style="color:#999;font-size:11px;text-align:center;margin-top:16px;">Bookmark this link for future replies: ${replyUrl}</p>
               <hr style="border:none;border-top:1px solid #eee;margin:20px 0;"/>
               <p style="color:#999;font-size:11px;text-align:center;">&copy; ${new Date().getFullYear()} The Orange Fox. All rights reserved.</p>
             </div>`,
         });
       } catch (e) { console.error("Email failed:", e); }
     }
+    // If NOT the first admin reply: no email sent — reply goes only to the portal
   }
 
   const { data, error } = await getSupabaseAdmin()

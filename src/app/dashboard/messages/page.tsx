@@ -127,6 +127,16 @@ export default function MessagesPage() {
     );
   };
 
+  /** Determine the reply label based on whether there are previous admin replies */
+  const getReplyLabel = (msg: Message): string => {
+    const replies: Reply[] = Array.isArray(msg.replies) ? msg.replies : [];
+    const hasAdminReply = replies.some((r) => r.type === "admin");
+    if (hasAdminReply) {
+      return "Will appear in the customer portal only (no email sent)";
+    }
+    return `Will be sent to ${msg.email} with portal access link`;
+  };
+
   const unreadCount = messages.filter((m) => m.status === "unread").length;
 
   return (
@@ -258,7 +268,7 @@ export default function MessagesPage() {
                     {/* Reply Form */}
                     <div className="mt-4">
                       <label className="block text-xs font-medium text-[#555555] mb-1.5">
-                        Write Reply <span className="text-[#999999]">(will be sent to {msg.email})</span>
+                        Write Reply <span className="text-[#999999]">({getReplyLabel(msg)})</span>
                       </label>
                       <textarea
                         value={replyText[msg.id] || ""}

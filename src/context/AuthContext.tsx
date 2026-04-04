@@ -7,6 +7,7 @@ export interface UserProfile {
   display_name: string;
   position: string;
   role: string;
+  badge: string;
   permissions: {
     can_edit?: string[];
     profile_editable?: boolean;

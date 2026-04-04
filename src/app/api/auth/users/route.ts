@@ -2,41 +2,30 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { verifyToken, hashPassword } from "@/lib/auth";
 
-async function requireOwner(req: NextRequest) {
+async function getAuthenticatedUser(req: NextRequest) {
   const token = req.cookies.get("fox_admin_token")?.value;
   if (!token) return null;
   const payload = await verifyToken(token);
   if (!payload) return null;
   const { data } = await getSupabaseAdmin()
     .from("admin_users")
-    .select("id, role")
+    .select("id, role, badge")
     .eq("id", payload.sub)
     .single();
-  if (!data || data.role !== "owner") return null;
-  return data;
+  if (!data) return null;
+  return { ...data, badge: data.badge || "staff" };
 }
 
-// GET all users (all authenticated users can list, only owner sees sensitive fields)
+// GET all users (all authenticated users can list, only owner badge sees sensitive fields)
 export async function GET(req: NextRequest) {
-  const token = req.cookies.get("fox_admin_token")?.value;
-  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const payload = await verifyToken(token);
-  if (!payload) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  // Check if the user is the owner
-  const { data: requester } = await getSupabaseAdmin()
-    .from("admin_users")
-    .select("id, role")
-    .eq("id", payload.sub)
-    .single();
-
+  const requester = await getAuthenticatedUser(req);
   if (!requester) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const isOwner = requester.role === "owner";
+  const isOwnerBadge = requester.badge === "owner";
 
-  const selectFields = isOwner
-    ? "id, username, email, display_name, position, role, permissions, profile_pic_url, plain_password, is_frozen, created_at, last_active_at, company_id"
-    : "id, email, display_name, position, role, profile_pic_url, last_active_at, company_id";
+  const selectFields = isOwnerBadge
+    ? "id, username, email, display_name, position, role, badge, permissions, profile_pic_url, plain_password, is_frozen, created_at, last_active_at, company_id"
+    : "id, email, display_name, position, role, badge, profile_pic_url, last_active_at, company_id";
 
   const { data, error } = await getSupabaseAdmin()
     .from("admin_users")
@@ -49,8 +38,10 @@ export async function GET(req: NextRequest) {
 
 // POST create new user
 export async function POST(req: NextRequest) {
-  const owner = await requireOwner(req);
-  if (!owner) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  const requester = await getAuthenticatedUser(req);
+  if (!requester || requester.badge !== "owner") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
 
   const { email, password, display_name, position, company_id } = await req.json();
 
@@ -83,11 +74,12 @@ export async function POST(req: NextRequest) {
       display_name: display_name || email.split("@")[0],
       position: position || "",
       role: "worker",
+      badge: "staff",
       permissions: {},
       is_frozen: false,
       ...(company_id !== undefined && { company_id }),
     })
-    .select("id, email, display_name, position, role, permissions, profile_pic_url, plain_password, is_frozen, created_at, company_id")
+    .select("id, email, display_name, position, role, badge, permissions, profile_pic_url, plain_password, is_frozen, created_at, company_id")
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -96,41 +88,68 @@ export async function POST(req: NextRequest) {
 
 // PATCH update user
 export async function PATCH(req: NextRequest) {
-  const owner = await requireOwner(req);
-  if (!owner) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  const requester = await getAuthenticatedUser(req);
+  if (!requester) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
   const body = await req.json();
   const { id, ...updates } = body;
 
   if (!id) return NextResponse.json({ error: "User ID required" }, { status: 400 });
 
+  const isOwnerBadge = requester.badge === "owner";
+  const isSelf = requester.id === id;
+
+  // Non-owner badges can only update themselves (limited fields)
+  if (!isOwnerBadge && !isSelf) {
+    return NextResponse.json({ error: "Only owner badge can update other users" }, { status: 403 });
+  }
+
   // Don't allow changing owner's role
   const { data: targetUser } = await getSupabaseAdmin()
     .from("admin_users")
-    .select("role")
+    .select("role, badge")
     .eq("id", id)
     .single();
 
   if (!targetUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   const safeUpdates: Record<string, unknown> = {};
-  if (updates.display_name !== undefined) safeUpdates.display_name = updates.display_name;
-  if (updates.position !== undefined) safeUpdates.position = updates.position;
-  if (updates.email !== undefined) safeUpdates.email = updates.email.toLowerCase().trim();
-  if (updates.permissions !== undefined) safeUpdates.permissions = updates.permissions;
-  if (updates.profile_pic_url !== undefined) safeUpdates.profile_pic_url = updates.profile_pic_url;
-  if (updates.password) {
-    safeUpdates.password_hash = hashPassword(updates.password);
-    safeUpdates.plain_password = updates.password;
+
+  // display_name, position, profile_pic_url: owner can change anyone's, others can only change their own
+  if (isOwnerBadge || isSelf) {
+    if (updates.display_name !== undefined) safeUpdates.display_name = updates.display_name;
+    if (updates.position !== undefined) safeUpdates.position = updates.position;
+    if (updates.profile_pic_url !== undefined) safeUpdates.profile_pic_url = updates.profile_pic_url;
   }
-  if (updates.is_frozen !== undefined) safeUpdates.is_frozen = updates.is_frozen;
-  if (updates.company_id !== undefined) safeUpdates.company_id = updates.company_id;
+
+  // email, permissions, is_frozen, company_id: owner only
+  if (isOwnerBadge) {
+    if (updates.email !== undefined) safeUpdates.email = updates.email.toLowerCase().trim();
+    if (updates.permissions !== undefined) safeUpdates.permissions = updates.permissions;
+    if (updates.is_frozen !== undefined) safeUpdates.is_frozen = updates.is_frozen;
+    if (updates.company_id !== undefined) safeUpdates.company_id = updates.company_id;
+  }
+
+  // badge: only owner can change badge of others
+  if (isOwnerBadge && updates.badge !== undefined) {
+    safeUpdates.badge = updates.badge;
+  }
+
+  // password: owner can change anyone's password, others can only change their own
+  if (updates.password) {
+    if (isOwnerBadge || isSelf) {
+      safeUpdates.password_hash = hashPassword(updates.password);
+      safeUpdates.plain_password = updates.password;
+    } else {
+      return NextResponse.json({ error: "Only owner badge can change others' passwords" }, { status: 403 });
+    }
+  }
 
   const { data, error } = await getSupabaseAdmin()
     .from("admin_users")
     .update(safeUpdates)
     .eq("id", id)
-    .select("id, email, display_name, position, role, permissions, profile_pic_url, plain_password, is_frozen, created_at, company_id")
+    .select("id, email, display_name, position, role, badge, permissions, profile_pic_url, plain_password, is_frozen, created_at, company_id")
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -139,8 +158,10 @@ export async function PATCH(req: NextRequest) {
 
 // DELETE user
 export async function DELETE(req: NextRequest) {
-  const owner = await requireOwner(req);
-  if (!owner) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  const requester = await getAuthenticatedUser(req);
+  if (!requester || requester.badge !== "owner") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
 
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
@@ -149,11 +170,11 @@ export async function DELETE(req: NextRequest) {
   // Don't allow deleting the owner
   const { data: targetUser } = await getSupabaseAdmin()
     .from("admin_users")
-    .select("role")
+    .select("role, badge")
     .eq("id", id)
     .single();
 
-  if (targetUser?.role === "owner") {
+  if (targetUser?.badge === "owner") {
     return NextResponse.json({ error: "Cannot delete the owner account" }, { status: 403 });
   }
 

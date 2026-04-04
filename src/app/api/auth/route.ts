@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
       display_name: data.display_name,
       role: data.role || "worker",
       position: data.position || "",
+      badge: data.badge || "staff",
     });
 
     const response = NextResponse.json({
@@ -56,6 +57,7 @@ export async function POST(req: NextRequest) {
         display_name: data.display_name,
         role: data.role,
         position: data.position,
+        badge: data.badge || "staff",
       },
     });
 

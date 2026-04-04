@@ -13,10 +13,11 @@ export async function GET(req: NextRequest) {
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const db = getSupabaseAdmin();
+  const badge = admin.badge || "staff";
 
   try {
-    if (admin.role === "owner") {
-      // Owner sees ALL projects
+    if (badge === "owner" || badge === "board") {
+      // Owner and Board see ALL projects
       const { data, error } = await db
         .from("projects")
         .select("*, members:project_members(*, user:admin_users(id, display_name, position, profile_pic_url))")
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest) {
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       return NextResponse.json({ projects: data || [] });
     } else {
-      // Non-owner sees only projects they are a member of
+      // Manager/Staff sees only projects they are a member of
       const { data: memberRows, error: memberError } = await db
         .from("project_members")
         .select("project_id")
@@ -58,8 +59,11 @@ export async function POST(req: NextRequest) {
   const admin = await authenticate(req);
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  if (admin.role !== "owner") {
-    return NextResponse.json({ error: "Only the owner can create projects" }, { status: 403 });
+  const badge = admin.badge || "staff";
+
+  // Owner, Board, AND Manager badges can create projects
+  if (!["owner", "board", "manager"].includes(badge)) {
+    return NextResponse.json({ error: "Only owner, board, and manager can create projects" }, { status: 403 });
   }
 
   try {
@@ -84,13 +88,13 @@ export async function POST(req: NextRequest) {
 
     if (projectError) return NextResponse.json({ error: projectError.message }, { status: 500 });
 
-    // Auto-add the creator as admin member
+    // Auto-add the creator as leader member
     const { error: memberError } = await db
       .from("project_members")
       .insert({
         project_id: project.id,
         user_id: admin.sub,
-        role: "admin",
+        role: "leader",
       });
 
     if (memberError) {

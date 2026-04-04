@@ -260,7 +260,7 @@ export default function DashboardPage() {
       </Reveal>
 
       {/* ─── Migration Warning Banner ─── */}
-      {migrationNeeded && user?.role === "owner" && (
+      {migrationNeeded && user?.badge === "owner" && (
         <Reveal delay={0.05}>
           <div className="bg-amber-50 border border-amber-300 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start gap-3">
             <span className="text-2xl flex-shrink-0">⚠️</span>
@@ -285,7 +285,7 @@ ALTER TABLE internal_messages ADD COLUMN IF NOT EXISTS is_unsent BOOLEAN DEFAULT
       {/* ─── Post Form ─── */}
       {user && (
         <Reveal delay={0.1}>
-          <PostForm user={user} onPostCreated={handlePostCreated} isOwner={user.role === "owner"} />
+          <PostForm user={user} onPostCreated={handlePostCreated} isOwner={user.badge === "owner" || user.badge === "board"} />
         </Reveal>
       )}
 
@@ -321,6 +321,7 @@ ALTER TABLE internal_messages ADD COLUMN IF NOT EXISTS is_unsent BOOLEAN DEFAULT
                 <PostCard
                   post={post}
                   currentUserId={user?.id || ""}
+                  currentUserBadge={user?.badge || "staff"}
                   onUpdate={fetchPosts}
                   onProfileClick={handleProfileClick}
                 />

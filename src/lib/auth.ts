@@ -10,6 +10,7 @@ export interface AdminPayload {
   display_name: string;
   role: string;
   position: string;
+  badge: string;
 }
 
 export async function signToken(payload: AdminPayload): Promise<string> {
