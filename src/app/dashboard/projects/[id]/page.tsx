@@ -20,6 +20,7 @@ import {
   Shield,
   Crown,
   ArrowRightLeft,
+  Trash2,
 } from "lucide-react";
 
 interface MemberUser {
@@ -164,6 +165,7 @@ export default function ProjectDetailPage() {
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [deletingProject, setDeletingProject] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
   const [editSaving, setEditSaving] = useState(false);
@@ -398,18 +400,33 @@ export default function ProjectDetailPage() {
       let attachmentSize: number | null = null;
 
       if (pendingFile) {
-        const formData = new FormData();
-        formData.append("file", pendingFile);
-        const uploadRes = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
-        if (uploadRes.ok) {
-          const uploadData = await uploadRes.json();
-          attachmentUrl = uploadData.url;
-          attachmentName = pendingFile.name;
-          attachmentType = pendingFile.type;
-          attachmentSize = pendingFile.size;
+        try {
+          // Step 1: Get signed upload URL
+          const signedRes = await fetch("/api/upload/signed-url", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fileName: pendingFile.name, fileType: pendingFile.type }),
+          });
+
+          if (signedRes.ok) {
+            const { signedUrl, publicUrl } = await signedRes.json();
+
+            // Step 2: Upload directly to Supabase Storage
+            const uploadRes = await fetch(signedUrl, {
+              method: "PUT",
+              headers: { "Content-Type": pendingFile.type },
+              body: pendingFile,
+            });
+
+            if (uploadRes.ok) {
+              attachmentUrl = publicUrl;
+              attachmentName = pendingFile.name;
+              attachmentType = pendingFile.type;
+              attachmentSize = pendingFile.size;
+            }
+          }
+        } catch {
+          /* upload failed silently, message sends without attachment */
         }
       }
 
@@ -477,6 +494,24 @@ export default function ProjectDetailPage() {
       /* ignore */
     } finally {
       setEditSaving(false);
+    }
+  };
+
+  const handleDeleteProject = async () => {
+    if (!confirm("Are you sure you want to delete this project? This action cannot be undone.")) return;
+    setDeletingProject(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}`, { method: "DELETE" });
+      if (res.ok) {
+        router.push("/dashboard/projects");
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Failed to delete project.");
+        setDeletingProject(false);
+      }
+    } catch {
+      alert("Failed to delete project. Please try again.");
+      setDeletingProject(false);
     }
   };
 
@@ -713,6 +748,16 @@ export default function ProjectDetailPage() {
                 >
                   <Pencil size={14} />
                   Edit
+                </button>
+              )}
+              {isOwner && (
+                <button
+                  onClick={handleDeleteProject}
+                  disabled={deletingProject}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                >
+                  {deletingProject ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                  Delete
                 </button>
               )}
             </div>

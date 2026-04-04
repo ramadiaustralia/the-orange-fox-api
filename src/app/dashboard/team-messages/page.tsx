@@ -273,18 +273,33 @@ export default function TeamMessagesPage() {
       let attachmentSize: number | null = null;
 
       if (pendingFile) {
-        const formData = new FormData();
-        formData.append("file", pendingFile);
-        const uploadRes = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
-        if (uploadRes.ok) {
-          const uploadData = await uploadRes.json();
-          attachmentUrl = uploadData.url;
-          attachmentName = pendingFile.name;
-          attachmentType = pendingFile.type;
-          attachmentSize = pendingFile.size;
+        try {
+          // Step 1: Get signed upload URL
+          const signedRes = await fetch("/api/upload/signed-url", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fileName: pendingFile.name, fileType: pendingFile.type }),
+          });
+
+          if (signedRes.ok) {
+            const { signedUrl, publicUrl } = await signedRes.json();
+
+            // Step 2: Upload directly to Supabase Storage
+            const uploadRes = await fetch(signedUrl, {
+              method: "PUT",
+              headers: { "Content-Type": pendingFile.type },
+              body: pendingFile,
+            });
+
+            if (uploadRes.ok) {
+              attachmentUrl = publicUrl;
+              attachmentName = pendingFile.name;
+              attachmentType = pendingFile.type;
+              attachmentSize = pendingFile.size;
+            }
+          }
+        } catch {
+          /* upload failed silently, message sends without attachment */
         }
       }
 

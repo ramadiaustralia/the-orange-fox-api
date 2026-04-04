@@ -16,7 +16,8 @@ export async function POST(req: NextRequest) {
     }
 
     const timestamp = Date.now();
-    const filePath = `${admin.sub}/${timestamp}-${file.name}`;
+    const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const filePath = `${admin.sub}/${timestamp}-${sanitizedName}`;
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
