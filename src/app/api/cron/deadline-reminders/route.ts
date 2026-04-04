@@ -12,11 +12,9 @@ export async function GET(req: NextRequest) {
   try {
     const db = getSupabaseAdmin();
     const now = new Date();
-    const twelveHoursFromNow = new Date(now.getTime() + 12 * 60 * 60 * 1000);
-    const elevenHoursFromNow = new Date(now.getTime() + 11 * 60 * 60 * 1000);
+    const twentyFourHoursFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-    // Find tasks with deadline between 11-12 hours from now (so we don't send duplicates)
-    // This gives a 1-hour window for the cron to catch them
+    // Find tasks with deadline within 24 hours from now (daily cron - catch all upcoming deadlines)
     const { data: tasks, error } = await db
       .from("project_tasks")
       .select(`
@@ -24,8 +22,8 @@ export async function GET(req: NextRequest) {
         assignees:project_task_assignees(user_id)
       `)
       .neq("status", "completed")
-      .gte("deadline", elevenHoursFromNow.toISOString())
-      .lte("deadline", twelveHoursFromNow.toISOString());
+      .gte("deadline", now.toISOString())
+      .lte("deadline", twentyFourHoursFromNow.toISOString());
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
