@@ -2,7 +2,6 @@
 
 import { X, MessageCircle, Briefcase } from "lucide-react";
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 interface ProfileUser {
   id: string;
