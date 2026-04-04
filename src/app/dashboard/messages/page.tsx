@@ -73,12 +73,25 @@ export default function MessagesPage() {
     setUploading(p => ({ ...p, [msgId]: true }));
     const uploaded: { url: string; name: string; type: string; size: number }[] = [];
     for (const file of Array.from(files)) {
-      const form = new FormData();
-      form.append("file", file);
       try {
-        const res = await fetch("/api/upload", { method: "POST", body: form });
-        const data = await res.json();
-        if (data.url) uploaded.push({ url: data.url, name: data.fileName, type: data.fileType, size: data.fileSize });
+        // Step 1: Get signed upload URL from backend
+        const signedRes = await fetch("/api/upload/signed-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileName: file.name, fileType: file.type }),
+        });
+        if (!signedRes.ok) continue;
+        const { signedUrl, publicUrl } = await signedRes.json();
+
+        // Step 2: Upload directly to Supabase Storage (bypasses Vercel 4.5MB limit)
+        const uploadRes = await fetch(signedUrl, {
+          method: "PUT",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+        if (uploadRes.ok) {
+          uploaded.push({ url: publicUrl, name: file.name, type: file.type, size: file.size });
+        }
       } catch {}
     }
     setReplyFiles(p => ({ ...p, [msgId]: [...(p[msgId] || []), ...uploaded] }));

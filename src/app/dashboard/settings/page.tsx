@@ -2,12 +2,7 @@
 import { useState, useEffect } from "react";
 import {
   Save,
-  User,
-  Lock,
-  Eye,
-  EyeOff,
   Globe,
-  Shield,
   CheckCircle2,
   AlertCircle,
   Trash2,
@@ -25,8 +20,6 @@ import AccessDenied from "@/components/AccessDenied";
 export default function SettingsPage() {
   const { hasAccess, isOwner, user } = usePermission("settings");
 
-  const [admin, setAdmin] = useState({ email: "", display_name: "" });
-  const [password, setPassword] = useState({ current: "", new_password: "", confirm: "" });
   const [siteSettings, setSiteSettings] = useState({
     site_name: "The Orange Fox",
     site_url: "https://the-orange-fox-web.vercel.app",
@@ -43,32 +36,11 @@ export default function SettingsPage() {
   const [gaId, setGaId] = useState("");
   const [googleApiKey, setGoogleApiKey] = useState("");
   const [savingGa, setSavingGa] = useState(false);
-  const [showCurrentPw, setShowCurrentPw] = useState(false);
-  const [showNewPw, setShowNewPw] = useState(false);
-  const [showConfirmPw, setShowConfirmPw] = useState(false);
-  const [changingPw, setChangingPw] = useState(false);
   const [savingSiteSettings, setSavingSiteSettings] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
-    async function loadAdmin() {
-      try {
-        const res = await fetch("/api/auth/me");
-        if (res.ok) {
-          const data = await res.json();
-          if (data.authenticated && data.admin) {
-            setAdmin({
-              email: data.admin.email || "",
-              display_name: data.admin.display_name || "",
-            });
-          }
-        }
-      } catch (e) {
-        console.error("Failed to load admin info", e);
-      }
-    }
-
     async function loadSocialLinks() {
       try {
         const res = await fetch("/api/content");
@@ -144,7 +116,6 @@ export default function SettingsPage() {
       }
     }
 
-    loadAdmin();
     loadSiteSettings();
     loadSocialLinks();
     loadGaId();
@@ -164,46 +135,6 @@ export default function SettingsPage() {
     setErrorMsg(msg);
     setSuccessMsg("");
     setTimeout(() => setErrorMsg(""), 5000);
-  };
-
-  const handlePasswordChange = async () => {
-    if (!password.current || !password.new_password) {
-      showError("Please fill in both current and new password.");
-      return;
-    }
-    if (password.new_password !== password.confirm) {
-      showError("New passwords don't match.");
-      return;
-    }
-    if (password.new_password.length < 6) {
-      showError("Password must be at least 6 characters.");
-      return;
-    }
-
-    setChangingPw(true);
-    try {
-      const res = await fetch("/api/auth/password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          current_password: password.current,
-          new_password: password.new_password,
-        }),
-      });
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        showSuccess("Password changed successfully!");
-        setPassword({ current: "", new_password: "", confirm: "" });
-      } else {
-        showError(data.error || "Failed to change password.");
-      }
-    } catch (e) {
-      console.error(e);
-      showError("Failed to change password. Please try again.");
-    } finally {
-      setChangingPw(false);
-    }
   };
 
   const handleSaveSiteSettings = async () => {
@@ -322,124 +253,6 @@ export default function SettingsPage() {
           {errorMsg}
         </div>
       )}
-
-      {/* Admin Profile */}
-      <div className="bg-white border border-[#f0ece8] rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(212,105,42,0.06)] hover:border-[#D4692A]/30 overflow-hidden">
-        <div className="px-6 py-4 border-b border-[#f0ece8] flex items-center gap-2">
-          <User size={16} className="text-[#D4692A]" />
-          <h3 className="text-sm font-semibold text-[#1a1a1a]" style={{ fontFamily: "var(--font-heading)" }}>Admin Profile</h3>
-        </div>
-        <div className="p-6">
-          <div className="flex items-center gap-6 mb-6">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#D4692A] to-[#b85520] flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-[#D4692A]/20">
-              {admin.display_name?.charAt(0)?.toUpperCase() || "A"}
-            </div>
-            <div>
-              <h4 className="text-lg font-semibold text-[#1a1a1a]">{admin.display_name || "Admin"}</h4>
-              <p className="text-sm text-[#555555]">{admin.email || "No email"}</p>
-              <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 text-[10px] rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                <Shield size={10} /> Administrator
-              </span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-[#555555] mb-1.5">Username</label>
-              <input
-                value={admin.email}
-                disabled
-                className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#555555] text-sm rounded-xl px-4 py-2.5 cursor-not-allowed"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[#555555] mb-1.5">Display Name</label>
-              <input
-                value={admin.display_name}
-                disabled
-                className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#555555] text-sm rounded-xl px-4 py-2.5 cursor-not-allowed"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Change Password */}
-      <div className="bg-white border border-[#f0ece8] rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(212,105,42,0.06)] hover:border-[#D4692A]/30 overflow-hidden">
-        <div className="px-6 py-4 border-b border-[#f0ece8] flex items-center gap-2">
-          <Lock size={16} className="text-[#D4692A]" />
-          <h3 className="text-sm font-semibold text-[#1a1a1a]" style={{ fontFamily: "var(--font-heading)" }}>Change Password</h3>
-        </div>
-        <div className="p-6 space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-[#555555] mb-1.5">Current Password</label>
-            <div className="relative">
-              <input
-                type={showCurrentPw ? "text" : "password"}
-                value={password.current}
-                onChange={(e) => setPassword({ ...password, current: e.target.value })}
-                className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999] pr-10"
-                placeholder="Enter current password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowCurrentPw(!showCurrentPw)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#999999] hover:text-[#555555] transition-colors"
-              >
-                {showCurrentPw ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-[#555555] mb-1.5">New Password</label>
-              <div className="relative">
-                <input
-                  type={showNewPw ? "text" : "password"}
-                  value={password.new_password}
-                  onChange={(e) => setPassword({ ...password, new_password: e.target.value })}
-                  className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999] pr-10"
-                  placeholder="Enter new password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowNewPw(!showNewPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#999999] hover:text-[#555555] transition-colors"
-                >
-                  {showNewPw ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[#555555] mb-1.5">Confirm New Password</label>
-              <div className="relative">
-                <input
-                  type={showConfirmPw ? "text" : "password"}
-                  value={password.confirm}
-                  onChange={(e) => setPassword({ ...password, confirm: e.target.value })}
-                  className="w-full bg-[#fafafa] border border-[#e8e4e0] text-[#1a1a1a] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 transition-all placeholder:text-[#999999] pr-10"
-                  placeholder="Confirm new password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPw(!showConfirmPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#999999] hover:text-[#555555] transition-colors"
-                >
-                  {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={handlePasswordChange}
-            disabled={changingPw || !password.current || !password.new_password}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-[#D4692A] text-white hover:bg-[#b85520] transition-all duration-200 hover:shadow-[0_4px_16px_rgba(212,105,42,0.3)] disabled:opacity-50"
-          >
-            <Lock size={14} />
-            {changingPw ? "Changing..." : "Change Password"}
-          </button>
-        </div>
-      </div>
 
       {/* Site Settings */}
       <div className="bg-white border border-[#f0ece8] rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(212,105,42,0.06)] hover:border-[#D4692A]/30 overflow-hidden">

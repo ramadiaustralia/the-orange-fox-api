@@ -23,13 +23,25 @@ export default function CustomerReplyPage() {
   const handleUpload = async (fileList: FileList) => {
     setUploadingFile(true);
     for (const file of Array.from(fileList)) {
-      const form = new FormData();
-      form.append("file", file);
-      form.append("id", id);
       try {
-        const res = await fetch("/api/messages/customer-upload", { method: "POST", body: form });
-        const data = await res.json();
-        if (data.url) setFiles(prev => [...prev, { url: data.url, name: data.fileName, type: data.fileType, size: data.fileSize }]);
+        // Step 1: Get signed upload URL
+        const signedRes = await fetch("/api/messages/customer-upload-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messageId: id, fileName: file.name, fileType: file.type }),
+        });
+        if (!signedRes.ok) continue;
+        const { signedUrl, publicUrl } = await signedRes.json();
+
+        // Step 2: Upload directly to Supabase Storage (bypasses Vercel 4.5MB limit)
+        const uploadRes = await fetch(signedUrl, {
+          method: "PUT",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+        if (uploadRes.ok) {
+          setFiles(prev => [...prev, { url: publicUrl, name: file.name, type: file.type, size: file.size }]);
+        }
       } catch {}
     }
     setUploadingFile(false);
