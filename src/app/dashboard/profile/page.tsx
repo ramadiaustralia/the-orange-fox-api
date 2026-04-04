@@ -36,12 +36,6 @@ const DASHBOARD_SECTIONS = [
   { key: "settings", label: "Settings" },
 ];
 
-
-}
-
-
-
-
 /* ── Reveal hook ── */
 function useReveal() {
   const ref = useRef<HTMLDivElement>(null);
