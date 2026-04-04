@@ -2267,7 +2267,7 @@ export default function ProjectDetailPage() {
                                         method: "PATCH",
                                         headers: { "Content-Type": "application/json" },
                                         body: JSON.stringify({ deadline: parsed.toISOString() }),
-                                      }).then(() => { if (selectedTaskId) openTaskDetail(selectedTaskId); });
+                                      }).then(() => { if (selectedTaskId) fetchTaskDetail(selectedTaskId); });
                                     } else {
                                       alert("Invalid date format. Use YYYY-MM-DD HH:mm");
                                     }
