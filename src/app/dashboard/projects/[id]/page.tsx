@@ -21,7 +21,14 @@ import {
   Crown,
   ArrowRightLeft,
   Trash2,
+  Plus,
+  CheckSquare,
+  Square,
+  Upload,
+  ListTodo,
 } from "lucide-react";
+
+// --- Interfaces ---
 
 interface MemberUser {
   id: string;
@@ -68,6 +75,37 @@ interface AdminUser {
   position: string;
   profile_pic_url: string | null;
 }
+
+interface TaskAssignee {
+  id: string;
+  user_id: string;
+  user: MemberUser;
+}
+
+interface TaskItem {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  priority: string;
+  created_at: string;
+  creator: MemberUser;
+  completer: MemberUser | null;
+  assignees: TaskAssignee[];
+  attachment_count: number;
+}
+
+interface TaskAttachment {
+  id: string;
+  file_url: string;
+  file_name: string;
+  file_type: string | null;
+  file_size: number | null;
+  uploaded_at: string;
+  uploader: MemberUser;
+}
+
+// --- Shared Components ---
 
 function StatusBadge({ status }: { status: string }) {
   const config: Record<string, { bg: string; text: string; label: string }> = {
@@ -128,6 +166,36 @@ function Avatar({ user, size = 36 }: { user: { display_name: string; profile_pic
   );
 }
 
+function PriorityBadge({ priority }: { priority: string }) {
+  const config: Record<string, { bg: string; text: string; border: string }> = {
+    low: { bg: "bg-gray-50", text: "text-gray-500", border: "border-gray-200" },
+    medium: { bg: "bg-orange-50", text: "text-[#D4692A]", border: "border-orange-200" },
+    high: { bg: "bg-red-50", text: "text-red-600", border: "border-red-200" },
+  };
+  const c = config[priority] || config.medium;
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${c.bg} ${c.text} border ${c.border}`}>
+      {priority}
+    </span>
+  );
+}
+
+function TaskStatusBadge({ status }: { status: string }) {
+  const config: Record<string, { bg: string; text: string; border: string; label: string }> = {
+    pending: { bg: "bg-amber-50", text: "text-amber-600", border: "border-amber-200", label: "Pending" },
+    in_progress: { bg: "bg-blue-50", text: "text-blue-600", border: "border-blue-200", label: "In Progress" },
+    completed: { bg: "bg-emerald-50", text: "text-emerald-600", border: "border-emerald-200", label: "Completed" },
+  };
+  const c = config[status] || config.pending;
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider ${c.bg} ${c.text} border ${c.border}`}>
+      {c.label}
+    </span>
+  );
+}
+
+// --- Helpers ---
+
 function formatMessageTime(dateStr: string): string {
   const d = new Date(dateStr);
   const now = new Date();
@@ -149,6 +217,8 @@ function formatFileSize(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+// --- Main Component ---
+
 export default function ProjectDetailPage() {
   const { user } = useAuth();
   const router = useRouter();
@@ -160,6 +230,9 @@ export default function ProjectDetailPage() {
   const [messages, setMessages] = useState<ProjectMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [myRole, setMyRole] = useState<string>("member");
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState<"tasks" | "chat">("tasks");
 
   // Chat state
   const [newMessage, setNewMessage] = useState("");
@@ -188,8 +261,36 @@ export default function ProjectDetailPage() {
   const [roleActionLoading, setRoleActionLoading] = useState<string | null>(null);
   const [showTransferModal, setShowTransferModal] = useState(false);
 
+  // Task state
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [taskFilter, setTaskFilter] = useState<"all" | "pending" | "in_progress" | "completed">("all");
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [selectedTaskDetail, setSelectedTaskDetail] = useState<TaskItem | null>(null);
+  const [taskDetailLoading, setTaskDetailLoading] = useState(false);
+  const [taskAttachments, setTaskAttachments] = useState<TaskAttachment[]>([]);
+  const [showCreateTask, setShowCreateTask] = useState(false);
+
+  // Create task form
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskDescription, setNewTaskDescription] = useState("");
+  const [newTaskPriority, setNewTaskPriority] = useState<string>("medium");
+  const [newTaskAssignees, setNewTaskAssignees] = useState<string[]>([]);
+  const [creatingTask, setCreatingTask] = useState(false);
+
+  // Task detail editing
+  const [editingTaskTitle, setEditingTaskTitle] = useState(false);
+  const [editingTaskDesc, setEditingTaskDesc] = useState(false);
+  const [taskTitleDraft, setTaskTitleDraft] = useState("");
+  const [taskDescDraft, setTaskDescDraft] = useState("");
+  const [savingTask, setSavingTask] = useState(false);
+  const [showTaskStatusDropdown, setShowTaskStatusDropdown] = useState(false);
+  const [showTaskPriorityDropdown, setShowTaskPriorityDropdown] = useState(false);
+  const [uploadingTaskFile, setUploadingTaskFile] = useState(false);
+  const [deletingAttachmentId, setDeletingAttachmentId] = useState<string | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const taskFileInputRef = useRef<HTMLInputElement>(null);
   const shouldAutoScroll = useRef(true);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -199,8 +300,10 @@ export default function ProjectDetailPage() {
   const canManageMembers = isCommissioner || isLeader;
   const canEditProject = isCommissioner;
   const isOwner = user?.badge === "owner";
+  const canManageTasks = isCommissioner || isLeader || isOwner;
 
-  // Fetch project data
+  // --- Project Data Fetching ---
+
   const fetchProject = useCallback(async () => {
     try {
       const res = await fetch(`/api/projects/${projectId}`);
@@ -220,7 +323,6 @@ export default function ProjectDetailPage() {
     }
   }, [projectId, router]);
 
-  // Fetch messages for polling
   const fetchMessages = useCallback(async () => {
     try {
       const res = await fetch(`/api/projects/${projectId}/messages`);
@@ -233,18 +335,67 @@ export default function ProjectDetailPage() {
     }
   }, [projectId]);
 
+  // --- Task Fetching ---
+
+  const fetchTasks = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/projects/${projectId}/tasks`);
+      if (res.ok) {
+        const data = await res.json();
+        setTasks(data.tasks || []);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [projectId]);
+
+  const fetchTaskDetail = useCallback(async (taskId: string) => {
+    setTaskDetailLoading(true);
+    try {
+      const [taskRes, attachRes] = await Promise.all([
+        fetch(`/api/projects/${projectId}/tasks/${taskId}`),
+        fetch(`/api/projects/${projectId}/tasks/${taskId}/attachments`),
+      ]);
+      if (taskRes.ok) {
+        const data = await taskRes.json();
+        setSelectedTaskDetail(data.task);
+      }
+      if (attachRes.ok) {
+        const data = await attachRes.json();
+        setTaskAttachments(data.attachments || []);
+      }
+    } catch {
+      /* ignore */
+    } finally {
+      setTaskDetailLoading(false);
+    }
+  }, [projectId]);
+
+  // --- Effects ---
+
   useEffect(() => {
     fetchProject();
   }, [fetchProject]);
 
-  // Poll messages every 5 seconds
   useEffect(() => {
-    if (!project) return;
+    if (project) fetchTasks();
+  }, [project, fetchTasks]);
+
+  // Poll messages every 5s when chat tab active
+  useEffect(() => {
+    if (!project || activeTab !== "chat") return;
     const interval = setInterval(fetchMessages, 5000);
     return () => clearInterval(interval);
-  }, [project, fetchMessages]);
+  }, [project, activeTab, fetchMessages]);
 
-  // Auto-scroll
+  // Poll tasks every 10s when tasks tab active
+  useEffect(() => {
+    if (!project || activeTab !== "tasks") return;
+    const interval = setInterval(fetchTasks, 10000);
+    return () => clearInterval(interval);
+  }, [project, activeTab, fetchTasks]);
+
+  // Auto-scroll chat
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (container && shouldAutoScroll.current) {
@@ -260,7 +411,8 @@ export default function ProjectDetailPage() {
     }
   };
 
-  // Fetch all users for adding members
+  // --- Member Management ---
+
   const fetchUsers = useCallback(async () => {
     setAddMemberError("");
     try {
@@ -321,7 +473,8 @@ export default function ProjectDetailPage() {
     }
   };
 
-  // Role management functions
+  // --- Role Management ---
+
   const handleSetLeader = async (userId: string) => {
     if (!confirm("Set this member as Leader?")) return;
     setRoleActionLoading(userId);
@@ -388,7 +541,8 @@ export default function ProjectDetailPage() {
     }
   };
 
-  // Chat functions
+  // --- Chat Functions ---
+
   const handleSend = async () => {
     if ((!newMessage.trim() && !pendingFile) || sending) return;
     setSending(true);
@@ -401,23 +555,18 @@ export default function ProjectDetailPage() {
 
       if (pendingFile) {
         try {
-          // Step 1: Get signed upload URL
           const signedRes = await fetch("/api/upload/signed-url", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ fileName: pendingFile.name, fileType: pendingFile.type }),
           });
-
           if (signedRes.ok) {
             const { signedUrl, publicUrl } = await signedRes.json();
-
-            // Step 2: Upload directly to Supabase Storage
             const uploadRes = await fetch(signedUrl, {
               method: "PUT",
               headers: { "Content-Type": pendingFile.type },
               body: pendingFile,
             });
-
             if (uploadRes.ok) {
               attachmentUrl = publicUrl;
               attachmentName = pendingFile.name;
@@ -426,7 +575,7 @@ export default function ProjectDetailPage() {
             }
           }
         } catch {
-          /* upload failed silently, message sends without attachment */
+          /* upload failed silently */
         }
       }
 
@@ -497,6 +646,8 @@ export default function ProjectDetailPage() {
     }
   };
 
+  // --- Project Edit / Delete ---
+
   const handleDeleteProject = async () => {
     if (!confirm("Are you sure you want to delete this project? This action cannot be undone.")) return;
     setDeletingProject(true);
@@ -515,7 +666,6 @@ export default function ProjectDetailPage() {
     }
   };
 
-  // Project edit functions
   const startEditingProject = () => {
     if (!project) return;
     setEditName(project.name);
@@ -567,27 +717,217 @@ export default function ProjectDetailPage() {
     }
   };
 
+  // --- Task Functions ---
+
+  const handleCreateTask = async () => {
+    if (!newTaskTitle.trim() || creatingTask) return;
+    setCreatingTask(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: newTaskTitle.trim(),
+          description: newTaskDescription.trim() || undefined,
+          priority: newTaskPriority,
+          assigneeIds: newTaskAssignees,
+        }),
+      });
+      if (res.ok) {
+        setShowCreateTask(false);
+        setNewTaskTitle("");
+        setNewTaskDescription("");
+        setNewTaskPriority("medium");
+        setNewTaskAssignees([]);
+        await fetchTasks();
+      }
+    } catch {
+      /* ignore */
+    } finally {
+      setCreatingTask(false);
+    }
+  };
+
+  const handleToggleTaskStatus = async (task: TaskItem, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!canManageTasks) return;
+    const newStatus = task.status === "completed" ? "pending" : "completed";
+    setTasks((prev) =>
+      prev.map((t) => (t.id === task.id ? { ...t, status: newStatus } : t))
+    );
+    try {
+      await fetch(`/api/projects/${projectId}/tasks/${task.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      await fetchTasks();
+    } catch {
+      setTasks((prev) =>
+        prev.map((t) => (t.id === task.id ? { ...t, status: task.status } : t))
+      );
+    }
+  };
+
+  const handleOpenTaskDetail = (taskId: string) => {
+    setSelectedTaskId(taskId);
+    fetchTaskDetail(taskId);
+  };
+
+  const handleBackToList = () => {
+    setSelectedTaskId(null);
+    setSelectedTaskDetail(null);
+    setTaskAttachments([]);
+    setEditingTaskTitle(false);
+    setEditingTaskDesc(false);
+    setShowTaskStatusDropdown(false);
+    setShowTaskPriorityDropdown(false);
+  };
+
+  const handleUpdateTask = async (updates: Record<string, unknown>) => {
+    if (!selectedTaskId || savingTask) return;
+    setSavingTask(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/tasks/${selectedTaskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedTaskDetail(data.task);
+        await fetchTasks();
+      }
+    } catch {
+      /* ignore */
+    } finally {
+      setSavingTask(false);
+      setEditingTaskTitle(false);
+      setEditingTaskDesc(false);
+      setShowTaskStatusDropdown(false);
+      setShowTaskPriorityDropdown(false);
+    }
+  };
+
+  const handleDeleteTask = async () => {
+    if (!selectedTaskId) return;
+    if (!confirm("Delete this task? This action cannot be undone.")) return;
+    try {
+      const res = await fetch(`/api/projects/${projectId}/tasks/${selectedTaskId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        handleBackToList();
+        await fetchTasks();
+      }
+    } catch {
+      alert("Failed to delete task.");
+    }
+  };
+
+  const handleRemoveAssignee = async (userId: string) => {
+    if (!selectedTaskDetail) return;
+    const newAssigneeIds = selectedTaskDetail.assignees
+      .filter((a) => a.user_id !== userId)
+      .map((a) => a.user_id);
+    await handleUpdateTask({ assigneeIds: newAssigneeIds });
+    if (selectedTaskId) fetchTaskDetail(selectedTaskId);
+  };
+
+  const handleTaskFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !selectedTaskId) return;
+
+    setUploadingTaskFile(true);
+    try {
+      const signedRes = await fetch("/api/upload/signed-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileName: file.name, fileType: file.type }),
+      });
+      if (!signedRes.ok) throw new Error("Failed to get upload URL");
+      const { signedUrl, publicUrl } = await signedRes.json();
+
+      const uploadRes = await fetch(signedUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!uploadRes.ok) throw new Error("Failed to upload file");
+
+      await fetch(`/api/projects/${projectId}/tasks/${selectedTaskId}/attachments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileUrl: publicUrl,
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+        }),
+      });
+
+      fetchTaskDetail(selectedTaskId);
+      fetchTasks();
+    } catch {
+      alert("Failed to upload file.");
+    } finally {
+      setUploadingTaskFile(false);
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentId: string) => {
+    if (!selectedTaskId) return;
+    setDeletingAttachmentId(attachmentId);
+    try {
+      const res = await fetch(
+        `/api/projects/${projectId}/tasks/${selectedTaskId}/attachments?attachmentId=${attachmentId}`,
+        { method: "DELETE" }
+      );
+      if (res.ok) {
+        setTaskAttachments((prev) => prev.filter((a) => a.id !== attachmentId));
+        fetchTasks();
+      }
+    } catch {
+      alert("Failed to delete attachment.");
+    } finally {
+      setDeletingAttachmentId(null);
+    }
+  };
+
+  // --- Computed Values ---
+
   const isImageAttachment = (type: string | null) =>
     type?.startsWith("image/") || false;
 
   const isVideoAttachment = (type: string | null) =>
     type?.startsWith("video/") || false;
 
-  // Get users not already in the project
   const availableUsers = allUsers.filter(
     (u) => !members.some((m) => m.user_id === u.id)
   );
 
-  // Sort members: commissioner first, then leader, then members
   const sortedMembers = [...members].sort((a, b) => {
     const order: Record<string, number> = { commissioner: 0, leader: 1, member: 2 };
     return (order[a.role] ?? 2) - (order[b.role] ?? 2);
   });
 
-  // Get transferable members (for leader transfer modal)
   const transferableMembers = members.filter(
     (m) => m.role === "member" && m.user_id !== user?.id
   );
+
+  const filteredTasks = tasks.filter((t) => {
+    if (taskFilter === "all") return true;
+    return t.status === taskFilter;
+  });
+
+  const canUploadToTask = () => {
+    if (canManageTasks) return true;
+    if (!selectedTaskDetail || !user) return false;
+    return selectedTaskDetail.assignees.some((a) => a.user_id === user.id);
+  };
+
+  // --- Loading / Not Found ---
 
   if (!user || loading) {
     return (
@@ -610,6 +950,8 @@ export default function ProjectDetailPage() {
       </div>
     );
   }
+
+  // --- Render ---
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -724,14 +1066,12 @@ export default function ProjectDetailPage() {
               {project.description && (
                 <p className="text-sm text-[#777] mt-1">{project.description}</p>
               )}
-              {/* Show my role badge */}
               <div className="mt-2">
                 <span className="text-xs text-[#999] mr-2">Your role:</span>
                 <RoleBadge role={myRole} />
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              {/* Leader can transfer leadership */}
               {isLeader && transferableMembers.length > 0 && (
                 <button
                   onClick={() => setShowTransferModal(true)}
@@ -765,10 +1105,10 @@ export default function ProjectDetailPage() {
         )}
       </div>
 
-      {/* Main Content: Members + Chat */}
+      {/* Main Content: Members + Tabbed Area */}
       <div className="flex flex-col lg:flex-row gap-5">
         {/* Members Panel */}
-        <div className="lg:w-80 flex-shrink-0">
+        <div className="lg:w-72 flex-shrink-0">
           <div className="bg-white border border-[#e8e4e0] rounded-2xl overflow-hidden">
             <div className="px-5 py-4 border-b border-[#f0ece8] flex items-center justify-between">
               <h2
@@ -817,9 +1157,7 @@ export default function ProjectDetailPage() {
                       </div>
                     </div>
 
-                    {/* Action buttons */}
                     <div className="flex items-center gap-1 flex-shrink-0">
-                      {/* Commissioner can set/remove leader */}
                       {isCommissioner && member.role === "member" && (
                         <button
                           onClick={() => handleSetLeader(member.user_id)}
@@ -849,7 +1187,6 @@ export default function ProjectDetailPage() {
                         </button>
                       )}
 
-                      {/* Remove member */}
                       {canRemoveThis && (
                         <button
                           onClick={() => handleRemoveMember(member.user_id)}
@@ -871,337 +1208,942 @@ export default function ProjectDetailPage() {
               )}
             </div>
           </div>
-
-          {/* Add Member Modal */}
-          {showAddMember && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowAddMember(false)} />
-              <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-5 z-10 max-h-[70vh] flex flex-col">
-                <div className="flex items-center justify-between mb-4">
-                  <h3
-                    className="text-base font-bold text-[#1a1a1a]"
-                    style={{ fontFamily: "var(--font-heading)" }}
-                  >
-                    Add Member
-                  </h3>
-                  <button
-                    onClick={() => setShowAddMember(false)}
-                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto space-y-1">
-                  {addMemberError ? (
-                    <p className="text-sm text-red-500 text-center py-6">
-                      {addMemberError}
-                    </p>
-                  ) : availableUsers.length === 0 ? (
-                    <p className="text-sm text-[#999] text-center py-6">
-                      All team members are already in this project
-                    </p>
-                  ) : (
-                    availableUsers.map((u) => (
-                      <button
-                        key={u.id}
-                        onClick={() => handleAddMember(u.id)}
-                        disabled={addingMember}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#faf8f6] transition-colors text-left disabled:opacity-50"
-                      >
-                        <Avatar user={u} size={36} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-[#1a1a1a] truncate">
-                            {u.display_name}
-                          </p>
-                          {u.position && (
-                            <p className="text-xs text-[#999] truncate">{u.position}</p>
-                          )}
-                        </div>
-                        <UserPlus size={16} className="text-[#D4692A] flex-shrink-0" />
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Transfer Leadership Modal */}
-          {showTransferModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowTransferModal(false)} />
-              <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-5 z-10 max-h-[70vh] flex flex-col">
-                <div className="flex items-center justify-between mb-4">
-                  <h3
-                    className="text-base font-bold text-[#1a1a1a]"
-                    style={{ fontFamily: "var(--font-heading)" }}
-                  >
-                    Transfer Leadership
-                  </h3>
-                  <button
-                    onClick={() => setShowTransferModal(false)}
-                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-                <p className="text-xs text-[#999] mb-3">
-                  Select a member to transfer your Leader role to. You will become a regular member.
-                </p>
-
-                <div className="flex-1 overflow-y-auto space-y-1">
-                  {transferableMembers.length === 0 ? (
-                    <p className="text-sm text-[#999] text-center py-6">
-                      No members available to transfer to
-                    </p>
-                  ) : (
-                    transferableMembers.map((m) => (
-                      <button
-                        key={m.user_id}
-                        onClick={() => handleTransferLeadership(m.user_id)}
-                        disabled={roleActionLoading === m.user_id}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-blue-50 transition-colors text-left disabled:opacity-50"
-                      >
-                        <Avatar user={m.user} size={36} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-[#1a1a1a] truncate">
-                            {m.user.display_name}
-                          </p>
-                          {m.user.position && (
-                            <p className="text-xs text-[#999] truncate">{m.user.position}</p>
-                          )}
-                        </div>
-                        {roleActionLoading === m.user_id ? (
-                          <Loader2 size={16} className="animate-spin text-blue-500 flex-shrink-0" />
-                        ) : (
-                          <ArrowRightLeft size={16} className="text-blue-500 flex-shrink-0" />
-                        )}
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Chat Panel */}
+        {/* Center: Tabbed Content Area */}
         <div className="flex-1 bg-white border border-[#e8e4e0] rounded-2xl overflow-hidden flex flex-col min-h-[500px] lg:min-h-0 lg:h-[calc(100vh-16rem)]">
-          {/* Chat Header */}
-          <div className="px-5 py-4 border-b border-[#f0ece8]">
-            <h2
-              className="text-sm font-bold text-[#1a1a1a] uppercase tracking-wider"
-              style={{ fontFamily: "var(--font-heading)" }}
+          {/* Tab Headers */}
+          <div className="flex border-b border-[#f0ece8] bg-white flex-shrink-0">
+            <button
+              onClick={() => setActiveTab("tasks")}
+              className={`flex items-center gap-2 px-5 py-3.5 text-sm font-semibold transition-colors relative ${
+                activeTab === "tasks"
+                  ? "text-[#D4692A]"
+                  : "text-[#999] hover:text-[#1a1a1a]"
+              }`}
             >
-              Project Chat
-            </h2>
+              <ListTodo size={16} />
+              Tasks
+              {tasks.length > 0 && (
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                  activeTab === "tasks"
+                    ? "bg-[#D4692A]/10 text-[#D4692A]"
+                    : "bg-gray-100 text-[#999]"
+                }`}>
+                  {tasks.length}
+                </span>
+              )}
+              {activeTab === "tasks" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#D4692A] rounded-full" />
+              )}
+            </button>
+            <button
+              onClick={() => { setActiveTab("chat"); shouldAutoScroll.current = true; }}
+              className={`flex items-center gap-2 px-5 py-3.5 text-sm font-semibold transition-colors relative ${
+                activeTab === "chat"
+                  ? "text-[#D4692A]"
+                  : "text-[#999] hover:text-[#1a1a1a]"
+              }`}
+            >
+              <MessageSquare size={16} />
+              Chat
+              {activeTab === "chat" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#D4692A] rounded-full" />
+              )}
+            </button>
           </div>
 
-          {/* Messages */}
-          <div
-            ref={messagesContainerRef}
-            onScroll={handleScroll}
-            className="flex-1 overflow-y-auto p-5 space-y-4 bg-[#fafafa]"
-          >
-            {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-[#999999]">
-                <MessageSquare size={40} className="mb-3 text-[#ddd]" />
-                <p className="text-sm">No messages yet</p>
-                <p className="text-xs mt-1">Start the conversation with your team</p>
-              </div>
-            ) : (
-              messages.map((msg) => {
-                const isMine = msg.sender_id === user?.id;
-                const isEditingMsg = editingMessageId === msg.id;
-                const isEdited = msg.edited_at !== null && msg.edited_at !== undefined;
-
-                return (
-                  <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
-                    {!isMine && (
-                      <div className="flex-shrink-0 mr-2 mt-auto mb-1">
-                        <Avatar user={msg.sender} size={28} />
-                      </div>
-                    )}
-                    <div className="relative group w-fit max-w-[80%] sm:max-w-[65%]">
-                      {/* Edit button for own messages */}
-                      {isMine && !isEditingMsg && (
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -left-8 top-1/2 -translate-y-1/2">
+          {/* Tasks Tab */}
+          {activeTab === "tasks" && (
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {selectedTaskId && selectedTaskDetail ? (
+                /* Task Detail View */
+                <div className="flex-1 overflow-y-auto">
+                  {taskDetailLoading ? (
+                    <div className="flex items-center justify-center h-full">
+                      <Loader2 size={24} className="animate-spin text-[#D4692A]" />
+                    </div>
+                  ) : (
+                    <div className="p-5 space-y-5">
+                      {/* Back + Delete */}
+                      <div className="flex items-center justify-between">
+                        <button
+                          onClick={handleBackToList}
+                          className="inline-flex items-center gap-1.5 text-sm text-[#999] hover:text-[#1a1a1a] transition-colors"
+                        >
+                          <ArrowLeft size={14} />
+                          Back to Tasks
+                        </button>
+                        {canManageTasks && (
                           <button
-                            onClick={() => startEditing(msg)}
-                            title="Edit"
-                            className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-blue-500 transition-colors"
+                            onClick={handleDeleteTask}
+                            className="inline-flex items-center gap-1.5 text-sm text-red-400 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-xl transition-colors"
                           >
-                            <Pencil size={13} />
+                            <Trash2 size={14} />
+                            Delete
                           </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
 
-                      {/* Sender name for others */}
-                      {!isMine && (
-                        <p className="text-[10px] font-medium text-[#999] mb-0.5 ml-1">
-                          {msg.sender.display_name}
-                        </p>
-                      )}
-
-                      {isEditingMsg ? (
-                        <div className="bg-white border border-[#D4692A]/40 rounded-2xl p-3 shadow-sm min-w-[220px]">
+                      {/* Title */}
+                      {editingTaskTitle && canManageTasks ? (
+                        <div className="flex items-center gap-2">
                           <input
                             type="text"
-                            value={editContent}
-                            onChange={(e) => setEditContent(e.target.value)}
+                            value={taskTitleDraft}
+                            onChange={(e) => setTaskTitleDraft(e.target.value)}
                             onKeyDown={(e) => {
-                              if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault();
-                                handleEditMessage(msg.id);
-                              }
-                              if (e.key === "Escape") cancelEditing();
+                              if (e.key === "Enter") handleUpdateTask({ title: taskTitleDraft.trim() });
+                              if (e.key === "Escape") setEditingTaskTitle(false);
                             }}
                             autoFocus
-                            className="w-full px-3 py-1.5 text-sm rounded-lg border border-[#e8e4e0] focus:outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/30 bg-white text-[#1a1a1a]"
+                            className="flex-1 px-4 py-2.5 text-lg font-bold rounded-xl border border-[#e8e4e0] focus:outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/30 bg-white text-[#1a1a1a]"
                           />
-                          <div className="flex items-center justify-end gap-2 mt-2">
-                            <button
-                              onClick={cancelEditing}
-                              className="px-3 py-1 text-xs rounded-lg text-[#999] hover:bg-gray-100 transition-colors"
-                            >
-                              Cancel
-                            </button>
-                            <button
-                              onClick={() => handleEditMessage(msg.id)}
-                              disabled={!editContent.trim() || editSaving}
-                              className="px-3 py-1 text-xs rounded-lg bg-[#D4692A] text-white hover:bg-[#c05e24] disabled:opacity-40 transition-colors"
-                            >
-                              {editSaving ? "Saving..." : "Save"}
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => handleUpdateTask({ title: taskTitleDraft.trim() })}
+                            disabled={!taskTitleDraft.trim() || savingTask}
+                            className="p-2 rounded-xl bg-[#D4692A] text-white hover:bg-[#c05e24] disabled:opacity-40 transition-colors"
+                          >
+                            {savingTask ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                          </button>
+                          <button
+                            onClick={() => setEditingTaskTitle(false)}
+                            className="p-2 rounded-xl hover:bg-gray-100 text-[#999] transition-colors"
+                          >
+                            <X size={16} />
+                          </button>
                         </div>
                       ) : (
-                        <div
-                          className={`px-4 py-2.5 rounded-2xl text-sm ${
-                            isMine
-                              ? "bg-[#D4692A] text-white rounded-br-md"
-                              : "bg-white border border-[#e8e4e0] text-[#1a1a1a] rounded-bl-md shadow-sm"
-                          }`}
+                        <h2
+                          className={`text-xl font-bold text-[#1a1a1a] ${canManageTasks ? "cursor-pointer hover:text-[#D4692A] transition-colors" : ""}`}
+                          style={{ fontFamily: "var(--font-heading)" }}
+                          onClick={() => {
+                            if (canManageTasks) {
+                              setTaskTitleDraft(selectedTaskDetail.title);
+                              setEditingTaskTitle(true);
+                            }
+                          }}
                         >
-                          {/* Attachment */}
-                          {msg.attachment_url && (
-                            <div className="mb-2 min-w-[200px]">
-                              {isImageAttachment(msg.attachment_type) ? (
-                                <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer">
-                                  <img
-                                    src={msg.attachment_url}
-                                    alt={msg.attachment_name || "Image"}
-                                    className="rounded-lg max-w-full max-h-48 object-cover"
-                                  />
-                                </a>
-                              ) : isVideoAttachment(msg.attachment_type) ? (
-                                <video
-                                  src={msg.attachment_url}
-                                  controls
-                                  preload="metadata"
-                                  className="rounded-lg max-w-full max-h-48"
-                                />
-                              ) : (
+                          {selectedTaskDetail.title}
+                          {canManageTasks && <Pencil size={14} className="inline ml-2 text-[#ccc]" />}
+                        </h2>
+                      )}
+
+                      {/* Status + Priority Badges */}
+                      <div className="flex items-center gap-3 flex-wrap">
+                        {/* Status dropdown */}
+                        <div className="relative">
+                          {canManageTasks ? (
+                            <button onClick={() => setShowTaskStatusDropdown(!showTaskStatusDropdown)}>
+                              <div className="flex items-center gap-1">
+                                <TaskStatusBadge status={selectedTaskDetail.status} />
+                                <ChevronDown size={12} className="text-[#999]" />
+                              </div>
+                            </button>
+                          ) : (
+                            <TaskStatusBadge status={selectedTaskDetail.status} />
+                          )}
+                          {showTaskStatusDropdown && (
+                            <>
+                              <div className="fixed inset-0 z-10" onClick={() => setShowTaskStatusDropdown(false)} />
+                              <div className="absolute top-full left-0 mt-1 bg-white border border-[#e8e4e0] rounded-xl shadow-lg z-20 py-1 min-w-[140px]">
+                                {[
+                                  { value: "pending", label: "Pending" },
+                                  { value: "in_progress", label: "In Progress" },
+                                  { value: "completed", label: "Completed" },
+                                ].map((s) => (
+                                  <button
+                                    key={s.value}
+                                    onClick={() => handleUpdateTask({ status: s.value })}
+                                    className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${
+                                      selectedTaskDetail.status === s.value ? "text-[#D4692A] font-medium" : "text-[#1a1a1a]"
+                                    }`}
+                                  >
+                                    {s.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Priority dropdown */}
+                        <div className="relative">
+                          {canManageTasks ? (
+                            <button onClick={() => setShowTaskPriorityDropdown(!showTaskPriorityDropdown)}>
+                              <div className="flex items-center gap-1">
+                                <PriorityBadge priority={selectedTaskDetail.priority} />
+                                <ChevronDown size={12} className="text-[#999]" />
+                              </div>
+                            </button>
+                          ) : (
+                            <PriorityBadge priority={selectedTaskDetail.priority} />
+                          )}
+                          {showTaskPriorityDropdown && (
+                            <>
+                              <div className="fixed inset-0 z-10" onClick={() => setShowTaskPriorityDropdown(false)} />
+                              <div className="absolute top-full left-0 mt-1 bg-white border border-[#e8e4e0] rounded-xl shadow-lg z-20 py-1 min-w-[120px]">
+                                {["low", "medium", "high"].map((p) => (
+                                  <button
+                                    key={p}
+                                    onClick={() => handleUpdateTask({ priority: p })}
+                                    className={`w-full text-left px-4 py-2 text-sm capitalize hover:bg-gray-50 transition-colors ${
+                                      selectedTaskDetail.priority === p ? "text-[#D4692A] font-medium" : "text-[#1a1a1a]"
+                                    }`}
+                                  >
+                                    {p}
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      <div>
+                        <h3 className="text-xs font-semibold text-[#999] uppercase tracking-wider mb-2">Description</h3>
+                        {editingTaskDesc && canManageTasks ? (
+                          <div className="space-y-2">
+                            <textarea
+                              value={taskDescDraft}
+                              onChange={(e) => setTaskDescDraft(e.target.value)}
+                              rows={4}
+                              autoFocus
+                              className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#e8e4e0] focus:outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/30 bg-white text-[#1a1a1a] resize-none"
+                              placeholder="Add a description..."
+                            />
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleUpdateTask({ description: taskDescDraft.trim() })}
+                                disabled={savingTask}
+                                className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-[#D4692A] text-white text-sm font-medium rounded-xl hover:bg-[#c05e24] disabled:opacity-40 transition-colors"
+                              >
+                                {savingTask ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                                Save
+                              </button>
+                              <button
+                                onClick={() => setEditingTaskDesc(false)}
+                                className="px-4 py-1.5 text-sm text-[#999] hover:text-[#1a1a1a] hover:bg-gray-100 rounded-xl transition-colors"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            className={`text-sm text-[#1a1a1a] whitespace-pre-wrap ${canManageTasks ? "cursor-pointer hover:bg-[#faf8f6] rounded-xl p-3 -m-3 transition-colors" : ""} ${!selectedTaskDetail.description ? "text-[#999] italic" : ""}`}
+                            onClick={() => {
+                              if (canManageTasks) {
+                                setTaskDescDraft(selectedTaskDetail.description || "");
+                                setEditingTaskDesc(true);
+                              }
+                            }}
+                          >
+                            {selectedTaskDetail.description || "No description"}
+                            {canManageTasks && <Pencil size={12} className="inline ml-2 text-[#ccc]" />}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Assignees */}
+                      <div>
+                        <h3 className="text-xs font-semibold text-[#999] uppercase tracking-wider mb-2">Assigned to</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedTaskDetail.assignees.length === 0 ? (
+                            <p className="text-sm text-[#999] italic">No assignees</p>
+                          ) : (
+                            selectedTaskDetail.assignees.map((assignee) => (
+                              <div
+                                key={assignee.id}
+                                className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#faf8f6] border border-[#f0ece8] rounded-full"
+                              >
+                                <Avatar user={assignee.user} size={20} />
+                                <span className="text-sm text-[#1a1a1a]">{assignee.user.display_name}</span>
+                                {canManageTasks && (
+                                  <button
+                                    onClick={() => handleRemoveAssignee(assignee.user_id)}
+                                    className="p-0.5 rounded-full hover:bg-red-100 text-[#ccc] hover:text-red-500 transition-colors"
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                )}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Created by / Completed by */}
+                      <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-[#999]">
+                        <span>Created by <strong className="text-[#777]">{selectedTaskDetail.creator.display_name}</strong></span>
+                        {selectedTaskDetail.completer && (
+                          <span>Completed by <strong className="text-[#777]">{selectedTaskDetail.completer.display_name}</strong></span>
+                        )}
+                        <span>{formatMessageTime(selectedTaskDetail.created_at)}</span>
+                      </div>
+
+                      {/* Attachments */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="text-xs font-semibold text-[#999] uppercase tracking-wider">
+                            Attachments ({taskAttachments.length})
+                          </h3>
+                          {canUploadToTask() && (
+                            <>
+                              <input
+                                ref={taskFileInputRef}
+                                type="file"
+                                className="hidden"
+                                onChange={handleTaskFileSelect}
+                              />
+                              <button
+                                onClick={() => taskFileInputRef.current?.click()}
+                                disabled={uploadingTaskFile}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#D4692A] hover:bg-[#D4692A]/10 rounded-xl transition-colors disabled:opacity-40"
+                              >
+                                {uploadingTaskFile ? (
+                                  <Loader2 size={12} className="animate-spin" />
+                                ) : (
+                                  <Upload size={12} />
+                                )}
+                                Upload
+                              </button>
+                            </>
+                          )}
+                        </div>
+
+                        {taskAttachments.length === 0 ? (
+                          <div className="text-center py-6 text-sm text-[#999] bg-[#fafafa] rounded-xl border border-dashed border-[#e8e4e0]">
+                            <Paperclip size={20} className="mx-auto mb-1.5 text-[#ddd]" />
+                            No attachments yet
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {taskAttachments.map((att) => (
+                              <div
+                                key={att.id}
+                                className="flex items-center gap-3 px-4 py-3 bg-[#fafafa] border border-[#f0ece8] rounded-xl hover:bg-[#faf8f6] transition-colors"
+                              >
+                                <FileText size={18} className="text-[#D4692A] flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-[#1a1a1a] truncate">{att.file_name}</p>
+                                  <p className="text-[10px] text-[#999]">
+                                    {formatFileSize(att.file_size)}
+                                    {att.uploader && ` \u00b7 Uploaded by ${att.uploader.display_name}`}
+                                  </p>
+                                </div>
                                 <a
-                                  href={msg.attachment_url}
+                                  href={att.file_url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className={`flex items-center gap-2 p-2.5 rounded-lg ${
-                                    isMine ? "bg-white/10" : "bg-gray-50 border border-gray-100"
-                                  }`}
+                                  className="p-1.5 rounded-lg hover:bg-white text-[#999] hover:text-[#1a1a1a] transition-colors"
+                                  title="Download"
                                 >
-                                  <FileText size={18} className={isMine ? "text-white/70" : "text-gray-400"} />
-                                  <div className="min-w-0 flex-1">
-                                    <p className={`text-xs font-medium truncate ${isMine ? "text-white" : "text-gray-700"}`}>
-                                      {msg.attachment_name || "File"}
-                                    </p>
-                                    <p className={`text-[10px] ${isMine ? "text-white/50" : "text-gray-400"}`}>
-                                      {formatFileSize(msg.attachment_size)}
-                                    </p>
-                                  </div>
-                                  <Download size={14} className={isMine ? "text-white/60" : "text-gray-400"} />
+                                  <Download size={14} />
                                 </a>
-                              )}
+                                {canManageTasks && (
+                                  <button
+                                    onClick={() => handleDeleteAttachment(att.id)}
+                                    disabled={deletingAttachmentId === att.id}
+                                    className="p-1.5 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors"
+                                    title="Delete"
+                                  >
+                                    {deletingAttachmentId === att.id ? (
+                                      <Loader2 size={14} className="animate-spin" />
+                                    ) : (
+                                      <Trash2 size={14} />
+                                    )}
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Task List View */
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  {/* Task List Header */}
+                  <div className="px-5 py-4 border-b border-[#f0ece8] flex items-center justify-between flex-shrink-0">
+                    <div className="flex items-center gap-2">
+                      <h2
+                        className="text-sm font-bold text-[#1a1a1a] uppercase tracking-wider"
+                        style={{ fontFamily: "var(--font-heading)" }}
+                      >
+                        Tasks
+                      </h2>
+                      <span className="text-xs text-[#999] bg-gray-100 px-2 py-0.5 rounded-full font-medium">
+                        {filteredTasks.length}
+                      </span>
+                    </div>
+                    {canManageTasks && (
+                      <button
+                        onClick={() => setShowCreateTask(true)}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#D4692A] text-white text-sm font-medium rounded-xl hover:bg-[#c05e24] transition-colors"
+                      >
+                        <Plus size={14} />
+                        New Task
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Filter Pills */}
+                  <div className="px-5 py-3 border-b border-[#f0ece8] flex gap-2 flex-wrap flex-shrink-0">
+                    {(["all", "pending", "in_progress", "completed"] as const).map((filter) => {
+                      const labels: Record<string, string> = {
+                        all: "All",
+                        pending: "Pending",
+                        in_progress: "In Progress",
+                        completed: "Completed",
+                      };
+                      const isActive = taskFilter === filter;
+                      return (
+                        <button
+                          key={filter}
+                          onClick={() => setTaskFilter(filter)}
+                          className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-colors ${
+                            isActive
+                              ? "bg-[#D4692A] text-white"
+                              : "bg-[#fafafa] text-[#999] border border-[#e8e4e0] hover:bg-[#faf8f6] hover:text-[#1a1a1a]"
+                          }`}
+                        >
+                          {labels[filter]}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Task Cards */}
+                  <div className="flex-1 overflow-y-auto bg-[#fafafa]">
+                    {filteredTasks.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-full text-[#999]">
+                        <ListTodo size={40} className="mb-3 text-[#ddd]" />
+                        <p className="text-sm">No tasks {taskFilter !== "all" ? `with status "${taskFilter.replace("_", " ")}"` : "yet"}</p>
+                        {canManageTasks && taskFilter === "all" && (
+                          <p className="text-xs mt-1">Create your first task to get started</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-[#f0ece8]">
+                        {filteredTasks.map((task) => {
+                          const isCompleted = task.status === "completed";
+                          return (
+                            <div
+                              key={task.id}
+                              onClick={() => handleOpenTaskDetail(task.id)}
+                              className="flex items-start gap-3 px-5 py-4 hover:bg-white cursor-pointer transition-colors"
+                            >
+                              <button
+                                onClick={(e) => handleToggleTaskStatus(task, e)}
+                                disabled={!canManageTasks}
+                                className={`mt-0.5 flex-shrink-0 transition-colors ${
+                                  canManageTasks ? "hover:text-[#D4692A]" : ""
+                                } ${isCompleted ? "text-emerald-500" : "text-[#ccc]"}`}
+                              >
+                                {isCompleted ? <CheckSquare size={18} /> : <Square size={18} />}
+                              </button>
+
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className={`text-sm font-medium ${isCompleted ? "line-through text-[#999]" : "text-[#1a1a1a]"}`}>
+                                    {task.title}
+                                  </span>
+                                  <PriorityBadge priority={task.priority} />
+                                </div>
+                                <div className="flex items-center gap-3 mt-1.5">
+                                  {task.assignees.length > 0 && (
+                                    <div className="flex items-center -space-x-1.5">
+                                      {task.assignees.slice(0, 3).map((a) => (
+                                        <div key={a.id} className="ring-2 ring-white rounded-full">
+                                          <Avatar user={a.user} size={20} />
+                                        </div>
+                                      ))}
+                                      {task.assignees.length > 3 && (
+                                        <div className="ring-2 ring-white rounded-full w-5 h-5 bg-gray-200 flex items-center justify-center text-[9px] font-bold text-gray-500">
+                                          +{task.assignees.length - 3}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                  {task.attachment_count > 0 && (
+                                    <span className="inline-flex items-center gap-1 text-[11px] text-[#999]">
+                                      <Paperclip size={11} />
+                                      {task.attachment_count}
+                                    </span>
+                                  )}
+                                  <span className="text-[11px] text-[#999]">
+                                    Created by {task.creator.display_name}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Chat Tab */}
+          {activeTab === "chat" && (
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Messages */}
+              <div
+                ref={messagesContainerRef}
+                onScroll={handleScroll}
+                className="flex-1 overflow-y-auto p-5 space-y-4 bg-[#fafafa]"
+              >
+                {messages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-[#999999]">
+                    <MessageSquare size={40} className="mb-3 text-[#ddd]" />
+                    <p className="text-sm">No messages yet</p>
+                    <p className="text-xs mt-1">Start the conversation with your team</p>
+                  </div>
+                ) : (
+                  messages.map((msg) => {
+                    const isMine = msg.sender_id === user?.id;
+                    const isEditingMsg = editingMessageId === msg.id;
+                    const isEdited = msg.edited_at !== null && msg.edited_at !== undefined;
+
+                    return (
+                      <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
+                        {!isMine && (
+                          <div className="flex-shrink-0 mr-2 mt-auto mb-1">
+                            <Avatar user={msg.sender} size={28} />
+                          </div>
+                        )}
+                        <div className="relative group w-fit max-w-[80%] sm:max-w-[65%]">
+                          {isMine && !isEditingMsg && (
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -left-8 top-1/2 -translate-y-1/2">
+                              <button
+                                onClick={() => startEditing(msg)}
+                                title="Edit"
+                                className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-blue-500 transition-colors"
+                              >
+                                <Pencil size={13} />
+                              </button>
                             </div>
                           )}
 
-                          {msg.content && (
-                            <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                          )}
-                          <div className={`flex items-center gap-1.5 mt-1.5 ${isMine ? "justify-end" : ""}`}>
-                            <p className={`text-[10px] ${isMine ? "text-white/50" : "text-[#999]"}`}>
-                              {formatMessageTime(msg.created_at)}
+                          {!isMine && (
+                            <p className="text-[10px] font-medium text-[#999] mb-0.5 ml-1">
+                              {msg.sender.display_name}
                             </p>
-                            {isEdited && (
-                              <span className={`text-[10px] italic ${isMine ? "text-white/40" : "text-[#aaa]"}`}>
-                                (edited)
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-            <div ref={messagesEndRef} />
-          </div>
+                          )}
 
-          {/* Pending file preview */}
-          {pendingFile && (
-            <div className="px-5 py-2 flex items-center gap-3 bg-[#f5f2ef] border-t border-[#e8e4e0]">
-              <FileText size={16} className="text-[#D4692A]" />
-              <span className="text-sm text-[#1a1a1a] truncate flex-1">
-                {pendingFile.name}
-              </span>
-              <span className="text-xs text-[#999]">
-                {formatFileSize(pendingFile.size)}
-              </span>
-              <button
-                onClick={() => setPendingFile(null)}
-                className="p-1 rounded-lg hover:bg-white"
-              >
-                <X size={14} className="text-gray-400" />
-              </button>
+                          {isEditingMsg ? (
+                            <div className="bg-white border border-[#D4692A]/40 rounded-2xl p-3 shadow-sm min-w-[220px]">
+                              <input
+                                type="text"
+                                value={editContent}
+                                onChange={(e) => setEditContent(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleEditMessage(msg.id);
+                                  }
+                                  if (e.key === "Escape") cancelEditing();
+                                }}
+                                autoFocus
+                                className="w-full px-3 py-1.5 text-sm rounded-lg border border-[#e8e4e0] focus:outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/30 bg-white text-[#1a1a1a]"
+                              />
+                              <div className="flex items-center justify-end gap-2 mt-2">
+                                <button
+                                  onClick={cancelEditing}
+                                  className="px-3 py-1 text-xs rounded-lg text-[#999] hover:bg-gray-100 transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  onClick={() => handleEditMessage(msg.id)}
+                                  disabled={!editContent.trim() || editSaving}
+                                  className="px-3 py-1 text-xs rounded-lg bg-[#D4692A] text-white hover:bg-[#c05e24] disabled:opacity-40 transition-colors"
+                                >
+                                  {editSaving ? "Saving..." : "Save"}
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div
+                              className={`px-4 py-2.5 rounded-2xl text-sm ${
+                                isMine
+                                  ? "bg-[#D4692A] text-white rounded-br-md"
+                                  : "bg-white border border-[#e8e4e0] text-[#1a1a1a] rounded-bl-md shadow-sm"
+                              }`}
+                            >
+                              {msg.attachment_url && (
+                                <div className="mb-2 min-w-[200px]">
+                                  {isImageAttachment(msg.attachment_type) ? (
+                                    <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer">
+                                      <img
+                                        src={msg.attachment_url}
+                                        alt={msg.attachment_name || "Image"}
+                                        className="rounded-lg max-w-full max-h-48 object-cover"
+                                      />
+                                    </a>
+                                  ) : isVideoAttachment(msg.attachment_type) ? (
+                                    <video
+                                      src={msg.attachment_url}
+                                      controls
+                                      preload="metadata"
+                                      className="rounded-lg max-w-full max-h-48"
+                                    />
+                                  ) : (
+                                    <a
+                                      href={msg.attachment_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className={`flex items-center gap-2 p-2.5 rounded-lg ${
+                                        isMine ? "bg-white/10" : "bg-gray-50 border border-gray-100"
+                                      }`}
+                                    >
+                                      <FileText size={18} className={isMine ? "text-white/70" : "text-gray-400"} />
+                                      <div className="min-w-0 flex-1">
+                                        <p className={`text-xs font-medium truncate ${isMine ? "text-white" : "text-gray-700"}`}>
+                                          {msg.attachment_name || "File"}
+                                        </p>
+                                        <p className={`text-[10px] ${isMine ? "text-white/50" : "text-gray-400"}`}>
+                                          {formatFileSize(msg.attachment_size)}
+                                        </p>
+                                      </div>
+                                      <Download size={14} className={isMine ? "text-white/60" : "text-gray-400"} />
+                                    </a>
+                                  )}
+                                </div>
+                              )}
+
+                              {msg.content && (
+                                <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                              )}
+                              <div className={`flex items-center gap-1.5 mt-1.5 ${isMine ? "justify-end" : ""}`}>
+                                <p className={`text-[10px] ${isMine ? "text-white/50" : "text-[#999]"}`}>
+                                  {formatMessageTime(msg.created_at)}
+                                </p>
+                                {isEdited && (
+                                  <span className={`text-[10px] italic ${isMine ? "text-white/40" : "text-[#aaa]"}`}>
+                                    (edited)
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Pending file preview */}
+              {pendingFile && (
+                <div className="px-5 py-2 flex items-center gap-3 bg-[#f5f2ef] border-t border-[#e8e4e0]">
+                  <FileText size={16} className="text-[#D4692A]" />
+                  <span className="text-sm text-[#1a1a1a] truncate flex-1">
+                    {pendingFile.name}
+                  </span>
+                  <span className="text-xs text-[#999]">
+                    {formatFileSize(pendingFile.size)}
+                  </span>
+                  <button
+                    onClick={() => setPendingFile(null)}
+                    className="p-1 rounded-lg hover:bg-white"
+                  >
+                    <X size={14} className="text-gray-400" />
+                  </button>
+                </div>
+              )}
+
+              {/* Input Area */}
+              <div className="p-4 border-t border-[#e8e4e0] bg-white flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    onChange={handleFileSelect}
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-2.5 rounded-xl hover:bg-[#f5f2ef] text-[#999999] hover:text-[#1a1a1a] transition-all"
+                  >
+                    <Paperclip size={18} />
+                  </button>
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Type a message..."
+                    className="flex-1 px-4 py-2.5 text-sm rounded-xl border border-[#e8e4e0] focus:outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/30 bg-white text-[#1a1a1a] placeholder:text-[#999]"
+                  />
+                  <button
+                    onClick={handleSend}
+                    disabled={(!newMessage.trim() && !pendingFile) || sending}
+                    className="p-2.5 rounded-xl bg-[#D4692A] text-white hover:bg-[#c05e24] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  >
+                    <Send size={18} />
+                  </button>
+                </div>
+              </div>
             </div>
           )}
+        </div>
+      </div>
 
-          {/* Input Area */}
-          <div className="p-4 border-t border-[#e8e4e0] bg-white">
-            <div className="flex items-center gap-3">
-              <input
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                onChange={handleFileSelect}
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="p-2.5 rounded-xl hover:bg-[#f5f2ef] text-[#999999] hover:text-[#1a1a1a] transition-all"
+      {/* --- Modals --- */}
+
+      {/* Add Member Modal */}
+      {showAddMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowAddMember(false)} />
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-5 z-10 max-h-[70vh] flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <h3
+                className="text-base font-bold text-[#1a1a1a]"
+                style={{ fontFamily: "var(--font-heading)" }}
               >
-                <Paperclip size={18} />
+                Add Member
+              </h3>
+              <button
+                onClick={() => setShowAddMember(false)}
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={16} />
               </button>
-              <input
-                type="text"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Type a message..."
-                className="flex-1 px-4 py-2.5 text-sm rounded-xl border border-[#e8e4e0] focus:outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/30 bg-white text-[#1a1a1a] placeholder:text-[#999]"
-              />
-              <button
-                onClick={handleSend}
-                disabled={(!newMessage.trim() && !pendingFile) || sending}
-                className="p-2.5 rounded-xl bg-[#D4692A] text-white hover:bg-[#c05e24] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-1">
+              {addMemberError ? (
+                <p className="text-sm text-red-500 text-center py-6">
+                  {addMemberError}
+                </p>
+              ) : availableUsers.length === 0 ? (
+                <p className="text-sm text-[#999] text-center py-6">
+                  All team members are already in this project
+                </p>
+              ) : (
+                availableUsers.map((u) => (
+                  <button
+                    key={u.id}
+                    onClick={() => handleAddMember(u.id)}
+                    disabled={addingMember}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#faf8f6] transition-colors text-left disabled:opacity-50"
+                  >
+                    <Avatar user={u} size={36} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[#1a1a1a] truncate">
+                        {u.display_name}
+                      </p>
+                      {u.position && (
+                        <p className="text-xs text-[#999] truncate">{u.position}</p>
+                      )}
+                    </div>
+                    <UserPlus size={16} className="text-[#D4692A] flex-shrink-0" />
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Transfer Leadership Modal */}
+      {showTransferModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowTransferModal(false)} />
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-5 z-10 max-h-[70vh] flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <h3
+                className="text-base font-bold text-[#1a1a1a]"
+                style={{ fontFamily: "var(--font-heading)" }}
               >
-                <Send size={18} />
+                Transfer Leadership
+              </h3>
+              <button
+                onClick={() => setShowTransferModal(false)}
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <p className="text-xs text-[#999] mb-3">
+              Select a member to transfer your Leader role to. You will become a regular member.
+            </p>
+
+            <div className="flex-1 overflow-y-auto space-y-1">
+              {transferableMembers.length === 0 ? (
+                <p className="text-sm text-[#999] text-center py-6">
+                  No members available to transfer to
+                </p>
+              ) : (
+                transferableMembers.map((m) => (
+                  <button
+                    key={m.user_id}
+                    onClick={() => handleTransferLeadership(m.user_id)}
+                    disabled={roleActionLoading === m.user_id}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-blue-50 transition-colors text-left disabled:opacity-50"
+                  >
+                    <Avatar user={m.user} size={36} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[#1a1a1a] truncate">
+                        {m.user.display_name}
+                      </p>
+                      {m.user.position && (
+                        <p className="text-xs text-[#999] truncate">{m.user.position}</p>
+                      )}
+                    </div>
+                    {roleActionLoading === m.user_id ? (
+                      <Loader2 size={16} className="animate-spin text-blue-500 flex-shrink-0" />
+                    ) : (
+                      <ArrowRightLeft size={16} className="text-blue-500 flex-shrink-0" />
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Task Modal */}
+      {showCreateTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowCreateTask(false)} />
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-5 z-10 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between mb-5">
+              <h3
+                className="text-base font-bold text-[#1a1a1a]"
+                style={{ fontFamily: "var(--font-heading)" }}
+              >
+                New Task
+              </h3>
+              <button
+                onClick={() => setShowCreateTask(false)}
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-4">
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-medium text-[#1a1a1a] mb-1.5">
+                  Title <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newTaskTitle}
+                  onChange={(e) => setNewTaskTitle(e.target.value)}
+                  placeholder="Task title..."
+                  autoFocus
+                  className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#e8e4e0] focus:outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/30 bg-white text-[#1a1a1a] placeholder:text-[#999]"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-[#1a1a1a] mb-1.5">Description</label>
+                <textarea
+                  value={newTaskDescription}
+                  onChange={(e) => setNewTaskDescription(e.target.value)}
+                  rows={3}
+                  placeholder="Optional description..."
+                  className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#e8e4e0] focus:outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/30 bg-white text-[#1a1a1a] resize-none placeholder:text-[#999]"
+                />
+              </div>
+
+              {/* Priority */}
+              <div>
+                <label className="block text-sm font-medium text-[#1a1a1a] mb-1.5">Priority</label>
+                <div className="flex gap-2">
+                  {(["low", "medium", "high"] as const).map((p) => {
+                    const isActive = newTaskPriority === p;
+                    const colors: Record<string, string> = {
+                      low: isActive ? "bg-gray-500 text-white border-gray-500" : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50",
+                      medium: isActive ? "bg-[#D4692A] text-white border-[#D4692A]" : "bg-white text-[#D4692A] border-orange-200 hover:bg-orange-50",
+                      high: isActive ? "bg-red-500 text-white border-red-500" : "bg-white text-red-500 border-red-200 hover:bg-red-50",
+                    };
+                    return (
+                      <button
+                        key={p}
+                        onClick={() => setNewTaskPriority(p)}
+                        className={`flex-1 px-3 py-2 text-sm font-medium rounded-xl border capitalize transition-colors ${colors[p]}`}
+                      >
+                        {p}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Assignees */}
+              <div>
+                <label className="block text-sm font-medium text-[#1a1a1a] mb-1.5">Assign to</label>
+                <div className="space-y-1 max-h-48 overflow-y-auto border border-[#e8e4e0] rounded-xl p-2">
+                  {members.length === 0 ? (
+                    <p className="text-sm text-[#999] text-center py-3">No project members</p>
+                  ) : (
+                    members.map((m) => {
+                      const isSelected = newTaskAssignees.includes(m.user_id);
+                      return (
+                        <button
+                          key={m.user_id}
+                          onClick={() => {
+                            setNewTaskAssignees((prev) =>
+                              isSelected
+                                ? prev.filter((id) => id !== m.user_id)
+                                : [...prev, m.user_id]
+                            );
+                          }}
+                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-left ${
+                            isSelected ? "bg-[#D4692A]/10" : "hover:bg-[#faf8f6]"
+                          }`}
+                        >
+                          <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                            isSelected ? "bg-[#D4692A] border-[#D4692A]" : "border-[#ccc]"
+                          }`}>
+                            {isSelected && <Check size={10} className="text-white" />}
+                          </div>
+                          <Avatar user={m.user} size={24} />
+                          <span className="text-sm text-[#1a1a1a] truncate">{m.user.display_name}</span>
+                          <RoleBadge role={m.role} />
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-3 mt-5 pt-4 border-t border-[#f0ece8]">
+              <button
+                onClick={() => setShowCreateTask(false)}
+                className="px-4 py-2 text-sm text-[#999] hover:text-[#1a1a1a] hover:bg-gray-100 rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateTask}
+                disabled={!newTaskTitle.trim() || creatingTask}
+                className="inline-flex items-center gap-2 px-5 py-2 bg-[#D4692A] text-white text-sm font-medium rounded-xl hover:bg-[#c05e24] disabled:opacity-40 transition-colors"
+              >
+                {creatingTask ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                Create Task
               </button>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
