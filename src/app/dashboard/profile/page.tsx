@@ -36,58 +36,11 @@ const DASHBOARD_SECTIONS = [
   { key: "settings", label: "Settings" },
 ];
 
-/* ── Badge display helpers ── */
-function getBadgeStyle(badge: string): string {
-  switch (badge) {
-    case "owner": return "bg-amber-500/10 text-amber-600 border border-amber-500/20";
-    case "board": return "bg-purple-500/10 text-purple-600 border border-purple-500/20";
-    case "manager": return "bg-blue-500/10 text-blue-600 border border-blue-500/20";
-    case "staff": return "bg-gray-500/10 text-gray-600 border border-gray-500/20";
-    default: return "bg-gray-500/10 text-gray-600 border border-gray-500/20";
-  }
+
 }
 
-function getBadgeLabel(badge: string): string {
-  switch (badge) {
-    case "owner": return "Owner";
-    case "board": return "Board";
-    case "manager": return "Manager";
-    case "staff": return "Staff";
-    default: return "Staff";
-  }
-}
 
-function BadgePill({ badge }: { badge: string }) {
-  return (
-    <span className={`inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full ${getBadgeStyle(badge)}`}>
-      {getBadgeLabel(badge)}
-    </span>
-  );
-}
 
-/**
- * Determine if currentUserBadge can review posts from authorBadge
- */
-function canReviewPosts(currentBadge: string, authorBadge?: string): boolean {
-  if (!authorBadge) return currentBadge === "owner";
-  if (currentBadge === "owner") return true;
-  if (currentBadge === "board") return authorBadge === "manager" || authorBadge === "staff";
-  if (currentBadge === "manager") return authorBadge === "staff";
-  return false;
-}
-
-/**
- * Determine if currentUserBadge can freeze a member with memberBadge
- * - Owner can freeze anyone except self
- * - Board can freeze Manager and Staff (not Owner, not other Board, not self)
- * - Manager/Staff cannot freeze anyone
- */
-function canFreezeMember(currentBadge: string, memberBadge: string, isSelf: boolean): boolean {
-  if (isSelf) return false;
-  if (currentBadge === "owner") return true;
-  if (currentBadge === "board") return memberBadge === "manager" || memberBadge === "staff";
-  return false;
-}
 
 /* ── Reveal hook ── */
 function useReveal() {
@@ -153,13 +106,9 @@ export default function ProfilePage() {
 
   const badge = user?.badge || "staff";
   const isOwnerBadge = badge === "owner";
-  const isBoardBadge = badge === "board";
-  const isManagerBadge = badge === "manager";
   const canEditProfile = isOwnerBadge || user?.permissions?.profile_editable;
-  // Owner, Board, Manager can see pending posts (with badge-based filtering)
-  const canSeePending = isOwnerBadge || isBoardBadge || isManagerBadge;
-  // Owner and Board can manage team (but Board has limited actions)
-  const canSeeTeam = isOwnerBadge || isBoardBadge;
+  const canSeePending = isOwnerBadge;
+  const canSeeTeam = isOwnerBadge;
 
   /* ── Load team ── */
   const loadTeam = useCallback(async () => {
@@ -375,11 +324,8 @@ export default function ProfilePage() {
 
   if (!user) return null;
 
-  // Filter pending posts based on badge review ability
-  const reviewablePosts = pendingPosts.filter((post: any) => {
-    const authorBadge = post.author_badge || post.author?.badge || "staff";
-    return canReviewPosts(badge, authorBadge);
-  });
+  // Owner sees all pending posts
+  const reviewablePosts = pendingPosts;
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
@@ -470,7 +416,6 @@ export default function ProfilePage() {
                         {user.position}
                       </span>
                     )}
-                    <BadgePill badge={badge} />
                   </div>
                   <p className="text-sm text-text-secondary mt-2 text-center sm:text-left truncate">{user.email}</p>
                   {canEditProfile && (
@@ -527,7 +472,6 @@ export default function ProfilePage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-semibold text-sm text-text-primary truncate">{post.author?.display_name || "Unknown"}</p>
-                          <BadgePill badge={post.author_badge || post.author?.badge || "staff"} />
                         </div>
                         <p className="text-xs text-text-muted truncate">{post.author?.position || ""} • {new Date(post.created_at).toLocaleString()}</p>
                       </div>
@@ -673,7 +617,6 @@ export default function ProfilePage() {
                   <MemberCard
                     key={member.id}
                     member={member}
-                    currentUserBadge={badge}
                     currentUserId={user.id}
                     expanded={editingMember === member.id}
                     onToggle={() => setEditingMember(editingMember === member.id ? null : member.id)}
@@ -764,7 +707,6 @@ export default function ProfilePage() {
 /* ── Member Card Component ── */
 function MemberCard({
   member,
-  currentUserBadge,
   currentUserId,
   expanded,
   onToggle,
@@ -775,7 +717,6 @@ function MemberCard({
   onUploadAvatar,
 }: {
   member: TeamMember;
-  currentUserBadge: string;
   currentUserId: string;
   expanded: boolean;
   onToggle: () => void;
@@ -794,10 +735,7 @@ function MemberCard({
     password: "",
   });
 
-  const memberBadge = member.badge || "staff";
-  const isOwnerBadge = currentUserBadge === "owner";
   const isSelf = member.id === currentUserId;
-  const showFreezeButton = canFreezeMember(currentUserBadge, memberBadge, isSelf);
   const permCount = member.permissions?.can_edit?.length || 0;
 
   return (
@@ -817,14 +755,12 @@ function MemberCard({
           )}
           <div className="text-left min-w-0 overflow-hidden">
             <p className="font-semibold text-sm text-text-primary truncate">{member.display_name || "No name"}</p>
-            <p className="text-xs text-text-muted truncate">
-              {member.email || "No email"} {member.position && `· ${member.position}`}
-            </p>
+            {member.position && (
+              <p className="text-xs text-text-muted truncate">{member.position}</p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
-          {/* Badge pill */}
-          <BadgePill badge={memberBadge} />
           {member.is_frozen && (
             <span className="text-xs px-2.5 py-0.5 rounded-full font-medium bg-red-100 text-red-600">
               Frozen
@@ -859,25 +795,6 @@ function MemberCard({
             </div>
             <span className="text-xs text-text-muted">Hover to change photo</span>
           </div>
-
-          {/* Badge selector (Owner only) */}
-          {isOwnerBadge && memberBadge !== "owner" && (
-            <div className="flex items-center justify-between flex-wrap gap-2 py-2">
-              <div className="flex items-center gap-2">
-                <Shield size={14} className="text-text-muted" />
-                <span className="text-sm text-text-secondary">Badge</span>
-              </div>
-              <select
-                value={memberBadge}
-                onChange={(e) => onUpdate(member.id, { badge: e.target.value })}
-                className="border border-border-custom rounded-xl px-3 py-1.5 text-sm focus:border-orange focus:ring-2 focus:ring-orange/20 outline-none bg-white"
-              >
-                <option value="board">Board</option>
-                <option value="manager">Manager</option>
-                <option value="staff">Staff</option>
-              </select>
-            </div>
-          )}
 
           {/* Edit fields */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -914,9 +831,8 @@ function MemberCard({
               className="border border-border-custom rounded-xl px-3 py-2 text-sm focus:border-orange focus:ring-2 focus:ring-orange/20 outline-none"
               placeholder="Position"
             />
-            {/* Password field - Owner only */}
-            {isOwnerBadge && (
-              <div className="flex gap-2">
+            {/* Password field */}
+            <div className="flex gap-2">
                 <div className="relative flex-1">
                   <input
                     value={editForm.password}
@@ -945,7 +861,6 @@ function MemberCard({
                   </button>
                 )}
               </div>
-            )}
           </div>
 
           {/* Permissions */}
@@ -973,8 +888,8 @@ function MemberCard({
             </div>
           </div>
 
-          {/* Current Password (visible to owner only) */}
-          {isOwnerBadge && (
+          {/* Current Password */}
+          {(
             <div className="flex items-center justify-between flex-wrap gap-2 py-2">
               <div className="flex items-center gap-2">
                 <Lock size={14} className="text-text-muted" />
@@ -1000,7 +915,7 @@ function MemberCard({
           )}
 
           {/* Freeze / Activate Account */}
-          {showFreezeButton && (
+          {!isSelf && (
             <div className="flex items-center justify-between flex-wrap gap-2 py-2">
               <div className="flex items-center gap-2">
                 <Shield size={14} className={member.is_frozen ? "text-red-500" : "text-text-muted"} />
