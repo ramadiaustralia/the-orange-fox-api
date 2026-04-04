@@ -196,7 +196,7 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto min-w-0 overflow-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
@@ -263,16 +263,18 @@ export default function ProjectsPage() {
               <button
                 key={project.id}
                 onClick={() => router.push(`/dashboard/projects/${project.id}`)}
-                className="text-left bg-white border border-[#e8e4e0] rounded-2xl p-5 transition-all group hover:border-[#D4692A]/30 hover:shadow-md cursor-pointer"
+                className="text-left bg-white border border-[#e8e4e0] rounded-2xl p-4 sm:p-5 transition-all group hover:border-[#D4692A]/30 hover:shadow-md cursor-pointer overflow-hidden"
               >
-                <div className="flex items-start justify-between gap-3 mb-3">
+                <div className="flex items-start justify-between gap-2 mb-3 min-w-0">
                   <h3
-                    className="text-base font-semibold text-[#1a1a1a] line-clamp-1 group-hover:text-[#D4692A] transition-colors"
+                    className="text-sm sm:text-base font-semibold text-[#1a1a1a] line-clamp-1 group-hover:text-[#D4692A] transition-colors min-w-0 flex-1"
                     style={{ fontFamily: "var(--font-heading)" }}
                   >
                     {project.name}
                   </h3>
-                  <StatusBadge status={project.status} />
+                  <div className="flex-shrink-0">
+                    <StatusBadge status={project.status} />
+                  </div>
                 </div>
 
                 {project.description && (

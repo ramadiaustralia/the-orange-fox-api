@@ -445,10 +445,10 @@ export default function TeamMessagesPage() {
   const enrichedMembers = getEnrichedMembers();
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] rounded-2xl overflow-hidden border border-[#e8e4e0] shadow-sm">
+    <div className="flex h-[calc(100vh-7rem)] sm:h-[calc(100vh-8rem)] rounded-2xl overflow-hidden border border-[#e8e4e0] shadow-sm max-w-full">
       {/* Left Panel - Team Members */}
       <div
-        className={`w-full md:w-80 flex-shrink-0 bg-[#141414] flex flex-col ${
+        className={`w-full md:w-80 md:flex-shrink-0 min-w-0 bg-[#141414] flex flex-col ${
           !showSidebar ? "hidden md:flex" : "flex"
         }`}
       >
@@ -522,14 +522,14 @@ export default function TeamMessagesPage() {
 
       {/* Right Panel - Chat */}
       <div
-        className={`flex-1 flex flex-col bg-white ${
+        className={`flex-1 min-w-0 flex flex-col bg-white ${
           showSidebar ? "hidden md:flex" : "flex"
         }`}
       >
         {activeChat ? (
           <>
             {/* Chat Header */}
-            <div className="px-6 py-4 border-b border-[#e8e4e0] flex items-center gap-4">
+            <div className="px-4 sm:px-6 py-4 border-b border-[#e8e4e0] flex items-center gap-3 sm:gap-4 min-w-0">
               <button
                 onClick={handleBack}
                 className="md:hidden p-1 rounded-lg hover:bg-[#f5f2ef] text-[#999999] hover:text-[#1a1a1a] transition-all"
@@ -557,7 +557,7 @@ export default function TeamMessagesPage() {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-[#fafafa]">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-[#fafafa]">
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-[#999999]">
                   <MessageSquare size={40} className="mb-3 text-[#ddd]" />
@@ -793,8 +793,8 @@ export default function TeamMessagesPage() {
             )}
 
             {/* Input Area */}
-            <div className="p-4 border-t border-[#e8e4e0] bg-white">
-              <div className="flex items-center gap-3">
+            <div className="p-3 sm:p-4 border-t border-[#e8e4e0] bg-white">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <input
                   ref={fileInputRef}
                   type="file"

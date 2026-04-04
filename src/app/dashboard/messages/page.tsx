@@ -154,11 +154,11 @@ export default function MessagesPage() {
   const unreadCount = messages.filter((m) => m.status === "unread").length;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[#1a1a1a] flex items-center gap-3" style={{ fontFamily: "var(--font-heading)" }}>
-            Customer Project Request
+    <div className="space-y-6 min-w-0 max-w-full overflow-hidden">
+      <div className="flex items-start justify-between flex-wrap gap-3">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-[#1a1a1a] flex items-center gap-2 sm:gap-3 flex-wrap" style={{ fontFamily: "var(--font-heading)" }}>
+            <span>Customer Project Request</span>
             {unreadCount > 0 && (
               <span className="px-2.5 py-1 text-xs rounded-full bg-[#D4692A]/10 text-[#D4692A] border border-[#D4692A]/20">
                 {unreadCount} unread
@@ -167,7 +167,7 @@ export default function MessagesPage() {
           </h1>
           <p className="text-sm text-[#999999] mt-1">Manage customer project requests and reply directly to their email</p>
         </div>
-        <button onClick={loadMessages} className="flex items-center gap-2 px-4 py-2.5 text-sm rounded-xl border border-[#e8e4e0] text-[#555555] hover:text-[#D4692A] hover:border-[#D4692A]/30 bg-white transition-all">
+        <button onClick={loadMessages} className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 text-sm rounded-xl border border-[#e8e4e0] text-[#555555] hover:text-[#D4692A] hover:border-[#D4692A]/30 bg-white transition-all">
           <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Refresh
         </button>
       </div>
@@ -198,7 +198,7 @@ export default function MessagesPage() {
             const hasCustomerReply = replies.some((r) => r.type === "customer");
 
             return (
-              <div key={msg.id} className={`bg-white border rounded-2xl shadow-sm transition-all duration-200 ${
+              <div key={msg.id} className={`bg-white border rounded-2xl shadow-sm transition-all duration-200 overflow-hidden ${
                 msg.status === "unread" ? "border-[#D4692A]/20" : "border-[#f0ece8]"
               }`}>
                 <div className="px-4 sm:px-6 py-4 flex items-center gap-3 sm:gap-4 cursor-pointer hover:bg-[#fafafa] transition-colors rounded-2xl" onClick={() => toggleExpand(msg)}>
@@ -234,7 +234,7 @@ export default function MessagesPage() {
                 </div>
 
                 {isExpanded && (
-                  <div className="px-4 sm:px-6 pb-4 sm:pb-6 animate-fade-in border-t border-[#f0ece8] mt-0 pt-4">
+                  <div className="px-4 sm:px-6 pb-4 sm:pb-6 animate-fade-in border-t border-[#f0ece8] mt-0 pt-4 overflow-hidden">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <div className="space-y-2 text-sm">
                         <div className="flex items-center gap-2 text-[#555555]"><User size={12} /> <span className="text-[#1a1a1a]">{msg.name}</span></div>

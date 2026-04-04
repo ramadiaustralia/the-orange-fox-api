@@ -91,31 +91,33 @@ export default function ProfilePopup({ user, onClose }: ProfilePopupProps) {
 
           {/* Name */}
           <h2
-            className="text-xl font-bold text-text-primary mb-1"
+            className="text-xl font-bold text-text-primary"
             style={{ fontFamily: "var(--font-heading)" }}
           >
             {user.display_name}
           </h2>
 
-          {/* Position badge */}
+          {/* Position badge — compact, right below name */}
           {user.position && (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#D4692A]/10 text-[#D4692A] text-xs font-semibold mb-4">
-              <Briefcase size={12} />
+            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#D4692A]/10 text-[#D4692A] text-[10px] font-semibold mt-1">
+              <Briefcase size={10} />
               {user.position}
             </div>
           )}
 
-          {/* Chat button */}
-          <button
-            onClick={() => {
-              onClose();
-              window.location.href = `/dashboard/team-messages?user=${user.id}`;
-            }}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 mt-2 rounded-lg bg-[#D4692A] text-white text-sm font-medium hover:bg-[#B5551F] transition-colors"
-          >
-            <MessageCircle size={14} />
-            Send Message
-          </button>
+          {/* Send Message button */}
+          <div className="mt-4">
+            <button
+              onClick={() => {
+                onClose();
+                window.location.href = `/dashboard/team-messages?user=${user.id}`;
+              }}
+              className="inline-flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-[#D4692A] text-white text-sm font-medium hover:bg-[#B5551F] transition-colors shadow-sm hover:shadow-md"
+            >
+              <MessageCircle size={14} />
+              Send Message
+            </button>
+          </div>
         </div>
       </div>
     </div>
