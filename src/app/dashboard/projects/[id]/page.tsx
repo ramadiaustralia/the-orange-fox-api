@@ -20,6 +20,7 @@ import {
   Eye,
   ArrowRightLeft,
   Crown,
+  Shield,
 } from "lucide-react";
 
 interface MemberUser {
@@ -309,6 +310,28 @@ export default function ProjectDetailPage() {
       }
     } catch {
       /* ignore */
+    }
+  };
+
+  // Owner intervene — take over leadership
+  const [takingOver, setTakingOver] = useState(false);
+
+  const handleTakeOverLeadership = async () => {
+    if (!confirm("Take over as project leader? The current leader will be demoted to member.")) return;
+    setTakingOver(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "take_over_leadership" }),
+      });
+      if (res.ok) {
+        await fetchProject();
+      }
+    } catch {
+      /* ignore */
+    } finally {
+      setTakingOver(false);
     }
   };
 
@@ -638,6 +661,18 @@ export default function ProjectDetailPage() {
               )}
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Owner Intervene button — take over leadership when not already leader */}
+              {isOwnerBadge && !isLeader && (
+                <button
+                  onClick={handleTakeOverLeadership}
+                  disabled={takingOver}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm text-white bg-[#D4692A] hover:bg-[#c05e24] disabled:opacity-50 rounded-xl transition-colors font-medium"
+                  title="Take over as Project Leader"
+                >
+                  {takingOver ? <Loader2 size={14} className="animate-spin" /> : <Shield size={14} />}
+                  Intervene
+                </button>
+              )}
               {canTransferLeadership && transferCandidates.length > 0 && (
                 <button
                   onClick={() => { fetchUsers(); setShowTransferModal(true); }}
