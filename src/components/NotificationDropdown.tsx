@@ -20,6 +20,10 @@ interface Notification {
   actor: NotificationActor;
   post_id: string | null;
   comment_id: string | null;
+  project_id: string | null;
+  task_id: string | null;
+  title: string | null;
+  message: string | null;
 }
 
 function playBing() {
@@ -63,6 +67,14 @@ function getNotificationText(n: Notification): string {
       return `commented on your post`;
     case "like_comment":
       return `liked your comment`;
+    case "project_invite":
+      return n.message || `invited you to a project`;
+    case "leader_assigned":
+      return n.message || `assigned you as Leader`;
+    case "task_assigned":
+      return n.message || `assigned you a task`;
+    case "deadline_reminder":
+      return n.message || `Task deadline approaching`;
     default:
       return `interacted with your content`;
   }
@@ -156,9 +168,25 @@ export default function NotificationDropdown({ currentUserId }: NotificationDrop
     if (!notification.is_read) {
       markAsRead([notification.id]);
     }
-    if (notification.post_id) {
-      setOpen(false);
-      router.push(`/dashboard?post=${notification.post_id}`);
+    setOpen(false);
+    switch (notification.type) {
+      case "project_invite":
+      case "leader_assigned":
+        if (notification.project_id) {
+          router.push(`/dashboard/projects/${notification.project_id}`);
+        }
+        break;
+      case "task_assigned":
+      case "deadline_reminder":
+        if (notification.project_id) {
+          router.push(`/dashboard/projects/${notification.project_id}`);
+        }
+        break;
+      default:
+        if (notification.post_id) {
+          router.push(`/dashboard?post=${notification.post_id}`);
+        }
+        break;
     }
   };
 

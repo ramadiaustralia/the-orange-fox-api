@@ -60,10 +60,14 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { name, description } = await req.json();
+    const { name, description, target_date } = await req.json();
 
     if (!name || !name.trim()) {
       return NextResponse.json({ error: "Project name is required" }, { status: 400 });
+    }
+
+    if (target_date && isNaN(Date.parse(target_date))) {
+      return NextResponse.json({ error: "Invalid target_date format" }, { status: 400 });
     }
 
     const db = getSupabaseAdmin();
@@ -75,6 +79,7 @@ export async function POST(req: NextRequest) {
         name: name.trim(),
         description: description?.trim() || null,
         created_by: admin.sub,
+        target_date: target_date || null,
       })
       .select()
       .single();

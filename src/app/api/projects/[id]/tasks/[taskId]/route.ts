@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { authenticateRequest } from "@/lib/auth";
+import { createNotificationBulk } from "@/lib/notifications";
 
 
 // Get user's role in a project: 'commissioner' | 'leader' | 'member' | null
@@ -94,14 +95,14 @@ export async function PATCH(
   }
 
   try {
-    const { title, description, priority, status, assigneeIds } = await req.json();
+    const { title, description, priority, status, assigneeIds, deadline, status_change_permission } = await req.json();
 
     const db = getSupabaseAdmin();
 
-    // Get current task to check status changes
+    // Get current task to check status changes and permissions
     const { data: currentTask } = await db
       .from("project_tasks")
-      .select("status")
+      .select("status, status_change_permission, created_by, title")
       .eq("id", taskId)
       .eq("project_id", id)
       .single();
@@ -110,12 +111,51 @@ export async function PATCH(
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
+    // Enforce status_change_permission when changing status
+    if (status !== undefined && status !== currentTask.status) {
+      const perm = currentTask.status_change_permission || "commissioner_and_leader";
+      let canChangeStatus = admin.badge === "owner"; // owner can always change
+
+      if (!canChangeStatus) {
+        switch (perm) {
+          case "commissioner_only":
+            canChangeStatus = myRole === "commissioner";
+            break;
+          case "leader_only":
+            canChangeStatus = myRole === "leader";
+            break;
+          case "commissioner_and_leader":
+            canChangeStatus = myRole === "commissioner" || myRole === "leader";
+            break;
+          case "creator_only":
+            canChangeStatus = currentTask.created_by === admin.sub;
+            break;
+        }
+      }
+
+      if (!canChangeStatus) {
+        return NextResponse.json({ error: "You do not have permission to change the status of this task" }, { status: 403 });
+      }
+    }
+
+    // Validate status_change_permission if provided
+    const validPermissions = ['commissioner_only', 'leader_only', 'commissioner_and_leader', 'creator_only'];
+    if (status_change_permission !== undefined && !validPermissions.includes(status_change_permission)) {
+      return NextResponse.json({ error: "Invalid status_change_permission value" }, { status: 400 });
+    }
+
+    if (deadline !== undefined && deadline !== null && isNaN(Date.parse(deadline))) {
+      return NextResponse.json({ error: "Invalid deadline format" }, { status: 400 });
+    }
+
     // Build update object
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
     if (title !== undefined) updates.title = title.trim();
     if (description !== undefined) updates.description = description.trim();
     if (priority !== undefined) updates.priority = priority;
+    if (deadline !== undefined) updates.deadline = deadline || null;
+    if (status_change_permission !== undefined) updates.status_change_permission = status_change_permission;
     if (status !== undefined) {
       updates.status = status;
       // If status changed to 'completed': set completed_by and completed_at
@@ -140,6 +180,13 @@ export async function PATCH(
 
     // Update assignees if provided
     if (assigneeIds !== undefined) {
+      // Get existing assignees before deleting
+      const { data: existingAssignees } = await db
+        .from("project_task_assignees")
+        .select("user_id")
+        .eq("task_id", taskId);
+      const existingIds = new Set((existingAssignees || []).map((a: { user_id: string }) => a.user_id));
+
       // Delete existing assignees
       await db
         .from("project_task_assignees")
@@ -158,6 +205,22 @@ export async function PATCH(
           .insert(assigneeRows);
 
         if (assigneeError) return NextResponse.json({ error: assigneeError.message }, { status: 500 });
+
+        // Notify newly added assignees
+        const newAssigneeIds = assigneeIds.filter((uid: string) => !existingIds.has(uid));
+        if (newAssigneeIds.length > 0) {
+          const taskTitle = title !== undefined ? title.trim() : currentTask.title;
+          const notifications = newAssigneeIds.map((uid: string) => ({
+            userId: uid,
+            actorId: admin.sub,
+            type: "task_assigned",
+            projectId: id,
+            taskId: taskId,
+            title: taskTitle,
+            message: `You have been assigned a new task: "${taskTitle}" in project`,
+          }));
+          await createNotificationBulk(notifications);
+        }
       }
     }
 

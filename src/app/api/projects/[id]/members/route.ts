@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { authenticateRequest } from "@/lib/auth";
+import { createNotification } from "@/lib/notifications";
 
 
 // Get user's role in a project: 'commissioner' | 'leader' | 'member' | null
@@ -42,7 +43,7 @@ export async function POST(
     // Verify the project exists
     const { data: project } = await db
       .from("projects")
-      .select("id")
+      .select("id, name")
       .eq("id", id)
       .single();
 
@@ -67,6 +68,16 @@ export async function POST(
       }
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    // Send project_invite notification
+    await createNotification({
+      userId,
+      actorId: admin.sub,
+      type: "project_invite",
+      projectId: id,
+      title: project.name,
+      message: `You have been invited to project "${project.name}"`,
+    });
 
     return NextResponse.json({ member: data });
   } catch (err: unknown) {
@@ -146,6 +157,10 @@ export async function PATCH(
     const db = getSupabaseAdmin();
     const myRole = await getProjectRole(id, admin.sub);
 
+    // Fetch project name for notifications
+    const { data: proj } = await db.from("projects").select("name").eq("id", id).single();
+    const projectName = proj?.name || "Unknown Project";
+
     if (action === "set_leader") {
       // Only commissioner can set a leader
       if (myRole !== "commissioner" && admin.badge !== "owner") {
@@ -176,6 +191,16 @@ export async function PATCH(
         .eq("user_id", userId);
 
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+      // Notify the new leader
+      await createNotification({
+        userId,
+        actorId: admin.sub,
+        type: "leader_assigned",
+        projectId: id,
+        title: projectName,
+        message: `You have been assigned as Leader of project "${projectName}"`,
+      });
 
       return NextResponse.json({ success: true, message: "Leader has been set" });
     }
@@ -210,6 +235,16 @@ export async function PATCH(
         .eq("user_id", userId);
 
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+      // Notify the new leader
+      await createNotification({
+        userId,
+        actorId: admin.sub,
+        type: "leader_assigned",
+        projectId: id,
+        title: projectName,
+        message: `You have been assigned as Leader of project "${projectName}"`,
+      });
 
       return NextResponse.json({ success: true, message: "Leadership has been transferred" });
     }

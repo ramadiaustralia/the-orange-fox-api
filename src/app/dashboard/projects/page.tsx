@@ -31,6 +31,7 @@ interface Project {
   name: string;
   description: string | null;
   status: string;
+  target_date: string | null;
   created_at: string;
   members: ProjectMember[];
 }
@@ -128,6 +129,7 @@ export default function ProjectsPage() {
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [creating, setCreating] = useState(false);
+  const [newTargetDate, setNewTargetDate] = useState("");
 
   const isOwner = user?.badge === "owner";
 
@@ -156,11 +158,12 @@ export default function ProjectsPage() {
       const res = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newName.trim(), description: newDescription.trim() }),
+        body: JSON.stringify({ name: newName.trim(), description: newDescription.trim(), target_date: newTargetDate || undefined }),
       });
       if (res.ok) {
         setNewName("");
         setNewDescription("");
+        setNewTargetDate("");
         setShowModal(false);
         await fetchProjects();
       }
@@ -290,6 +293,12 @@ export default function ProjectsPage() {
                   </div>
                 )}
 
+                {project.target_date && (
+                  <div className="flex items-center gap-1.5 text-xs text-[#999] mb-2">
+                    <span>🎯 Target: {new Date(project.target_date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</span>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between mt-auto pt-3 border-t border-[#f0ece8]">
                   <div className="flex items-center gap-2 text-xs text-[#999]">
                     <Users size={14} />
@@ -355,6 +364,20 @@ export default function ProjectsPage() {
                   className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#e8e4e0] focus:outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/30 bg-white text-[#1a1a1a] placeholder:text-[#999] resize-none"
                 />
               </div>
+
+              {/* Target Completion Date */}
+              <div>
+                <label className="block text-sm font-medium text-[#1a1a1a] mb-1.5">
+                  Target Completion Date <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={newTargetDate}
+                  onChange={(e) => setNewTargetDate(e.target.value)}
+                  min={new Date().toISOString().split("T")[0]}
+                  className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#e8e4e0] focus:outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/30 bg-white text-[#1a1a1a]"
+                />
+              </div>
             </div>
 
             <p className="text-xs text-[#999] mt-3">
@@ -370,7 +393,7 @@ export default function ProjectsPage() {
               </button>
               <button
                 onClick={handleCreate}
-                disabled={!newName.trim() || creating}
+                disabled={!newName.trim() || !newTargetDate || creating}
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#D4692A] text-white text-sm font-medium rounded-xl hover:bg-[#c05e24] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 {creating ? (

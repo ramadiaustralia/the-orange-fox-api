@@ -65,6 +65,7 @@ interface Project {
   name: string;
   description: string | null;
   status: string;
+  target_date: string | null;
   created_by: string;
   created_at: string;
 }
@@ -88,6 +89,8 @@ interface TaskItem {
   description: string | null;
   status: string;
   priority: string;
+  deadline: string | null;
+  status_change_permission: string;
   created_at: string;
   creator: MemberUser;
   completer: MemberUser | null;
@@ -275,6 +278,8 @@ export default function ProjectDetailPage() {
   const [newTaskDescription, setNewTaskDescription] = useState("");
   const [newTaskPriority, setNewTaskPriority] = useState<string>("medium");
   const [newTaskAssignees, setNewTaskAssignees] = useState<string[]>([]);
+  const [newTaskDeadline, setNewTaskDeadline] = useState("");
+  const [newTaskStatusPermission, setNewTaskStatusPermission] = useState("commissioner_and_leader");
   const [creatingTask, setCreatingTask] = useState(false);
 
   // Task detail editing
@@ -731,6 +736,8 @@ export default function ProjectDetailPage() {
           description: newTaskDescription.trim() || undefined,
           priority: newTaskPriority,
           assigneeIds: newTaskAssignees,
+          deadline: newTaskDeadline || undefined,
+          status_change_permission: newTaskStatusPermission,
         }),
       });
       if (res.ok) {
@@ -739,6 +746,8 @@ export default function ProjectDetailPage() {
         setNewTaskDescription("");
         setNewTaskPriority("medium");
         setNewTaskAssignees([]);
+        setNewTaskDeadline("");
+        setNewTaskStatusPermission("commissioner_and_leader");
         await fetchTasks();
       }
     } catch {
@@ -750,17 +759,27 @@ export default function ProjectDetailPage() {
 
   const handleToggleTaskStatus = async (task: TaskItem, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!canManageTasks) return;
     const newStatus = task.status === "completed" ? "pending" : "completed";
     setTasks((prev) =>
       prev.map((t) => (t.id === task.id ? { ...t, status: newStatus } : t))
     );
     try {
-      await fetch(`/api/projects/${projectId}/tasks/${task.id}`, {
+      const res = await fetch(`/api/projects/${projectId}/tasks/${task.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
       });
+      if (!res.ok) {
+        // Permission denied - revert
+        setTasks((prev) =>
+          prev.map((t) => (t.id === task.id ? { ...t, status: task.status } : t))
+        );
+        const errData = await res.json().catch(() => null);
+        if (res.status === 403) {
+          alert(errData?.error || "You don't have permission to change this task's status");
+        }
+        return;
+      }
       await fetchTasks();
     } catch {
       setTasks((prev) =>
@@ -1061,6 +1080,11 @@ export default function ProjectDetailPage() {
                   </div>
                 ) : (
                   <StatusBadge status={project.status} />
+                )}
+                {project.target_date && (
+                  <span className="text-xs text-[#999]">
+                    🎯 Target: {new Date(project.target_date).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+                  </span>
                 )}
               </div>
               {project.description && (
@@ -1474,6 +1498,35 @@ export default function ProjectDetailPage() {
                         </div>
                       </div>
 
+                      {/* Deadline */}
+                      {selectedTaskDetail.deadline && (() => {
+                        const dl = new Date(selectedTaskDetail.deadline);
+                        const now = new Date();
+                        const hoursLeft = (dl.getTime() - now.getTime()) / (1000 * 60 * 60);
+                        const isOverdue = hoursLeft <= 0 && selectedTaskDetail.status !== "completed";
+                        const isUrgent = hoursLeft > 0 && hoursLeft <= 24;
+                        return (
+                          <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm ${isOverdue ? "bg-red-50 text-red-600 border border-red-200" : isUrgent ? "bg-amber-50 text-amber-600 border border-amber-200" : "bg-[#faf8f6] text-[#777] border border-[#f0ece8]"}`}>
+                            <span className="font-medium">📅 Deadline:</span>
+                            <span>{dl.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} {dl.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}</span>
+                            {isOverdue && <span className="font-semibold ml-1">⚠️ OVERDUE</span>}
+                            {isUrgent && !isOverdue && <span className="font-semibold ml-1">⏰ Urgent</span>}
+                          </div>
+                        );
+                      })()}
+
+                      {/* Status Permission Info */}
+                      <div className="flex items-center gap-2 text-xs text-[#999] bg-[#fafafa] px-3 py-2 rounded-xl">
+                        <span>🔒 Status changes by:</span>
+                        <strong className="text-[#777]">
+                          {selectedTaskDetail.status_change_permission === "commissioner_only" && "Commissioner Only"}
+                          {selectedTaskDetail.status_change_permission === "leader_only" && "Leader Only"}
+                          {selectedTaskDetail.status_change_permission === "commissioner_and_leader" && "Commissioner & Leader"}
+                          {selectedTaskDetail.status_change_permission === "creator_only" && "Task Creator Only"}
+                          {!selectedTaskDetail.status_change_permission && "Commissioner & Leader"}
+                        </strong>
+                      </div>
+
                       {/* Created by / Completed by */}
                       <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-[#999]">
                         <span>Created by <strong className="text-[#777]">{selectedTaskDetail.creator?.display_name || "Unknown"}</strong></span>
@@ -1639,10 +1692,7 @@ export default function ProjectDetailPage() {
                             >
                               <button
                                 onClick={(e) => handleToggleTaskStatus(task, e)}
-                                disabled={!canManageTasks}
-                                className={`mt-0.5 flex-shrink-0 transition-colors ${
-                                  canManageTasks ? "hover:text-[#D4692A]" : ""
-                                } ${isCompleted ? "text-emerald-500" : "text-[#ccc]"}`}
+                                className={`mt-0.5 flex-shrink-0 transition-colors hover:text-[#D4692A] ${isCompleted ? "text-emerald-500" : "text-[#ccc]"}`}
                               >
                                 {isCompleted ? <CheckSquare size={18} /> : <Square size={18} />}
                               </button>
@@ -1678,6 +1728,18 @@ export default function ProjectDetailPage() {
                                   <span className="text-[11px] text-[#999]">
                                     Created by {task.creator?.display_name || "Unknown"}
                                   </span>
+                                  {task.deadline && (() => {
+                                    const dl = new Date(task.deadline);
+                                    const now = new Date();
+                                    const hoursLeft = (dl.getTime() - now.getTime()) / (1000 * 60 * 60);
+                                    const isUrgent = hoursLeft > 0 && hoursLeft <= 24;
+                                    const isOverdue = hoursLeft <= 0 && task.status !== "completed";
+                                    return (
+                                      <span className={`text-[11px] font-medium ${isOverdue ? "text-red-500" : isUrgent ? "text-amber-500" : "text-[#999]"}`}>
+                                        {isOverdue ? "⚠️ Overdue" : `📅 ${dl.toLocaleDateString("id-ID", { day: "numeric", month: "short" })}`}
+                                      </span>
+                                    );
+                                  })()}
                                 </div>
                               </div>
                             </div>
@@ -2121,6 +2183,33 @@ export default function ProjectDetailPage() {
                     })
                   )}
                 </div>
+              </div>
+
+              {/* Deadline */}
+              <div>
+                <label className="block text-sm font-medium text-[#1a1a1a] mb-1.5">Deadline</label>
+                <input
+                  type="datetime-local"
+                  value={newTaskDeadline}
+                  onChange={(e) => setNewTaskDeadline(e.target.value)}
+                  min={new Date().toISOString().slice(0, 16)}
+                  className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#e8e4e0] focus:outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/30 bg-white text-[#1a1a1a]"
+                />
+              </div>
+
+              {/* Status Change Permission */}
+              <div>
+                <label className="block text-sm font-medium text-[#1a1a1a] mb-1.5">Who can change task status?</label>
+                <select
+                  value={newTaskStatusPermission}
+                  onChange={(e) => setNewTaskStatusPermission(e.target.value)}
+                  className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#e8e4e0] focus:outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/30 bg-white text-[#1a1a1a] appearance-none"
+                >
+                  <option value="commissioner_and_leader">Commissioner &amp; Leader</option>
+                  <option value="commissioner_only">Commissioner Only</option>
+                  <option value="leader_only">Leader Only</option>
+                  <option value="creator_only">Task Creator Only</option>
+                </select>
               </div>
             </div>
 

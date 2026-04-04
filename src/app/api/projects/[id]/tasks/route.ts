@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { authenticateRequest } from "@/lib/auth";
+import { createNotificationBulk } from "@/lib/notifications";
 
 
 // Get user's role in a project: 'commissioner' | 'leader' | 'member' | null
@@ -96,7 +97,7 @@ export async function POST(
   }
 
   try {
-    const { title, description, priority, assigneeIds } = await req.json();
+    const { title, description, priority, assigneeIds, deadline, status_change_permission } = await req.json();
 
     if (!title?.trim()) {
       return NextResponse.json({ error: "title is required" }, { status: 400 });
@@ -104,6 +105,15 @@ export async function POST(
 
     if (!assigneeIds || !Array.isArray(assigneeIds) || assigneeIds.length === 0) {
       return NextResponse.json({ error: "assigneeIds is required and must be a non-empty array" }, { status: 400 });
+    }
+
+    const validPermissions = ['commissioner_only', 'leader_only', 'commissioner_and_leader', 'creator_only'];
+    if (status_change_permission && !validPermissions.includes(status_change_permission)) {
+      return NextResponse.json({ error: "Invalid status_change_permission value" }, { status: 400 });
+    }
+
+    if (deadline && isNaN(Date.parse(deadline))) {
+      return NextResponse.json({ error: "Invalid deadline format" }, { status: 400 });
     }
 
     const db = getSupabaseAdmin();
@@ -117,6 +127,8 @@ export async function POST(
         description: description?.trim() || "",
         priority: priority || "medium",
         created_by: admin.sub,
+        deadline: deadline || null,
+        status_change_permission: status_change_permission || "commissioner_and_leader",
       })
       .select()
       .single();
@@ -151,6 +163,18 @@ export async function POST(
       .single();
 
     if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 500 });
+
+    // Send task_assigned notifications to all assignees
+    const taskAssignedNotifications = assigneeIds.map((uid: string) => ({
+      userId: uid,
+      actorId: admin.sub,
+      type: "task_assigned",
+      projectId: id,
+      taskId: task.id,
+      title: title.trim(),
+      message: `You have been assigned a new task: "${title.trim()}" in project`,
+    }));
+    await createNotificationBulk(taskAssignedNotifications);
 
     // Transform field names
     const { created_by_user, ...taskFields } = fullTask as any;
