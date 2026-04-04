@@ -17,6 +17,9 @@ import {
   MessageSquare,
   Check,
   ChevronDown,
+  Shield,
+  Crown,
+  ArrowRightLeft,
 } from "lucide-react";
 
 interface MemberUser {
@@ -79,6 +82,30 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function RoleBadge({ role }: { role: string }) {
+  if (role === "commissioner") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-amber-50 text-amber-600 border border-amber-200">
+        <Crown size={10} />
+        Commissioner
+      </span>
+    );
+  }
+  if (role === "leader") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-blue-50 text-blue-600 border border-blue-200">
+        <Shield size={10} />
+        Leader
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-gray-50 text-gray-400 border border-gray-200">
+      Member
+    </span>
+  );
+}
+
 function Avatar({ user, size = 36 }: { user: { display_name: string; profile_pic_url: string | null }; size?: number }) {
   return (
     <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
@@ -131,6 +158,7 @@ export default function ProjectDetailPage() {
   const [members, setMembers] = useState<ProjectMember[]>([]);
   const [messages, setMessages] = useState<ProjectMessage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [myRole, setMyRole] = useState<string>("member");
 
   // Chat state
   const [newMessage, setNewMessage] = useState("");
@@ -154,12 +182,20 @@ export default function ProjectDetailPage() {
   const [savingProject, setSavingProject] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
 
+  // Role management
+  const [roleActionLoading, setRoleActionLoading] = useState<string | null>(null);
+  const [showTransferModal, setShowTransferModal] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const shouldAutoScroll = useRef(true);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  // Simple permission: only owner can manage
+  // Permission helpers
+  const isCommissioner = myRole === "commissioner";
+  const isLeader = myRole === "leader";
+  const canManageMembers = isCommissioner || isLeader;
+  const canEditProject = isCommissioner;
   const isOwner = user?.badge === "owner";
 
   // Fetch project data
@@ -171,6 +207,7 @@ export default function ProjectDetailPage() {
         setProject(data.project);
         setMembers(data.members || []);
         setMessages(data.messages || []);
+        setMyRole(data.myRole || "member");
       } else if (res.status === 403 || res.status === 404) {
         router.push("/dashboard/projects");
       }
@@ -273,9 +310,79 @@ export default function ProjectDetailPage() {
       });
       if (res.ok) {
         await fetchProject();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Failed to remove member.");
       }
     } catch {
       alert("Failed to remove member. Please try again.");
+    }
+  };
+
+  // Role management functions
+  const handleSetLeader = async (userId: string) => {
+    if (!confirm("Set this member as Leader?")) return;
+    setRoleActionLoading(userId);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/members`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, action: "set_leader" }),
+      });
+      if (res.ok) {
+        await fetchProject();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Failed to set leader.");
+      }
+    } catch {
+      alert("Failed to set leader. Please try again.");
+    } finally {
+      setRoleActionLoading(null);
+    }
+  };
+
+  const handleRemoveLeader = async (userId: string) => {
+    if (!confirm("Remove leader role? This member will be demoted to regular member.")) return;
+    setRoleActionLoading(userId);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/members`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, action: "remove_leader" }),
+      });
+      if (res.ok) {
+        await fetchProject();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Failed to remove leader.");
+      }
+    } catch {
+      alert("Failed to remove leader. Please try again.");
+    } finally {
+      setRoleActionLoading(null);
+    }
+  };
+
+  const handleTransferLeadership = async (userId: string) => {
+    setRoleActionLoading(userId);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/members`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, action: "transfer_leader" }),
+      });
+      if (res.ok) {
+        setShowTransferModal(false);
+        await fetchProject();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Failed to transfer leadership.");
+      }
+    } catch {
+      alert("Failed to transfer leadership. Please try again.");
+    } finally {
+      setRoleActionLoading(null);
     }
   };
 
@@ -409,7 +516,7 @@ export default function ProjectDetailPage() {
 
   const handleStatusChange = async (newStatus: string) => {
     setShowStatusDropdown(false);
-    if (!isOwner) return;
+    if (!canEditProject) return;
     try {
       const res = await fetch(`/api/projects/${projectId}`, {
         method: "PATCH",
@@ -434,6 +541,17 @@ export default function ProjectDetailPage() {
   // Get users not already in the project
   const availableUsers = allUsers.filter(
     (u) => !members.some((m) => m.user_id === u.id)
+  );
+
+  // Sort members: commissioner first, then leader, then members
+  const sortedMembers = [...members].sort((a, b) => {
+    const order: Record<string, number> = { commissioner: 0, leader: 1, member: 2 };
+    return (order[a.role] ?? 2) - (order[b.role] ?? 2);
+  });
+
+  // Get transferable members (for leader transfer modal)
+  const transferableMembers = members.filter(
+    (m) => m.role === "member" && m.user_id !== user?.id
   );
 
   if (!user || loading) {
@@ -532,7 +650,7 @@ export default function ProjectDetailPage() {
                 >
                   {project.name}
                 </h1>
-                {isOwner ? (
+                {canEditProject ? (
                   <div className="relative">
                     <button
                       onClick={() => setShowStatusDropdown(!showStatusDropdown)}
@@ -571,9 +689,24 @@ export default function ProjectDetailPage() {
               {project.description && (
                 <p className="text-sm text-[#777] mt-1">{project.description}</p>
               )}
+              {/* Show my role badge */}
+              <div className="mt-2">
+                <span className="text-xs text-[#999] mr-2">Your role:</span>
+                <RoleBadge role={myRole} />
+              </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              {isOwner && (
+              {/* Leader can transfer leadership */}
+              {isLeader && transferableMembers.length > 0 && (
+                <button
+                  onClick={() => setShowTransferModal(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition-colors"
+                >
+                  <ArrowRightLeft size={14} />
+                  Transfer Leadership
+                </button>
+              )}
+              {canEditProject && (
                 <button
                   onClick={startEditingProject}
                   className="inline-flex items-center gap-1.5 px-4 py-2 text-sm text-[#999] hover:text-[#1a1a1a] hover:bg-gray-100 rounded-xl transition-colors"
@@ -599,7 +732,7 @@ export default function ProjectDetailPage() {
               >
                 Members ({members.length})
               </h2>
-              {isOwner && (
+              {canManageMembers && (
                 <button
                   onClick={handleOpenAddMember}
                   className="p-1.5 rounded-lg hover:bg-[#D4692A]/10 text-[#D4692A] transition-colors"
@@ -611,31 +744,80 @@ export default function ProjectDetailPage() {
             </div>
 
             <div className="divide-y divide-[#f0ece8] max-h-[400px] lg:max-h-[calc(100vh-20rem)] overflow-y-auto">
-              {members.map((member) => (
-                <div
-                  key={member.id}
-                  className="flex items-center gap-3 px-5 py-3 hover:bg-[#faf8f6] transition-colors"
-                >
-                  <Avatar user={member.user} size={36} />
-                  <div className="flex-1 min-w-0">
-                    <span className="text-sm font-medium text-[#1a1a1a] truncate block">
-                      {member.user.display_name}
-                    </span>
-                    {member.user.position && (
-                      <p className="text-xs text-[#999] truncate">{member.user.position}</p>
-                    )}
+              {sortedMembers.map((member) => {
+                const isSelf = member.user_id === user?.id;
+                const canRemoveThis =
+                  canManageMembers &&
+                  !isSelf &&
+                  member.role !== "commissioner" &&
+                  !(isLeader && member.role === "leader");
+
+                return (
+                  <div
+                    key={member.id}
+                    className="flex items-center gap-3 px-5 py-3 hover:bg-[#faf8f6] transition-colors"
+                  >
+                    <Avatar user={member.user} size={36} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-[#1a1a1a] truncate">
+                          {member.user.display_name}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <RoleBadge role={member.role} />
+                        {member.user.position && (
+                          <p className="text-[10px] text-[#999] truncate">{member.user.position}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {/* Commissioner can set/remove leader */}
+                      {isCommissioner && member.role === "member" && (
+                        <button
+                          onClick={() => handleSetLeader(member.user_id)}
+                          disabled={roleActionLoading === member.user_id}
+                          className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-300 hover:text-blue-500 transition-colors"
+                          title="Set as Leader"
+                        >
+                          {roleActionLoading === member.user_id ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : (
+                            <Shield size={14} />
+                          )}
+                        </button>
+                      )}
+                      {isCommissioner && member.role === "leader" && (
+                        <button
+                          onClick={() => handleRemoveLeader(member.user_id)}
+                          disabled={roleActionLoading === member.user_id}
+                          className="p-1.5 rounded-lg hover:bg-amber-50 text-blue-400 hover:text-amber-500 transition-colors"
+                          title="Remove Leader role"
+                        >
+                          {roleActionLoading === member.user_id ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : (
+                            <Shield size={14} />
+                          )}
+                        </button>
+                      )}
+
+                      {/* Remove member */}
+                      {canRemoveThis && (
+                        <button
+                          onClick={() => handleRemoveMember(member.user_id)}
+                          className="p-1.5 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors"
+                          title="Remove member"
+                        >
+                          <UserMinus size={14} />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  {isOwner && member.user_id !== user?.id && (
-                    <button
-                      onClick={() => handleRemoveMember(member.user_id)}
-                      className="p-1.5 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors flex-shrink-0"
-                      title="Remove member"
-                    >
-                      <UserMinus size={14} />
-                    </button>
-                  )}
-                </div>
-              ))}
+                );
+              })}
 
               {members.length === 0 && (
                 <div className="p-6 text-center text-sm text-[#999]">
@@ -692,6 +874,64 @@ export default function ProjectDetailPage() {
                           )}
                         </div>
                         <UserPlus size={16} className="text-[#D4692A] flex-shrink-0" />
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Transfer Leadership Modal */}
+          {showTransferModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowTransferModal(false)} />
+              <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-5 z-10 max-h-[70vh] flex flex-col">
+                <div className="flex items-center justify-between mb-4">
+                  <h3
+                    className="text-base font-bold text-[#1a1a1a]"
+                    style={{ fontFamily: "var(--font-heading)" }}
+                  >
+                    Transfer Leadership
+                  </h3>
+                  <button
+                    onClick={() => setShowTransferModal(false)}
+                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                <p className="text-xs text-[#999] mb-3">
+                  Select a member to transfer your Leader role to. You will become a regular member.
+                </p>
+
+                <div className="flex-1 overflow-y-auto space-y-1">
+                  {transferableMembers.length === 0 ? (
+                    <p className="text-sm text-[#999] text-center py-6">
+                      No members available to transfer to
+                    </p>
+                  ) : (
+                    transferableMembers.map((m) => (
+                      <button
+                        key={m.user_id}
+                        onClick={() => handleTransferLeadership(m.user_id)}
+                        disabled={roleActionLoading === m.user_id}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-blue-50 transition-colors text-left disabled:opacity-50"
+                      >
+                        <Avatar user={m.user} size={36} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-[#1a1a1a] truncate">
+                            {m.user.display_name}
+                          </p>
+                          {m.user.position && (
+                            <p className="text-xs text-[#999] truncate">{m.user.position}</p>
+                          )}
+                        </div>
+                        {roleActionLoading === m.user_id ? (
+                          <Loader2 size={16} className="animate-spin text-blue-500 flex-shrink-0" />
+                        ) : (
+                          <ArrowRightLeft size={16} className="text-blue-500 flex-shrink-0" />
+                        )}
                       </button>
                     ))
                   )}

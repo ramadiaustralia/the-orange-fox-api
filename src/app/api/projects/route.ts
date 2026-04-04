@@ -81,17 +81,17 @@ export async function POST(req: NextRequest) {
 
     if (projectError) return NextResponse.json({ error: projectError.message }, { status: 500 });
 
-    // Auto-add the owner as a member
+    // Auto-add the owner as Commissioner
     const { error: memberError } = await db
       .from("project_members")
       .insert({
         project_id: project.id,
         user_id: admin.sub,
-        role: "member",
+        role: "commissioner",
       });
 
     if (memberError) {
-      console.error("Failed to add creator as member:", memberError.message);
+      console.error("Failed to add creator as commissioner:", memberError.message);
     }
 
     return NextResponse.json({ project });

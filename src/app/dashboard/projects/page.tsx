@@ -10,6 +10,8 @@ import {
   Users,
   X,
   Loader2,
+  Crown,
+  Shield,
 } from "lucide-react";
 
 interface ProjectMember {
@@ -47,16 +49,51 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function MyRoleBadge({ role }: { role: string }) {
+  if (role === "commissioner") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-amber-50 text-amber-600 border border-amber-200">
+        <Crown size={10} />
+        Commissioner
+      </span>
+    );
+  }
+  if (role === "leader") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-blue-50 text-blue-600 border border-blue-200">
+        <Shield size={10} />
+        Leader
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-gray-50 text-gray-400 border border-gray-200">
+      Member
+    </span>
+  );
+}
+
 function MemberAvatars({ members }: { members: ProjectMember[] }) {
-  const shown = members.slice(0, 5);
+  // Sort: commissioner first, then leader, then members
+  const sorted = [...members].sort((a, b) => {
+    const order: Record<string, number> = { commissioner: 0, leader: 1, member: 2 };
+    return (order[a.role] ?? 2) - (order[b.role] ?? 2);
+  });
+  const shown = sorted.slice(0, 5);
   const extra = members.length - shown.length;
   return (
     <div className="flex items-center -space-x-2">
       {shown.map((m) => (
         <div
           key={m.id}
-          className="w-7 h-7 rounded-full border-2 border-white overflow-hidden flex-shrink-0"
-          title={m.user.display_name}
+          className={`w-7 h-7 rounded-full border-2 overflow-hidden flex-shrink-0 ${
+            m.role === "commissioner"
+              ? "border-amber-300"
+              : m.role === "leader"
+                ? "border-blue-300"
+                : "border-white"
+          }`}
+          title={`${m.user.display_name} (${m.role})`}
         >
           {m.user.profile_pic_url ? (
             <img
@@ -143,6 +180,13 @@ export default function ProjectsPage() {
     );
   });
 
+  // Helper to get current user's role in a project
+  const getMyRole = (project: Project): string | null => {
+    if (!user) return null;
+    const myMembership = project.members?.find((m) => m.user_id === user.id);
+    return myMembership?.role || null;
+  };
+
   if (!user) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -213,39 +257,49 @@ export default function ProjectsPage() {
       ) : (
         /* Project Grid */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredProjects.map((project) => (
-            <button
-              key={project.id}
-              onClick={() => router.push(`/dashboard/projects/${project.id}`)}
-              className="text-left bg-white border border-[#e8e4e0] rounded-2xl p-5 transition-all group hover:border-[#D4692A]/30 hover:shadow-md cursor-pointer"
-            >
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <h3
-                  className="text-base font-semibold text-[#1a1a1a] line-clamp-1 group-hover:text-[#D4692A] transition-colors"
-                  style={{ fontFamily: "var(--font-heading)" }}
-                >
-                  {project.name}
-                </h3>
-                <StatusBadge status={project.status} />
-              </div>
-
-              {project.description && (
-                <p className="text-sm text-[#777] line-clamp-2 mb-4">
-                  {project.description}
-                </p>
-              )}
-
-              <div className="flex items-center justify-between mt-auto pt-3 border-t border-[#f0ece8]">
-                <div className="flex items-center gap-2 text-xs text-[#999]">
-                  <Users size={14} />
-                  <span>{project.members?.length || 0} member{(project.members?.length || 0) !== 1 ? "s" : ""}</span>
+          {filteredProjects.map((project) => {
+            const myRole = getMyRole(project);
+            return (
+              <button
+                key={project.id}
+                onClick={() => router.push(`/dashboard/projects/${project.id}`)}
+                className="text-left bg-white border border-[#e8e4e0] rounded-2xl p-5 transition-all group hover:border-[#D4692A]/30 hover:shadow-md cursor-pointer"
+              >
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <h3
+                    className="text-base font-semibold text-[#1a1a1a] line-clamp-1 group-hover:text-[#D4692A] transition-colors"
+                    style={{ fontFamily: "var(--font-heading)" }}
+                  >
+                    {project.name}
+                  </h3>
+                  <StatusBadge status={project.status} />
                 </div>
-                {project.members && project.members.length > 0 && (
-                  <MemberAvatars members={project.members} />
+
+                {project.description && (
+                  <p className="text-sm text-[#777] line-clamp-2 mb-3">
+                    {project.description}
+                  </p>
                 )}
-              </div>
-            </button>
-          ))}
+
+                {/* Show my role in this project */}
+                {myRole && (
+                  <div className="mb-3">
+                    <MyRoleBadge role={myRole} />
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between mt-auto pt-3 border-t border-[#f0ece8]">
+                  <div className="flex items-center gap-2 text-xs text-[#999]">
+                    <Users size={14} />
+                    <span>{project.members?.length || 0} member{(project.members?.length || 0) !== 1 ? "s" : ""}</span>
+                  </div>
+                  {project.members && project.members.length > 0 && (
+                    <MemberAvatars members={project.members} />
+                  )}
+                </div>
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -300,6 +354,10 @@ export default function ProjectsPage() {
                 />
               </div>
             </div>
+
+            <p className="text-xs text-[#999] mt-3">
+              You will be automatically assigned as the <span className="font-semibold text-amber-600">Commissioner</span> of this project.
+            </p>
 
             <div className="flex items-center justify-end gap-3 mt-6">
               <button

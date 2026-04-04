@@ -3,15 +3,22 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { authenticateRequest } from "@/lib/auth";
 
 
-async function isProjectMemberOrOwner(projectId: string, userId: string, badge: string): Promise<boolean> {
-  if (badge === "owner") return true;
+// Get user's role in a project: 'commissioner' | 'leader' | 'member' | null
+async function getProjectRole(projectId: string, userId: string): Promise<string | null> {
   const { data } = await getSupabaseAdmin()
     .from("project_members")
-    .select("id")
+    .select("role")
     .eq("project_id", projectId)
     .eq("user_id", userId)
     .single();
-  return !!data;
+  return data?.role || null;
+}
+
+// Check if user has access to project (is a member of any role, or is global owner)
+async function hasProjectAccess(projectId: string, userId: string, badge: string): Promise<boolean> {
+  if (badge === "owner") return true;
+  const role = await getProjectRole(projectId, userId);
+  return role !== null;
 }
 
 export async function GET(
@@ -25,8 +32,8 @@ export async function GET(
   const db = getSupabaseAdmin();
 
   try {
-    const hasAccess = await isProjectMemberOrOwner(id, admin.sub, admin.badge || "staff");
-    if (!hasAccess) {
+    const access = await hasProjectAccess(id, admin.sub, admin.badge || "staff");
+    if (!access) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
@@ -63,10 +70,14 @@ export async function GET(
       return NextResponse.json({ error: messagesError.message }, { status: 500 });
     }
 
+    // Get current user's role in this project
+    const myRole = await getProjectRole(id, admin.sub);
+
     return NextResponse.json({
       project,
       members: members || [],
       messages: messages || [],
+      myRole: myRole || (admin.badge === "owner" ? "commissioner" : "member"),
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Server error";
@@ -81,12 +92,13 @@ export async function PATCH(
   const admin = await authenticateRequest(req);
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Only owner can update projects
-  if (admin.badge !== "owner") {
-    return NextResponse.json({ error: "Only the owner can update projects" }, { status: 403 });
-  }
-
   const { id } = await params;
+
+  // Only commissioner (owner) can update projects
+  const role = await getProjectRole(id, admin.sub);
+  if (role !== "commissioner" && admin.badge !== "owner") {
+    return NextResponse.json({ error: "Only the commissioner can update projects" }, { status: 403 });
+  }
 
   try {
     const body = await req.json();
@@ -129,7 +141,7 @@ export async function DELETE(
   const admin = await authenticateRequest(req);
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Only owner can delete projects
+  // Only owner can delete projects (commissioner = owner)
   if (admin.badge !== "owner") {
     return NextResponse.json({ error: "Only the owner can delete projects" }, { status: 403 });
   }
