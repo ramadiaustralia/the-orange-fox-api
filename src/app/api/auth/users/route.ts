@@ -16,17 +16,18 @@ async function getAuthenticatedUser(req: NextRequest) {
   return { ...data, badge: data.badge || "staff" };
 }
 
-// GET all users (only owner can view the full user list)
+// GET all users - all authenticated users can see basic info (for chat etc.)
+// Owner gets full details (email, password, permissions etc.)
 export async function GET(req: NextRequest) {
   const requester = await getAuthenticatedUser(req);
   if (!requester) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Only owner can fetch user list
-  if (requester.badge !== "owner") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const isOwner = requester.badge === "owner";
 
-  const selectFields = "id, username, email, display_name, position, role, badge, permissions, profile_pic_url, plain_password, is_frozen, created_at, last_active_at, company_id";
+  // Owner sees everything, others see only basic info (no email, no password, no sensitive data)
+  const selectFields = isOwner
+    ? "id, username, email, display_name, position, role, badge, permissions, profile_pic_url, plain_password, is_frozen, created_at, last_active_at, company_id"
+    : "id, display_name, position, profile_pic_url, last_active_at";
 
   const { data, error } = await getSupabaseAdmin()
     .from("admin_users")
