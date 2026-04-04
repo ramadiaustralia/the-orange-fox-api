@@ -554,6 +554,8 @@ export default function ProjectDetailPage() {
 
   // Subtasks (Feature 4)
   const [subtasks, setSubtasks] = useState<SubTask[]>([]);
+  const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
+  const [editSubtaskTitle, setEditSubtaskTitle] = useState("");
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [addingSubtask, setAddingSubtask] = useState(false);
   const [showAddSubtask, setShowAddSubtask] = useState(false);
@@ -1534,6 +1536,22 @@ export default function ProjectDetailPage() {
     }
   };
 
+  const handleEditSubtask = async (subtaskId: string) => {
+    if (!editSubtaskTitle.trim() || !selectedTaskId) return;
+    try {
+      const res = await fetch(`/api/projects/${projectId}/tasks/${selectedTaskId}/subtasks`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subtaskId, title: editSubtaskTitle.trim() }),
+      });
+      if (res.ok) {
+        setSubtasks((prev) => prev.map((s) => s.id === subtaskId ? { ...s, title: editSubtaskTitle.trim() } : s));
+        setEditingSubtaskId(null);
+        setEditSubtaskTitle("");
+      }
+    } catch { /* ignore */ }
+  };
+
   // --- Board Drag and Drop (Feature 7) ---
 
   const handleDragStart = (taskId: string) => {
@@ -2125,14 +2143,45 @@ export default function ProjectDetailPage() {
                               <button onClick={() => handleToggleSubtask(st)} className={`flex-shrink-0 transition-colors ${st.is_completed ? "text-emerald-500" : "text-[#ccc] hover:text-[#D4692A]"}`}>
                                 {st.is_completed ? <CheckSquare size={16} /> : <Square size={16} />}
                               </button>
-                              <span className={`flex-1 text-sm ${st.is_completed ? "line-through text-[#999]" : "text-[#1a1a1a]"}`}>{st.title}</span>
-                              {st.assignee && <Avatar user={st.assignee} size={20} />}
-                              <button
-                                onClick={() => handleDeleteSubtask(st.id)}
-                                className="p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-50 text-gray-300 hover:text-red-500 transition-all"
-                              >
-                                <Trash2 size={12} />
-                              </button>
+                              {editingSubtaskId === st.id ? (
+                                <div className="flex-1 flex items-center gap-1">
+                                  <input
+                                    type="text"
+                                    value={editSubtaskTitle}
+                                    onChange={(e) => setEditSubtaskTitle(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") handleEditSubtask(st.id);
+                                      if (e.key === "Escape") { setEditingSubtaskId(null); setEditSubtaskTitle(""); }
+                                    }}
+                                    autoFocus
+                                    className="flex-1 px-2 py-1 text-sm rounded-lg border border-[#e8e4e0] focus:outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/30 bg-white text-[#1a1a1a]"
+                                  />
+                                  <button onClick={() => handleEditSubtask(st.id)} className="p-1 rounded-lg hover:bg-emerald-50 text-emerald-500 transition-colors"><Check size={12} /></button>
+                                  <button onClick={() => { setEditingSubtaskId(null); setEditSubtaskTitle(""); }} className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors"><X size={12} /></button>
+                                </div>
+                              ) : (
+                                <span
+                                  className={`flex-1 text-sm cursor-pointer ${st.is_completed ? "line-through text-[#999]" : "text-[#1a1a1a]"}`}
+                                  onDoubleClick={() => { setEditingSubtaskId(st.id); setEditSubtaskTitle(st.title); }}
+                                >{st.title}</span>
+                              )}
+                              {st.assignee && editingSubtaskId !== st.id && <Avatar user={st.assignee} size={20} />}
+                              {editingSubtaskId !== st.id && (
+                                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+                                  <button
+                                    onClick={() => { setEditingSubtaskId(st.id); setEditSubtaskTitle(st.title); }}
+                                    className="p-1 rounded-lg hover:bg-blue-50 text-gray-300 hover:text-blue-500 transition-colors"
+                                  >
+                                    <Pencil size={12} />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteSubtask(st.id)}
+                                    className="p-1 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -2200,12 +2249,36 @@ export default function ProjectDetailPage() {
                         const hoursLeft = (dl.getTime() - now.getTime()) / (1000 * 60 * 60);
                         const isOverdue = hoursLeft <= 0 && selectedTaskDetail.status !== "completed";
                         const isUrgent = hoursLeft > 0 && hoursLeft <= 24;
+                        const isCreator = selectedTaskDetail.creator?.id === user?.id;
                         return (
                           <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm ${isOverdue ? "bg-red-50 text-red-600 border border-red-200" : isUrgent ? "bg-amber-50 text-amber-600 border border-amber-200" : "bg-[#faf8f6] text-[#777] border border-[#f0ece8]"}`}>
                             <span className="font-medium">&#128197; Deadline:</span>
-                            <span>{dl.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} {dl.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}</span>
+                            <span>{dl.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone })} {dl.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone })}</span>
                             {isOverdue && <span className="font-semibold ml-1">&#9888;&#65039; OVERDUE</span>}
                             {isUrgent && !isOverdue && <span className="font-semibold ml-1">&#9200; Urgent</span>}
+                            {(canManageTasks || isCreator) && (
+                              <button
+                                onClick={() => {
+                                  const newDeadline = prompt("Enter new deadline (YYYY-MM-DD HH:mm):", selectedTaskDetail.deadline ? new Date(selectedTaskDetail.deadline).toISOString().slice(0, 16).replace("T", " ") : "");
+                                  if (newDeadline) {
+                                    const parsed = new Date(newDeadline.replace(" ", "T"));
+                                    if (!isNaN(parsed.getTime())) {
+                                      fetch(`/api/projects/${projectId}/tasks/${selectedTaskId}`, {
+                                        method: "PATCH",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({ deadline: parsed.toISOString() }),
+                                      }).then(() => { if (selectedTaskId) openTaskDetail(selectedTaskId); });
+                                    } else {
+                                      alert("Invalid date format. Use YYYY-MM-DD HH:mm");
+                                    }
+                                  }
+                                }}
+                                className="ml-auto p-1 rounded-lg hover:bg-white/50 transition-colors"
+                                title="Edit deadline"
+                              >
+                                <Pencil size={12} />
+                              </button>
+                            )}
                           </div>
                         );
                       })()}
@@ -2664,13 +2737,32 @@ export default function ProjectDetailPage() {
                                 <Reply size={13} />
                               </button>
                               {isMine && (
-                                <button
-                                  onClick={() => startEditing(msg)}
-                                  title="Edit"
-                                  className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-blue-500 transition-colors"
-                                >
-                                  <Pencil size={13} />
-                                </button>
+                                <>
+                                  <button
+                                    onClick={() => startEditing(msg)}
+                                    title="Edit"
+                                    className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-blue-500 transition-colors"
+                                  >
+                                    <Pencil size={13} />
+                                  </button>
+                                  <button
+                                    onClick={async () => {
+                                      if (!confirm("Delete this message?")) return;
+                                      try {
+                                        const res = await fetch(`/api/projects/${projectId}/messages`, {
+                                          method: "DELETE",
+                                          headers: { "Content-Type": "application/json" },
+                                          body: JSON.stringify({ messageId: msg.id }),
+                                        });
+                                        if (res.ok) fetchMessages();
+                                      } catch { /* ignore */ }
+                                    }}
+                                    title="Delete"
+                                    className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </>
                               )}
                             </div>
                           )}

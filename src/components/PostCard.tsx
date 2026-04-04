@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import {
   Heart,
   MessageCircle,
@@ -17,7 +17,25 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
+  SmilePlus,
+  Reply,
+  AtSign,
 } from "lucide-react";
+
+/* ── Reaction config ── */
+const REACTION_TYPES: Record<
+  string,
+  { emoji: string; label: string; color: string }
+> = {
+  like: { emoji: "👍", label: "Like", color: "text-blue-500" },
+  love: { emoji: "❤️", label: "Love", color: "text-red-500" },
+  haha: { emoji: "😂", label: "Haha", color: "text-yellow-500" },
+  wow: { emoji: "😮", label: "Wow", color: "text-yellow-500" },
+  sad: { emoji: "😢", label: "Sad", color: "text-yellow-500" },
+  angry: { emoji: "😡", label: "Angry", color: "text-orange-500" },
+};
+
+type ReactionType = keyof typeof REACTION_TYPES;
 
 /* ── Types ── */
 interface PostAuthor {
@@ -37,6 +55,19 @@ interface Attachment {
   file_size: number;
 }
 
+interface ReactionUser {
+  id: string;
+  display_name: string;
+  profile_pic_url: string | null;
+}
+
+interface ReactionGroup {
+  reaction_type: string;
+  count: number;
+  users: ReactionUser[];
+  reacted: boolean;
+}
+
 interface Comment {
   id: string;
   content: string;
@@ -44,6 +75,11 @@ interface Comment {
   author: PostAuthor;
   like_count?: number;
   liked_by_me?: boolean;
+  reply_to_id?: string;
+  reply_to?: { id: string; content: string; author: PostAuthor };
+  mentions?: string[];
+  reactions?: ReactionGroup[];
+  my_reaction?: string | null;
 }
 
 export interface Post {
@@ -60,12 +96,20 @@ export interface Post {
   liked_by_me: boolean;
 }
 
+interface TeamMember {
+  id: string;
+  display_name: string;
+  position: string;
+  profile_pic_url: string | null;
+}
+
 interface PostCardProps {
   post: Post;
   currentUserId: string;
   currentUserBadge?: string;
   onUpdate: () => void;
   onProfileClick: (user: PostAuthor) => void;
+  teamMembers?: TeamMember[];
 }
 
 /* ── Time helper ── */
@@ -109,16 +153,56 @@ function formatFileSize(bytes: number) {
 
 /**
  * Determine if the current user can review (approve/reject) a post based on badges.
- * - Owner: can review any pending post
- * - Board: can review pending posts by manager/staff (not owner/board)
- * - Manager: can review pending posts by staff (not owner/board/manager)
- * - Staff: no review buttons
  */
 function canReviewPost(currentBadge: string, authorBadge: string): boolean {
   if (currentBadge === "owner") return true;
-  if (currentBadge === "board") return authorBadge === "manager" || authorBadge === "staff";
+  if (currentBadge === "board")
+    return authorBadge === "manager" || authorBadge === "staff";
   if (currentBadge === "manager") return authorBadge === "staff";
   return false;
+}
+
+/** Render comment content with @mention highlights */
+function renderContentWithMentions(
+  content: string,
+  mentions: string[] | undefined,
+  teamMembers: TeamMember[]
+) {
+  if (!mentions || mentions.length === 0) {
+    return <>{content}</>;
+  }
+
+  // Build a map of member IDs to display names
+  const memberMap = new Map(teamMembers.map((m) => [m.id, m.display_name]));
+
+  // Find @mentions in the content and highlight them
+  const mentionNames = mentions
+    .map((id) => memberMap.get(id))
+    .filter(Boolean) as string[];
+
+  if (mentionNames.length === 0) return <>{content}</>;
+
+  // Build regex from mention names
+  const escapedNames = mentionNames.map((n) =>
+    n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  );
+  const regex = new RegExp(`(@(?:${escapedNames.join("|")}))`, "g");
+  const parts = content.split(regex);
+
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.startsWith("@") && mentionNames.some((n) => part === `@${n}`)) {
+          return (
+            <span key={i} className="font-semibold text-[#D4692A]">
+              {part}
+            </span>
+          );
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </>
+  );
 }
 
 /* ── Avatar Sub-component ── */
@@ -128,7 +212,7 @@ function Avatar({
   clickable = false,
   onClick,
 }: {
-  user: PostAuthor;
+  user: PostAuthor | ReactionUser;
   size?: "sm" | "md";
   clickable?: boolean;
   onClick?: () => void;
@@ -162,6 +246,240 @@ function Avatar({
   );
 }
 
+/* ── ReactionPicker Sub-component ── */
+function ReactionPicker({
+  onSelect,
+  visible,
+}: {
+  onSelect: (type: ReactionType) => void;
+  visible: boolean;
+}) {
+  if (!visible) return null;
+  return (
+    <div
+      className="absolute bottom-full left-0 mb-2 flex items-center gap-1 bg-white rounded-full shadow-lg border border-border-light px-2 py-1.5 z-50"
+      style={{ animation: "fadeIn 0.15s ease-out" }}
+    >
+      {Object.entries(REACTION_TYPES).map(([type, { emoji, label }]) => (
+        <button
+          key={type}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect(type as ReactionType);
+          }}
+          className="text-xl hover:scale-125 transition-transform duration-150 px-1 relative group/reaction"
+          title={label}
+        >
+          {emoji}
+          <span className="absolute -top-7 left-1/2 -translate-x-1/2 text-[0.6rem] bg-gray-800 text-white px-1.5 py-0.5 rounded whitespace-nowrap opacity-0 group-hover/reaction:opacity-100 transition-opacity pointer-events-none">
+            {label}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* ── ReactionSummary Sub-component ── */
+function ReactionSummary({
+  reactions,
+  onClick,
+}: {
+  reactions: ReactionGroup[];
+  onClick: () => void;
+}) {
+  const totalCount = reactions.reduce((acc, r) => acc + r.count, 0);
+  if (totalCount === 0) return null;
+
+  // Sort by count desc, show top emojis
+  const sorted = [...reactions].filter((r) => r.count > 0).sort((a, b) => b.count - a.count);
+
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-1 hover:underline transition-colors group/summary"
+    >
+      <span className="flex -space-x-0.5">
+        {sorted.slice(0, 3).map((r) => (
+          <span
+            key={r.reaction_type}
+            className="text-sm"
+            title={`${REACTION_TYPES[r.reaction_type]?.label}: ${r.count}`}
+          >
+            {REACTION_TYPES[r.reaction_type]?.emoji}
+          </span>
+        ))}
+      </span>
+      <span className="text-xs text-text-muted group-hover/summary:text-text-secondary">
+        {totalCount}
+      </span>
+    </button>
+  );
+}
+
+/* ── ReactionsDetailModal ── */
+function ReactionsDetailModal({
+  reactions,
+  onClose,
+}: {
+  reactions: ReactionGroup[];
+  onClose: () => void;
+}) {
+  const [activeTab, setActiveTab] = useState<string>("all");
+  const allUsers = reactions.flatMap((r) =>
+    r.users.map((u) => ({ ...u, reaction_type: r.reaction_type }))
+  );
+  const totalCount = reactions.reduce((acc, r) => acc + r.count, 0);
+
+  const displayUsers =
+    activeTab === "all"
+      ? allUsers
+      : allUsers.filter((u) => u.reaction_type === activeTab);
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/30 flex items-center justify-center z-[100]"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+        style={{ animation: "fadeIn 0.2s ease-out" }}
+      >
+        {/* Tabs */}
+        <div className="flex items-center border-b border-border-light px-4 pt-3 gap-2 overflow-x-auto">
+          <button
+            onClick={() => setActiveTab("all")}
+            className={`pb-2 px-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "all"
+                ? "border-[#D4692A] text-[#D4692A]"
+                : "border-transparent text-text-muted hover:text-text-secondary"
+            }`}
+          >
+            All {totalCount}
+          </button>
+          {reactions
+            .filter((r) => r.count > 0)
+            .map((r) => (
+              <button
+                key={r.reaction_type}
+                onClick={() => setActiveTab(r.reaction_type)}
+                className={`pb-2 px-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1 ${
+                  activeTab === r.reaction_type
+                    ? "border-[#D4692A] text-[#D4692A]"
+                    : "border-transparent text-text-muted hover:text-text-secondary"
+                }`}
+              >
+                {REACTION_TYPES[r.reaction_type]?.emoji} {r.count}
+              </button>
+            ))}
+          <button
+            onClick={onClose}
+            className="ml-auto pb-2 p-1 text-text-muted hover:text-text-secondary"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Users list */}
+        <div className="max-h-64 overflow-y-auto p-3 space-y-2">
+          {displayUsers.length === 0 ? (
+            <p className="text-xs text-text-muted text-center py-4">
+              No reactions yet
+            </p>
+          ) : (
+            displayUsers.map((u, i) => (
+              <div key={`${u.id}-${u.reaction_type}-${i}`} className="flex items-center gap-3">
+                <div className="relative">
+                  {u.profile_pic_url ? (
+                    <img
+                      src={u.profile_pic_url}
+                      alt={u.display_name}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-[#D4692A] flex items-center justify-center">
+                      <span className="text-xs font-bold text-white">
+                        {getInitials(u.display_name)}
+                      </span>
+                    </div>
+                  )}
+                  <span className="absolute -bottom-1 -right-1 text-xs">
+                    {REACTION_TYPES[u.reaction_type]?.emoji}
+                  </span>
+                </div>
+                <span className="text-sm font-medium text-text-primary">
+                  {u.display_name}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── MentionDropdown Sub-component ── */
+function MentionDropdown({
+  query,
+  members,
+  onSelect,
+  position,
+}: {
+  query: string;
+  members: TeamMember[];
+  onSelect: (member: TeamMember) => void;
+  position: { top: number; left: number };
+}) {
+  const filtered = members.filter(
+    (m) =>
+      m.display_name.toLowerCase().includes(query.toLowerCase()) ||
+      m.position.toLowerCase().includes(query.toLowerCase())
+  );
+
+  if (filtered.length === 0) return null;
+
+  return (
+    <div
+      className="absolute bg-white rounded-xl shadow-lg border border-border-light py-1 z-50 w-64 max-h-48 overflow-y-auto"
+      style={{ bottom: position.top, left: position.left }}
+    >
+      {filtered.slice(0, 8).map((m) => (
+        <button
+          key={m.id}
+          onClick={() => onSelect(m)}
+          className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-[#f5f2ef] transition-colors text-left"
+        >
+          {m.profile_pic_url ? (
+            <img
+              src={m.profile_pic_url}
+              alt={m.display_name}
+              className="w-7 h-7 rounded-full object-cover flex-shrink-0"
+            />
+          ) : (
+            <div className="w-7 h-7 rounded-full bg-[#D4692A] flex items-center justify-center flex-shrink-0">
+              <span className="text-[0.6rem] font-bold text-white">
+                {getInitials(m.display_name)}
+              </span>
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-text-primary truncate">
+              {m.display_name}
+            </p>
+            {m.position && (
+              <p className="text-[0.6rem] text-text-muted truncate">
+                {m.position}
+              </p>
+            )}
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /* ── PostCard ── */
 export default function PostCard({
   post,
@@ -169,10 +487,16 @@ export default function PostCard({
   currentUserBadge = "staff",
   onUpdate,
   onProfileClick,
+  teamMembers = [],
 }: PostCardProps) {
-  const [liked, setLiked] = useState(post.liked_by_me);
-  const [likeCount, setLikeCount] = useState(post.like_count);
-  const [likeAnimating, setLikeAnimating] = useState(false);
+  /* ── Post reactions state ── */
+  const [postReactions, setPostReactions] = useState<ReactionGroup[]>([]);
+  const [myReaction, setMyReaction] = useState<string | null>(null);
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const [showReactionsDetail, setShowReactionsDetail] = useState(false);
+  const reactionPickerTimeout = useRef<NodeJS.Timeout | null>(null);
+  const reactionBtnRef = useRef<HTMLDivElement>(null);
+
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -181,6 +505,23 @@ export default function PostCard({
   const [commentCount, setCommentCount] = useState(post.comment_count);
   const [deleting, setDeleting] = useState(false);
   const [reviewing, setReviewing] = useState(false);
+
+  /* ── Reply-to state ── */
+  const [replyTo, setReplyTo] = useState<{
+    id: string;
+    authorName: string;
+  } | null>(null);
+
+  /* ── Mention state ── */
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionIds, setMentionIds] = useState<string[]>([]);
+  const commentInputRef = useRef<HTMLInputElement>(null);
+
+  /* ── Comment reaction state ── */
+  const [commentReactionPicker, setCommentReactionPicker] = useState<
+    string | null
+  >(null);
+  const commentReactionTimeout = useRef<NodeJS.Timeout | null>(null);
 
   /* ── Edit state ── */
   const [isEditing, setIsEditing] = useState(false);
@@ -193,46 +534,161 @@ export default function PostCard({
 
   const isAuthor = currentUserId === post.author.id;
   const authorBadge = post.author_badge || post.author.badge || "staff";
-  const showReviewButtons = post.status === "pending" && canReviewPost(currentUserBadge, authorBadge);
-  const imageAttachments = post.attachments.filter((a) => isImageType(a.file_type));
-  const videoAttachments = post.attachments.filter((a) => isVideoType(a.file_type));
-  const fileAttachments = post.attachments.filter((a) => !isImageType(a.file_type) && !isVideoType(a.file_type));
+  const showReviewButtons =
+    post.status === "pending" && canReviewPost(currentUserBadge, authorBadge);
+  const imageAttachments = post.attachments.filter((a) =>
+    isImageType(a.file_type)
+  );
+  const videoAttachments = post.attachments.filter((a) =>
+    isVideoType(a.file_type)
+  );
+  const fileAttachments = post.attachments.filter(
+    (a) => !isImageType(a.file_type) && !isVideoType(a.file_type)
+  );
+
+  /* ── Fetch post reactions on mount ── */
+  useEffect(() => {
+    const fetchReactions = async () => {
+      try {
+        const res = await fetch(
+          `/api/posts/${post.id}/reactions?target_type=post&target_ids=${post.id}`
+        );
+        const json = await res.json();
+        const groups: ReactionGroup[] =
+          json.reactions?.[post.id] || [];
+        setPostReactions(groups);
+        const mine = groups.find((g) => g.reacted);
+        setMyReaction(mine ? mine.reaction_type : null);
+      } catch {
+        // Fallback: convert legacy like data
+        if (post.like_count > 0 || post.liked_by_me) {
+          setPostReactions([
+            {
+              reaction_type: "like",
+              count: post.like_count,
+              users: [],
+              reacted: post.liked_by_me,
+            },
+          ]);
+          if (post.liked_by_me) setMyReaction("like");
+        }
+      }
+    };
+    fetchReactions();
+  }, [post.id, post.like_count, post.liked_by_me]);
+
+  /* ── Handle post reaction ── */
+  const handlePostReaction = useCallback(
+    async (type: ReactionType) => {
+      const wasMyReaction = myReaction;
+      const isRemovingSame = wasMyReaction === type;
+
+      // Optimistic update
+      setMyReaction(isRemovingSame ? null : type);
+      setPostReactions((prev) => {
+        let updated = prev.map((g) => {
+          if (g.reaction_type === wasMyReaction) {
+            return {
+              ...g,
+              count: Math.max(0, g.count - 1),
+              reacted: false,
+            };
+          }
+          return g;
+        });
+
+        if (!isRemovingSame) {
+          const existing = updated.find(
+            (g) => g.reaction_type === type
+          );
+          if (existing) {
+            updated = updated.map((g) =>
+              g.reaction_type === type
+                ? { ...g, count: g.count + 1, reacted: true }
+                : g
+            );
+          } else {
+            updated.push({
+              reaction_type: type,
+              count: 1,
+              users: [],
+              reacted: true,
+            });
+          }
+        }
+
+        return updated.filter((g) => g.count > 0);
+      });
+      setShowReactionPicker(false);
+
+      try {
+        await fetch(`/api/posts/${post.id}/reactions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            target_type: "post",
+            target_id: post.id,
+            reaction_type: type,
+          }),
+        });
+      } catch {
+        // Revert on error
+        setMyReaction(wasMyReaction);
+      }
+    },
+    [myReaction, post.id]
+  );
+
+  /* ── Quick-click reaction (toggle default like) ── */
+  const handleQuickReaction = useCallback(() => {
+    if (myReaction) {
+      handlePostReaction(myReaction as ReactionType);
+    } else {
+      handlePostReaction("like");
+    }
+  }, [myReaction, handlePostReaction]);
+
+  /* ── Reaction picker hover handlers ── */
+  const handleReactionMouseEnter = useCallback(() => {
+    if (reactionPickerTimeout.current) {
+      clearTimeout(reactionPickerTimeout.current);
+    }
+    reactionPickerTimeout.current = setTimeout(() => {
+      setShowReactionPicker(true);
+    }, 400);
+  }, []);
+
+  const handleReactionMouseLeave = useCallback(() => {
+    if (reactionPickerTimeout.current) {
+      clearTimeout(reactionPickerTimeout.current);
+    }
+    reactionPickerTimeout.current = setTimeout(() => {
+      setShowReactionPicker(false);
+    }, 300);
+  }, []);
 
   /* ── Review post ── */
-  const handleReview = useCallback(async (status: "approved" | "rejected") => {
-    setReviewing(true);
-    try {
-      const res = await fetch(`/api/posts/${post.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      if (res.ok) {
-        setPostStatus(status);
-        onUpdate();
+  const handleReview = useCallback(
+    async (status: "approved" | "rejected") => {
+      setReviewing(true);
+      try {
+        const res = await fetch(`/api/posts/${post.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        });
+        if (res.ok) {
+          setPostStatus(status);
+          onUpdate();
+        }
+      } catch {
+        console.error("Failed to review post");
+      } finally {
+        setReviewing(false);
       }
-    } catch {
-      console.error("Failed to review post");
-    } finally {
-      setReviewing(false);
-    }
-  }, [post.id, onUpdate]);
-
-  /* ── Like ── */
-  const handleLike = useCallback(async () => {
-    const wasLiked = liked;
-    setLiked(!wasLiked);
-    setLikeCount((c) => c + (wasLiked ? -1 : 1));
-    setLikeAnimating(true);
-    setTimeout(() => setLikeAnimating(false), 300);
-
-    try {
-      await fetch(`/api/posts/${post.id}/like`, { method: "POST" });
-    } catch {
-      setLiked(wasLiked);
-      setLikeCount((c) => c + (wasLiked ? 1 : -1));
-    }
-  }, [liked, post.id]);
+    },
+    [post.id, onUpdate]
+  );
 
   /* ── Comments ── */
   const toggleComments = useCallback(async () => {
@@ -253,15 +709,26 @@ export default function PostCard({
     }
   }, [showComments, comments.length, post.id]);
 
+  /* ── Submit comment ── */
   const submitComment = useCallback(async () => {
     if (!commentText.trim() || commentSubmitting) return;
     setCommentSubmitting(true);
 
     try {
+      const body: Record<string, unknown> = {
+        content: commentText.trim(),
+      };
+      if (replyTo) {
+        body.reply_to_id = replyTo.id;
+      }
+      if (mentionIds.length > 0) {
+        body.mentions = mentionIds;
+      }
+
       const res = await fetch(`/api/posts/${post.id}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: commentText.trim() }),
+        body: JSON.stringify(body),
       });
       const json = await res.json();
       if (json.comment) {
@@ -269,12 +736,14 @@ export default function PostCard({
         setCommentCount((c) => c + 1);
       }
       setCommentText("");
+      setReplyTo(null);
+      setMentionIds([]);
     } catch {
       console.error("Failed to post comment");
     } finally {
       setCommentSubmitting(false);
     }
-  }, [commentText, commentSubmitting, post.id]);
+  }, [commentText, commentSubmitting, post.id, replyTo, mentionIds]);
 
   /* ── Delete ── */
   const handleDelete = useCallback(async () => {
@@ -330,42 +799,142 @@ export default function PostCard({
     }
   }, [editContent, editSubmitting, post.id]);
 
-  /* ── Comment like ── */
-  const handleCommentLike = useCallback(
-    async (commentId: string, index: number) => {
+  /* ── Comment reaction ── */
+  const handleCommentReaction = useCallback(
+    async (commentId: string, type: ReactionType) => {
       setComments((prev) =>
-        prev.map((c, i) =>
-          i === index
-            ? {
-                ...c,
-                liked_by_me: !c.liked_by_me,
-                like_count: (c.like_count || 0) + (c.liked_by_me ? -1 : 1),
-              }
-            : c
-        )
+        prev.map((c) => {
+          if (c.id !== commentId) return c;
+          const wasMyReaction = c.my_reaction;
+          const isRemovingSame = wasMyReaction === type;
+
+          let newReactions = (c.reactions || []).map((g) => {
+            if (g.reaction_type === wasMyReaction) {
+              return { ...g, count: Math.max(0, g.count - 1), reacted: false };
+            }
+            return g;
+          });
+
+          if (!isRemovingSame) {
+            const existing = newReactions.find(
+              (g) => g.reaction_type === type
+            );
+            if (existing) {
+              newReactions = newReactions.map((g) =>
+                g.reaction_type === type
+                  ? { ...g, count: g.count + 1, reacted: true }
+                  : g
+              );
+            } else {
+              newReactions.push({
+                reaction_type: type,
+                count: 1,
+                users: [],
+                reacted: true,
+              });
+            }
+          }
+
+          return {
+            ...c,
+            reactions: newReactions.filter((g) => g.count > 0),
+            my_reaction: isRemovingSame ? null : type,
+            // Also update legacy fields
+            liked_by_me: isRemovingSame ? false : true,
+            like_count: newReactions
+              .filter((g) => g.count > 0)
+              .reduce((acc, g) => acc + g.count, 0),
+          };
+        })
       );
+      setCommentReactionPicker(null);
 
       try {
-        await fetch(`/api/posts/${post.id}/comments/${commentId}/like`, {
+        await fetch(`/api/posts/${post.id}/reactions`, {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            target_type: "comment",
+            target_id: commentId,
+            reaction_type: type,
+          }),
         });
       } catch {
-        // revert on error
-        setComments((prev) =>
-          prev.map((c, i) =>
-            i === index
-              ? {
-                  ...c,
-                  liked_by_me: !c.liked_by_me,
-                  like_count: (c.like_count || 0) + (c.liked_by_me ? -1 : 1),
-                }
-              : c
-          )
-        );
+        // revert silently
       }
     },
     [post.id]
   );
+
+  /* ── Comment input @mention handler ── */
+  const handleCommentInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
+      setCommentText(value);
+
+      // Detect @mention trigger
+      const cursorPos = e.target.selectionStart || value.length;
+      const textBeforeCursor = value.slice(0, cursorPos);
+      const atIndex = textBeforeCursor.lastIndexOf("@");
+
+      if (atIndex !== -1) {
+        const charBefore = atIndex > 0 ? textBeforeCursor[atIndex - 1] : " ";
+        if (charBefore === " " || charBefore === "\n" || atIndex === 0) {
+          const query = textBeforeCursor.slice(atIndex + 1);
+          if (!query.includes(" ") || query.length <= 30) {
+            setMentionQuery(query);
+            return;
+          }
+        }
+      }
+      setMentionQuery(null);
+    },
+    []
+  );
+
+  const handleMentionSelect = useCallback(
+    (member: TeamMember) => {
+      const cursorPos =
+        commentInputRef.current?.selectionStart || commentText.length;
+      const textBeforeCursor = commentText.slice(0, cursorPos);
+      const atIndex = textBeforeCursor.lastIndexOf("@");
+
+      if (atIndex !== -1) {
+        const before = commentText.slice(0, atIndex);
+        const after = commentText.slice(cursorPos);
+        const newText = `${before}@${member.display_name} ${after}`;
+        setCommentText(newText);
+        setMentionIds((prev) =>
+          prev.includes(member.id) ? prev : [...prev, member.id]
+        );
+      }
+      setMentionQuery(null);
+      commentInputRef.current?.focus();
+    },
+    [commentText]
+  );
+
+  /* ── Reply handlers ── */
+  const handleReply = useCallback(
+    (comment: Comment) => {
+      setReplyTo({ id: comment.id, authorName: comment.author.display_name });
+      commentInputRef.current?.focus();
+    },
+    []
+  );
+
+  const cancelReply = useCallback(() => {
+    setReplyTo(null);
+  }, []);
+
+  /* ── Total reaction count for display ── */
+  const totalReactionCount = useMemo(
+    () => postReactions.reduce((acc, r) => acc + r.count, 0),
+    [postReactions]
+  );
+
+  /* ── My reaction display ── */
+  const myReactionConfig = myReaction ? REACTION_TYPES[myReaction] : null;
 
   return (
     <div
@@ -565,7 +1134,9 @@ export default function PostCard({
       {showReviewButtons && postStatus === "pending" && (
         <div className="px-5 pt-3">
           <div className="flex items-center gap-2 p-3 bg-amber-50/50 border border-amber-200/50 rounded-xl">
-            <span className="text-xs text-amber-700 font-medium flex-1">Review this post</span>
+            <span className="text-xs text-amber-700 font-medium flex-1">
+              Review this post
+            </span>
             <button
               onClick={() => handleReview("approved")}
               disabled={reviewing}
@@ -587,15 +1158,15 @@ export default function PostCard({
       {/* ── Action Buttons ── */}
       <div className="px-5 pt-4 pb-1">
         {/* Counts */}
-        {(likeCount > 0 || commentCount > 0) && (
+        {(totalReactionCount > 0 || commentCount > 0) && (
           <div className="flex items-center justify-between text-xs text-text-muted pb-2 mb-2 border-b border-border-light">
-            {likeCount > 0 && (
-              <span className="flex items-center gap-1">
-                <span className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center">
-                  <Heart size={10} className="text-white fill-white" />
-                </span>
-                {likeCount}
-              </span>
+            {totalReactionCount > 0 ? (
+              <ReactionSummary
+                reactions={postReactions}
+                onClick={() => setShowReactionsDetail(true)}
+              />
+            ) : (
+              <span />
             )}
             {commentCount > 0 && (
               <button
@@ -610,20 +1181,40 @@ export default function PostCard({
 
         {/* Buttons */}
         <div className="flex items-center gap-1 border-b border-border-light pb-2">
-          <button
-            onClick={handleLike}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-              liked
-                ? "text-red-500 hover:bg-red-50"
-                : "text-text-secondary hover:bg-[#f5f2ef]"
-            }`}
+          {/* Reaction button with hover picker */}
+          <div
+            ref={reactionBtnRef}
+            className="flex-1 relative"
+            onMouseEnter={handleReactionMouseEnter}
+            onMouseLeave={handleReactionMouseLeave}
           >
-            <Heart
-              size={18}
-              className={`transition-all duration-200 ${liked ? "fill-red-500 text-red-500" : ""} ${likeAnimating ? "scale-125" : "scale-100"}`}
+            <ReactionPicker
+              visible={showReactionPicker}
+              onSelect={handlePostReaction}
             />
-            <span>{liked ? "Liked" : "Like"}</span>
-          </button>
+            <button
+              onClick={handleQuickReaction}
+              className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                myReaction
+                  ? `${myReactionConfig?.color || "text-blue-500"} hover:bg-blue-50`
+                  : "text-text-secondary hover:bg-[#f5f2ef]"
+              }`}
+            >
+              {myReaction ? (
+                <span className="text-lg leading-none">
+                  {myReactionConfig?.emoji}
+                </span>
+              ) : (
+                <Heart size={18} />
+              )}
+              <span>
+                {myReaction
+                  ? myReactionConfig?.label || "Like"
+                  : "Like"}
+              </span>
+            </button>
+          </div>
+
           <button
             onClick={toggleComments}
             className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium text-text-secondary hover:bg-[#f5f2ef] transition-all duration-200"
@@ -639,25 +1230,61 @@ export default function PostCard({
         </div>
       </div>
 
+      {/* ── Reactions Detail Modal ── */}
+      {showReactionsDetail && (
+        <ReactionsDetailModal
+          reactions={postReactions}
+          onClose={() => setShowReactionsDetail(false)}
+        />
+      )}
+
       {/* ── Comments Section ── */}
       {showComments && (
-        <div className="px-5 pb-4 pt-2" style={{ animation: "fadeIn 0.2s ease-out" }}>
+        <div
+          className="px-5 pb-4 pt-2"
+          style={{ animation: "fadeIn 0.2s ease-out" }}
+        >
           {/* Comments list */}
           {commentsLoading ? (
             <div className="flex items-center justify-center py-4">
-              <Loader2 size={18} className="animate-spin text-text-muted" />
+              <Loader2
+                size={18}
+                className="animate-spin text-text-muted"
+              />
             </div>
           ) : comments.length > 0 ? (
             <div className="space-y-3 mb-3 max-h-80 overflow-y-auto">
-              {comments.map((comment, idx) => (
+              {comments.map((comment) => (
                 <div key={comment.id} className="flex gap-2.5 group">
                   <Avatar user={comment.author} size="sm" />
                   <div className="flex-1 min-w-0">
+                    {/* Reply context */}
+                    {comment.reply_to && (
+                      <div className="flex items-center gap-1.5 mb-1 text-[0.65rem] text-text-muted">
+                        <Reply size={10} className="rotate-180" />
+                        <span>
+                          Replying to{" "}
+                          <span className="font-semibold">
+                            {comment.reply_to.author.display_name}
+                          </span>
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Reply quoted content */}
+                    {comment.reply_to && (
+                      <div className="ml-1 mb-1 pl-2 border-l-2 border-[#D4692A]/30 text-[0.65rem] text-text-muted line-clamp-1">
+                        {comment.reply_to.content}
+                      </div>
+                    )}
+
                     <div className="bg-[#f5f2ef] rounded-xl px-3 py-2">
                       <div className="flex items-center gap-2">
                         <span
                           className="text-xs font-semibold text-text-primary"
-                          style={{ fontFamily: "var(--font-heading)" }}
+                          style={{
+                            fontFamily: "var(--font-heading)",
+                          }}
                         >
                           {comment.author.display_name}
                         </span>
@@ -668,24 +1295,121 @@ export default function PostCard({
                         )}
                       </div>
                       <p className="text-sm text-text-primary mt-0.5">
-                        {comment.content}
+                        {renderContentWithMentions(
+                          comment.content,
+                          comment.mentions,
+                          teamMembers
+                        )}
                       </p>
                     </div>
+
+                    {/* Comment reaction badges */}
+                    {comment.reactions &&
+                      comment.reactions.filter((r) => r.count > 0).length >
+                        0 && (
+                        <div className="flex items-center gap-0.5 mt-0.5 ml-2">
+                          <span className="inline-flex items-center gap-0.5 bg-white border border-border-light rounded-full px-1.5 py-0.5 text-[0.6rem] shadow-sm">
+                            {comment.reactions
+                              .filter((r) => r.count > 0)
+                              .sort((a, b) => b.count - a.count)
+                              .slice(0, 3)
+                              .map((r) => (
+                                <span key={r.reaction_type} className="text-xs">
+                                  {REACTION_TYPES[r.reaction_type]?.emoji}
+                                </span>
+                              ))}
+                            <span className="text-text-muted ml-0.5">
+                              {comment.reactions.reduce(
+                                (a, r) => a + r.count,
+                                0
+                              )}
+                            </span>
+                          </span>
+                        </div>
+                      )}
+
+                    {/* Comment actions */}
                     <div className="flex items-center gap-3 mt-1 px-1">
                       <span className="text-[0.65rem] text-text-muted">
                         {timeAgo(comment.created_at)}
                       </span>
-                      <button
-                        onClick={() => handleCommentLike(comment.id, idx)}
-                        className={`text-[0.65rem] font-semibold transition-colors ${
-                          comment.liked_by_me
-                            ? "text-red-500"
-                            : "text-text-muted hover:text-text-secondary"
-                        }`}
+
+                      {/* Comment reaction button */}
+                      <div
+                        className="relative"
+                        onMouseEnter={() => {
+                          if (commentReactionTimeout.current)
+                            clearTimeout(commentReactionTimeout.current);
+                          commentReactionTimeout.current = setTimeout(
+                            () => setCommentReactionPicker(comment.id),
+                            400
+                          );
+                        }}
+                        onMouseLeave={() => {
+                          if (commentReactionTimeout.current)
+                            clearTimeout(commentReactionTimeout.current);
+                          commentReactionTimeout.current = setTimeout(
+                            () => setCommentReactionPicker(null),
+                            300
+                          );
+                        }}
                       >
-                        Like
-                        {(comment.like_count || 0) > 0 &&
-                          ` · ${comment.like_count}`}
+                        {commentReactionPicker === comment.id && (
+                          <div
+                            className="absolute bottom-full left-0 mb-1 flex items-center gap-0.5 bg-white rounded-full shadow-lg border border-border-light px-1.5 py-1 z-50"
+                            style={{
+                              animation: "fadeIn 0.15s ease-out",
+                            }}
+                          >
+                            {Object.entries(REACTION_TYPES).map(
+                              ([type, { emoji, label }]) => (
+                                <button
+                                  key={type}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCommentReaction(
+                                      comment.id,
+                                      type as ReactionType
+                                    );
+                                  }}
+                                  className="text-sm hover:scale-125 transition-transform duration-150 px-0.5"
+                                  title={label}
+                                >
+                                  {emoji}
+                                </button>
+                              )
+                            )}
+                          </div>
+                        )}
+                        <button
+                          onClick={() =>
+                            handleCommentReaction(
+                              comment.id,
+                              (comment.my_reaction as ReactionType) || "like"
+                            )
+                          }
+                          className={`text-[0.65rem] font-semibold transition-colors ${
+                            comment.my_reaction || comment.liked_by_me
+                              ? REACTION_TYPES[comment.my_reaction || "like"]
+                                  ?.color || "text-blue-500"
+                              : "text-text-muted hover:text-text-secondary"
+                          }`}
+                        >
+                          {comment.my_reaction
+                            ? REACTION_TYPES[comment.my_reaction]?.label ||
+                              "Like"
+                            : comment.liked_by_me
+                              ? "Like"
+                              : "Like"}
+                        </button>
+                      </div>
+
+                      {/* Reply button */}
+                      <button
+                        onClick={() => handleReply(comment)}
+                        className="text-[0.65rem] font-semibold text-text-muted hover:text-text-secondary transition-colors"
+                      >
+                        Reply
                       </button>
                     </div>
                   </div>
@@ -698,32 +1422,72 @@ export default function PostCard({
             </p>
           )}
 
+          {/* Reply-to indicator */}
+          {replyTo && (
+            <div className="flex items-center gap-2 mb-1 px-2 py-1.5 bg-[#f5f2ef] rounded-lg text-xs text-text-secondary">
+              <Reply size={12} className="text-[#D4692A] rotate-180" />
+              <span>
+                Replying to{" "}
+                <span className="font-semibold text-[#D4692A]">
+                  {replyTo.authorName}
+                </span>
+              </span>
+              <button
+                onClick={cancelReply}
+                className="ml-auto p-0.5 rounded hover:bg-gray-200 transition-colors"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          )}
+
           {/* Comment input */}
-          <div className="flex items-center gap-2 mt-2">
-            <input
-              type="text"
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  submitComment();
+          <div className="relative">
+            {/* Mention dropdown */}
+            {mentionQuery !== null && teamMembers.length > 0 && (
+              <MentionDropdown
+                query={mentionQuery}
+                members={teamMembers}
+                onSelect={handleMentionSelect}
+                position={{ top: 8, left: 0 }}
+              />
+            )}
+
+            <div className="flex items-center gap-2 mt-2">
+              <input
+                ref={commentInputRef}
+                type="text"
+                value={commentText}
+                onChange={handleCommentInputChange}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    submitComment();
+                  }
+                  if (e.key === "Escape") {
+                    setMentionQuery(null);
+                    setReplyTo(null);
+                  }
+                }}
+                placeholder={
+                  replyTo
+                    ? `Reply to ${replyTo.authorName}…`
+                    : "Write a comment…"
                 }
-              }}
-              placeholder="Write a comment…"
-              className="flex-1 text-sm rounded-full px-4 py-2 bg-[#f5f2ef] border border-border-light focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20"
-            />
-            <button
-              onClick={submitComment}
-              disabled={!commentText.trim() || commentSubmitting}
-              className="w-8 h-8 rounded-full bg-[#D4692A] text-white flex items-center justify-center hover:bg-[#B85A24] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
-            >
-              {commentSubmitting ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <Send size={14} />
-              )}
-            </button>
+                className="flex-1 text-sm rounded-full px-4 py-2 bg-[#f5f2ef] border border-border-light focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/20 outline-none"
+              />
+              <button
+                onClick={submitComment}
+                disabled={!commentText.trim() || commentSubmitting}
+                className="w-8 h-8 rounded-full bg-[#D4692A] text-white flex items-center justify-center hover:bg-[#B85A24] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+              >
+                {commentSubmitting ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Send size={14} />
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

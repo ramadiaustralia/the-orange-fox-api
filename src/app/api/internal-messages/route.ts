@@ -79,25 +79,29 @@ export async function POST(req: NextRequest) {
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const { receiverId, content, attachmentUrl, attachmentName, attachmentType, attachmentSize } = await req.json();
+    const { receiverId, content, attachmentUrl, attachmentName, attachmentType, attachmentSize, replyToId, forwardedFromId } = await req.json();
     if (!receiverId || (!content?.trim() && !attachmentUrl)) {
       return NextResponse.json({ error: "receiverId and content or attachment are required" }, { status: 400 });
     }
 
+    const insertData: Record<string, unknown> = {
+      sender_id: admin.sub,
+      receiver_id: receiverId,
+      content: content?.trim() || "",
+      is_read: false,
+    };
+    if (attachmentUrl) {
+      insertData.attachment_url = attachmentUrl;
+      insertData.attachment_name = attachmentName || "file";
+      insertData.attachment_type = attachmentType || "";
+      insertData.attachment_size = attachmentSize || 0;
+    }
+    if (replyToId) insertData.reply_to_id = replyToId;
+    if (forwardedFromId) insertData.forwarded_from_id = forwardedFromId;
+
     const { data: message, error } = await getSupabaseAdmin()
       .from("internal_messages")
-      .insert({
-        sender_id: admin.sub,
-        receiver_id: receiverId,
-        content: content?.trim() || "",
-        is_read: false,
-        ...(attachmentUrl && {
-          attachment_url: attachmentUrl,
-          attachment_name: attachmentName || "file",
-          attachment_type: attachmentType || "",
-          attachment_size: attachmentSize || 0,
-        }),
-      })
+      .insert(insertData)
       .select()
       .single();
 

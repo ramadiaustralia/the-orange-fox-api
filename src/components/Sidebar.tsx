@@ -60,7 +60,7 @@ const navSections = [
   {
     label: "COMMUNICATE",
     items: [
-      { href: "/dashboard/messages", label: "Customer Project Request", icon: MessageSquare },
+      { href: "/dashboard/messages", label: "CPR", icon: MessageSquare },
       { href: "/dashboard/contact", label: "Contact", icon: Contact2 },
     ],
   },

@@ -60,6 +60,16 @@ function getGreeting() {
   return "Good night";
 }
 
+/* ── Realtime clock hook ── */
+function useRealtimeClock() {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  return now;
+}
+
 /* ── Loading skeleton ── */
 function PostSkeleton() {
   return (
@@ -101,8 +111,10 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [profileUser, setProfileUser] = useState<ProfileUser | null>(null);
   const [migrationNeeded, setMigrationNeeded] = useState(false);
+  const [teamMembers, setTeamMembers] = useState<{ id: string; display_name: string; position: string; profile_pic_url: string | null }[]>([]);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const searchParams = useSearchParams();
+  const clock = useRealtimeClock();
 
   /* ── Fetch posts ── */
   const fetchPosts = useCallback(async () => {
@@ -120,6 +132,14 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  /* ── Fetch team members for mentions ── */
+  useEffect(() => {
+    fetch("/api/admin-users")
+      .then((r) => r.json())
+      .then((d) => setTeamMembers(d.users || []))
+      .catch(() => {});
   }, []);
 
   /* ── Initial load + polling ── */
@@ -235,12 +255,19 @@ export default function DashboardPage() {
                 </h1>
                 <p className="text-sm text-white/40 mt-0.5 flex items-center gap-1.5">
                   <Clock size={12} />
-                  {new Date().toLocaleDateString("en-AU", {
+                  {clock.toLocaleDateString("en-AU", {
                     weekday: "long",
                     day: "numeric",
                     month: "long",
                     year: "numeric",
                   })}
+                  {" · "}
+                  <span className="tabular-nums font-mono">
+                    {clock.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                  </span>
+                  <span className="text-white/25 text-xs">
+                    {Intl.DateTimeFormat().resolvedOptions().timeZone.replace(/_/g, " ")}
+                  </span>
                 </p>
               </div>
             </div>
@@ -324,6 +351,7 @@ ALTER TABLE internal_messages ADD COLUMN IF NOT EXISTS is_unsent BOOLEAN DEFAULT
                   currentUserBadge={user?.badge || "staff"}
                   onUpdate={fetchPosts}
                   onProfileClick={handleProfileClick}
+                  teamMembers={teamMembers}
                 />
               </div>
             </Reveal>

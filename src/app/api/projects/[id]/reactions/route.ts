@@ -139,28 +139,39 @@ export async function POST(
 
     const db = getSupabaseAdmin();
 
-    // Check if the reaction already exists
+    // Check if user already has ANY reaction on this target (one reaction per user per target)
     const { data: existing } = await db
       .from("message_reactions")
-      .select("id")
+      .select("id, emoji")
       .eq("target_type", target_type)
       .eq("target_id", target_id)
       .eq("user_id", admin.sub)
-      .eq("emoji", emoji)
       .single();
 
     if (existing) {
-      // Remove the reaction
-      const { error } = await db
-        .from("message_reactions")
-        .delete()
-        .eq("id", existing.id);
+      if (existing.emoji === emoji) {
+        // Same emoji clicked again → remove (toggle off)
+        const { error } = await db
+          .from("message_reactions")
+          .delete()
+          .eq("id", existing.id);
 
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-      return NextResponse.json({ action: "removed" });
+        return NextResponse.json({ action: "removed" });
+      } else {
+        // Different emoji → update to new emoji
+        const { error } = await db
+          .from("message_reactions")
+          .update({ emoji })
+          .eq("id", existing.id);
+
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+        return NextResponse.json({ action: "changed" });
+      }
     } else {
-      // Add the reaction
+      // No existing reaction → add new
       const { error } = await db
         .from("message_reactions")
         .insert({

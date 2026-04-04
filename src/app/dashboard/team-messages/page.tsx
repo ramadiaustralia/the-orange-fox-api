@@ -3,7 +3,23 @@
 import { useAuth } from "@/context/AuthContext";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { Search, Send, Paperclip, FileText, Download, X, ArrowLeft, MessageSquare, Trash2, RotateCcw, Pencil } from "lucide-react";
+import {
+  Search,
+  Send,
+  Paperclip,
+  FileText,
+  Download,
+  X,
+  ArrowLeft,
+  MessageSquare,
+  Trash2,
+  RotateCcw,
+  Pencil,
+  SmilePlus,
+  Reply,
+  Share2,
+  CornerDownRight,
+} from "lucide-react";
 
 interface TeamMember {
   id: string;
@@ -33,6 +49,15 @@ interface Message {
   attachment_name: string | null;
   attachment_type: string | null;
   attachment_size: number | null;
+  reply_to_id?: string | null;
+  forwarded_from_id?: string | null;
+}
+
+interface Reaction {
+  emoji: string;
+  count: number;
+  users: { id: string; display_name: string }[];
+  reacted: boolean;
 }
 
 function isOnline(lastActive: string | null): boolean {
@@ -111,6 +136,8 @@ function Avatar({
   );
 }
 
+const EMOJI_OPTIONS = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
+
 export default function TeamMessagesPage() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
@@ -129,12 +156,42 @@ export default function TeamMessagesPage() {
   const [editContent, setEditContent] = useState("");
   const [editSaving, setEditSaving] = useState(false);
 
+  // New state for reactions, reply, and forward
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+  const [showEmojiPickerFor, setShowEmojiPickerFor] = useState<string | null>(null);
+  const [messageReactions, setMessageReactions] = useState<Record<string, Reaction[]>>({});
+  const [forwardingMessage, setForwardingMessage] = useState<Message | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastTypingSentRef = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const initialUserLoaded = useRef(false);
   const isInitialLoadRef = useRef(true);
   const userSentMessageRef = useRef(false);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const forwardModalRef = useRef<HTMLDivElement>(null);
+
+  // Close emoji picker and forward modal when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        showEmojiPickerFor &&
+        emojiPickerRef.current &&
+        !emojiPickerRef.current.contains(e.target as Node)
+      ) {
+        setShowEmojiPickerFor(null);
+      }
+      if (
+        forwardingMessage &&
+        forwardModalRef.current &&
+        !forwardModalRef.current.contains(e.target as Node)
+      ) {
+        setForwardingMessage(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showEmojiPickerFor, forwardingMessage]);
 
   // Fetch team members and conversations
   const fetchData = useCallback(async () => {
@@ -183,6 +240,22 @@ export default function TeamMessagesPage() {
     return () => clearInterval(interval);
   }, [fetchData]);
 
+  // Fetch reactions for a set of message IDs
+  const fetchReactions = useCallback(async (messageIds: string[]) => {
+    if (messageIds.length === 0) return;
+    try {
+      const res = await fetch(
+        `/api/internal-messages/reactions?message_ids=${messageIds.join(",")}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setMessageReactions((prev) => ({ ...prev, ...(data.reactions || {}) }));
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   // Fetch messages for active chat (poll every 3s)
   const fetchMessages = useCallback(async () => {
     if (!activeChat) return;
@@ -190,12 +263,18 @@ export default function TeamMessagesPage() {
       const res = await fetch(`/api/internal-messages/${activeChat.id}`);
       if (res.ok) {
         const data = await res.json();
-        setMessages(data.messages || []);
+        const msgs: Message[] = data.messages || [];
+        setMessages(msgs);
+        // Fetch reactions for all messages
+        if (msgs.length > 0) {
+          const ids = msgs.map((m) => m.id);
+          fetchReactions(ids);
+        }
       }
     } catch {
       /* ignore */
     }
-  }, [activeChat]);
+  }, [activeChat, fetchReactions]);
 
   useEffect(() => {
     if (activeChat) {
@@ -205,6 +284,10 @@ export default function TeamMessagesPage() {
     } else {
       isInitialLoadRef.current = true;
       setMessages([]);
+      setMessageReactions({});
+      setReplyingTo(null);
+      setForwardingMessage(null);
+      setShowEmojiPickerFor(null);
     }
   }, [activeChat, fetchMessages]);
 
@@ -250,12 +333,12 @@ export default function TeamMessagesPage() {
   // Smart auto-scroll: only scroll the chat container, never the page
   useEffect(() => {
     if (!messagesEndRef.current) return;
-    
+
     const container = messagesEndRef.current.parentElement;
     if (!container) return;
-    
+
     const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
-    
+
     if (isInitialLoadRef.current || userSentMessageRef.current || isNearBottom) {
       container.scrollTop = container.scrollHeight;
       isInitialLoadRef.current = false;
@@ -304,21 +387,30 @@ export default function TeamMessagesPage() {
       }
 
       userSentMessageRef.current = true;
+
+      const body: Record<string, unknown> = {
+        receiverId: activeChat.id,
+        content: newMessage.trim() || (attachmentName ? `Sent a file: ${attachmentName}` : ""),
+        attachmentUrl,
+        attachmentName,
+        attachmentType,
+        attachmentSize,
+      };
+
+      // Include replyToId if replying
+      if (replyingTo) {
+        body.replyToId = replyingTo.id;
+      }
+
       const res = await fetch("/api/internal-messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          receiverId: activeChat.id,
-          content: newMessage.trim() || (attachmentName ? `Sent a file: ${attachmentName}` : ""),
-          attachmentUrl,
-          attachmentName,
-          attachmentType,
-          attachmentSize,
-        }),
+        body: JSON.stringify(body),
       });
       if (res.ok) {
         setNewMessage("");
         setPendingFile(null);
+        setReplyingTo(null);
         await fetchMessages();
       }
     } catch {
@@ -359,7 +451,9 @@ export default function TeamMessagesPage() {
         body: JSON.stringify({ id: messageId, action: "unsend" }),
       });
       if (res.ok) await fetchMessages();
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   };
 
   const handleDeleteMessage = async (messageId: string) => {
@@ -369,7 +463,9 @@ export default function TeamMessagesPage() {
         method: "DELETE",
       });
       if (res.ok) await fetchMessages();
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   };
 
   const handleEditMessage = async (messageId: string) => {
@@ -386,8 +482,11 @@ export default function TeamMessagesPage() {
         setEditContent("");
         await fetchMessages();
       }
-    } catch { /* ignore */ }
-    finally { setEditSaving(false); }
+    } catch {
+      /* ignore */
+    } finally {
+      setEditSaving(false);
+    }
   };
 
   const startEditing = (msg: Message) => {
@@ -403,7 +502,58 @@ export default function TeamMessagesPage() {
   const handleBack = () => {
     setActiveChat(null);
     setShowSidebar(true);
+    setReplyingTo(null);
+    setForwardingMessage(null);
+    setShowEmojiPickerFor(null);
     fetchData();
+  };
+
+  // Toggle emoji reaction
+  const handleToggleReaction = async (messageId: string, emoji: string) => {
+    try {
+      await fetch("/api/internal-messages/reactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message_id: messageId, emoji }),
+      });
+      setShowEmojiPickerFor(null);
+      // Re-fetch reactions for this message
+      fetchReactions([messageId]);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  // Forward message to another team member
+  const handleForward = async (targetMember: TeamMember, msg: Message) => {
+    try {
+      const forwardContent = `📨 Forwarded:\n${msg.content}`;
+      await fetch("/api/internal-messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          receiverId: targetMember.id,
+          content: forwardContent,
+          forwardedFromId: msg.id,
+        }),
+      });
+      setForwardingMessage(null);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  // Find a message by ID in the messages array (for reply-to display)
+  const findMessageById = (id: string): Message | undefined => {
+    return messages.find((m) => m.id === id);
+  };
+
+  // Get sender display name
+  const getSenderName = (senderId: string): string => {
+    if (user && senderId === user.id) return "You";
+    if (activeChat && senderId === activeChat.id) return activeChat.display_name;
+    const member = teamMembers.find((m) => m.id === senderId);
+    return member?.display_name || "Unknown";
   };
 
   // Build member list with conversation data
@@ -570,6 +720,9 @@ export default function TeamMessagesPage() {
                   const isUnsent = msg.is_unsent === true || msg.content === "__UNSENT__";
                   const isEditing = editingMessageId === msg.id;
                   const isEdited = msg.edited_at !== null && msg.edited_at !== undefined;
+                  const reactions = messageReactions[msg.id] || [];
+                  const repliedMessage = msg.reply_to_id ? findMessageById(msg.reply_to_id) : null;
+                  const isForwarded = !!msg.forwarded_from_id;
                   return (
                     <div
                       key={msg.id}
@@ -581,19 +734,132 @@ export default function TeamMessagesPage() {
                         </div>
                       )}
                       <div className="relative group w-fit max-w-[80%] sm:max-w-[65%]">
-                        {isSent && !isUnsent && (
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -left-10 top-1/2 -translate-y-1/2 flex flex-col gap-1">
-                            <button onClick={() => startEditing(msg)} title="Edit" className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-blue-500 transition-colors">
-                              <Pencil size={14} />
+                        {/* Hover Actions */}
+                        {!isUnsent && !isEditing && (
+                          <div
+                            className={`opacity-0 group-hover:opacity-100 transition-opacity absolute z-10 ${
+                              isSent
+                                ? "-left-[120px] top-1/2 -translate-y-1/2"
+                                : "-right-[80px] top-1/2 -translate-y-1/2"
+                            } flex items-center gap-0.5 bg-white border border-[#e8e4e0] rounded-lg shadow-sm px-1 py-0.5`}
+                          >
+                            {/* React */}
+                            <button
+                              onClick={() =>
+                                setShowEmojiPickerFor(
+                                  showEmojiPickerFor === msg.id ? null : msg.id
+                                )
+                              }
+                              title="React"
+                              className="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-yellow-500 transition-colors"
+                            >
+                              <SmilePlus size={14} />
                             </button>
-                            <button onClick={() => handleUnsend(msg.id)} title="Unsend" className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-orange-500 transition-colors">
-                              <RotateCcw size={14} />
+                            {/* Reply */}
+                            <button
+                              onClick={() => {
+                                setReplyingTo(msg);
+                                setShowEmojiPickerFor(null);
+                              }}
+                              title="Reply"
+                              className="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-blue-500 transition-colors"
+                            >
+                              <Reply size={14} />
                             </button>
-                            <button onClick={() => handleDeleteMessage(msg.id)} title="Delete" className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors">
-                              <Trash2 size={14} />
+                            {/* Forward */}
+                            <button
+                              onClick={() => {
+                                setForwardingMessage(
+                                  forwardingMessage?.id === msg.id ? null : msg
+                                );
+                                setShowEmojiPickerFor(null);
+                              }}
+                              title="Forward"
+                              className="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-green-500 transition-colors"
+                            >
+                              <Share2 size={14} />
                             </button>
+                            {/* Sent-only actions */}
+                            {isSent && (
+                              <>
+                                <div className="w-px h-4 bg-gray-200 mx-0.5" />
+                                <button
+                                  onClick={() => startEditing(msg)}
+                                  title="Edit"
+                                  className="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-blue-500 transition-colors"
+                                >
+                                  <Pencil size={14} />
+                                </button>
+                                <button
+                                  onClick={() => handleUnsend(msg.id)}
+                                  title="Unsend"
+                                  className="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-orange-500 transition-colors"
+                                >
+                                  <RotateCcw size={14} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteMessage(msg.id)}
+                                  title="Delete"
+                                  className="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </>
+                            )}
                           </div>
                         )}
+
+                        {/* Emoji Picker Popup */}
+                        {showEmojiPickerFor === msg.id && (
+                          <div
+                            ref={emojiPickerRef}
+                            className={`absolute z-20 ${
+                              isSent ? "right-0" : "left-0"
+                            } -top-12 bg-white border border-[#e8e4e0] rounded-xl shadow-lg px-2 py-1.5 flex items-center gap-1`}
+                          >
+                            {EMOJI_OPTIONS.map((emoji) => (
+                              <button
+                                key={emoji}
+                                onClick={() => handleToggleReaction(msg.id, emoji)}
+                                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#f5f2ef] transition-colors text-lg"
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Forward Modal */}
+                        {forwardingMessage?.id === msg.id && (
+                          <div
+                            ref={forwardModalRef}
+                            className={`absolute z-20 ${
+                              isSent ? "right-0" : "left-0"
+                            } -top-2 -translate-y-full bg-white border border-[#e8e4e0] rounded-xl shadow-lg p-2 min-w-[200px] max-h-[200px] overflow-y-auto`}
+                          >
+                            <p className="text-[10px] font-semibold text-[#999] uppercase tracking-wide px-2 py-1">
+                              Forward to...
+                            </p>
+                            {teamMembers
+                              .filter((m) => m.id !== activeChat?.id)
+                              .map((member) => (
+                                <button
+                                  key={member.id}
+                                  onClick={() => handleForward(member, msg)}
+                                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[#f5f2ef] transition-colors text-left"
+                                >
+                                  <Avatar user={member} size={24} />
+                                  <span className="text-xs text-[#1a1a1a] truncate">
+                                    {member.display_name}
+                                  </span>
+                                </button>
+                              ))}
+                            {teamMembers.filter((m) => m.id !== activeChat?.id).length === 0 && (
+                              <p className="text-xs text-[#999] px-2 py-1">No other members</p>
+                            )}
+                          </div>
+                        )}
+
                         {isEditing ? (
                           <div className="bg-white border border-[#D4692A]/40 rounded-2xl p-3 shadow-sm min-w-[220px]">
                             <input
@@ -640,8 +906,39 @@ export default function TeamMessagesPage() {
                               <p className="text-sm italic text-gray-400">🚫 This message was unsent</p>
                             ) : (
                               <>
+                                {/* Forwarded label */}
+                                {isForwarded && (
+                                  <p
+                                    className={`text-[10px] italic mb-1.5 flex items-center gap-1 ${
+                                      isSent ? "text-white/50" : "text-[#999]"
+                                    }`}
+                                  >
+                                    <Share2 size={10} />
+                                    Forwarded
+                                  </p>
+                                )}
+
+                                {/* Reply-to quoted block */}
+                                {repliedMessage && (
+                                  <div
+                                    className={`text-[10px] mb-2 px-2 py-1.5 rounded-lg border-l-2 ${
+                                      isSent
+                                        ? "border-white/40 bg-white/10 text-white/70"
+                                        : "border-[#D4692A]/40 bg-[#f5f2ef] text-[#666]"
+                                    }`}
+                                  >
+                                    <p className="font-semibold mb-0.5">
+                                      {getSenderName(repliedMessage.sender_id)}
+                                    </p>
+                                    <p className="truncate max-w-[250px]">
+                                      {repliedMessage.is_unsent
+                                        ? "🚫 This message was unsent"
+                                        : repliedMessage.content}
+                                    </p>
+                                  </div>
+                                )}
+
                                 {/* Attachment */}
-                                
                                 {msg.attachment_url && (
                                   <div className="mb-2 min-w-[200px]">
                                     {isImageAttachment(msg.attachment_type) ? (
@@ -741,6 +1038,27 @@ export default function TeamMessagesPage() {
                             )}
                           </div>
                         )}
+
+                        {/* Reaction pills below bubble */}
+                        {reactions.length > 0 && !isEditing && (
+                          <div className={`flex flex-wrap gap-1 mt-1 ${isSent ? "justify-end" : "justify-start"}`}>
+                            {reactions.map((r) => (
+                              <button
+                                key={r.emoji}
+                                onClick={() => handleToggleReaction(msg.id, r.emoji)}
+                                title={r.users.map((u) => u.display_name).join(", ")}
+                                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs border transition-colors ${
+                                  r.reacted
+                                    ? "bg-[#D4692A]/10 border-[#D4692A]/30 text-[#D4692A]"
+                                    : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                                }`}
+                              >
+                                <span>{r.emoji}</span>
+                                <span className="text-[10px] font-medium">{r.count}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -772,6 +1090,29 @@ export default function TeamMessagesPage() {
               )}
               <div ref={messagesEndRef} />
             </div>
+
+            {/* Reply-to preview bar */}
+            {replyingTo && (
+              <div className="px-4 sm:px-6 py-2.5 flex items-center gap-3 bg-[#faf8f6] border-t border-[#e8e4e0]">
+                <CornerDownRight size={16} className="text-[#D4692A] flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-semibold text-[#D4692A]">
+                    Replying to {getSenderName(replyingTo.sender_id)}
+                  </p>
+                  <p className="text-xs text-[#666] truncate">
+                    {replyingTo.is_unsent
+                      ? "🚫 This message was unsent"
+                      : replyingTo.content}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setReplyingTo(null)}
+                  className="p-1 rounded-lg hover:bg-white flex-shrink-0"
+                >
+                  <X size={14} className="text-gray-400" />
+                </button>
+              </div>
+            )}
 
             {/* Pending file preview */}
             {pendingFile && (
