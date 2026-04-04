@@ -23,8 +23,6 @@ interface TechItem {
 
 export default function TechStackPage() {
   const { hasAccess, isOwner } = usePermission("tech-stack");
-  if (hasAccess === false) return <AccessDenied section="Tech Stack" />;
-
   const [items, setItems] = useState<TechItem[]>([]);
   const [contentId, setContentId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,6 +35,9 @@ export default function TechStackPage() {
   useEffect(() => {
     loadTechStack();
   }, []);
+
+  if (hasAccess === false) return <AccessDenied section="Tech Stack" />;
+
 
   const showToast = (type: "success" | "error", message: string) => {
     setToast({ type, message });

@@ -159,7 +159,7 @@ export default function ProfilePage() {
   // Owner, Board, Manager can see pending posts (with badge-based filtering)
   const canSeePending = isOwnerBadge || isBoardBadge || isManagerBadge;
   // Owner and Board can manage team (but Board has limited actions)
-  const canSeeTeam = isOwnerBadge;
+  const canSeeTeam = isOwnerBadge || isBoardBadge;
 
   /* ── Load team ── */
   const loadTeam = useCallback(async () => {

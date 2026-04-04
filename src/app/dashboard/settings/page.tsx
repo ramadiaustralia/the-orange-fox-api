@@ -25,10 +25,6 @@ import AccessDenied from "@/components/AccessDenied";
 export default function SettingsPage() {
   const { hasAccess, isOwner, user } = usePermission("settings");
 
-  // Only Owner badge can access settings
-  if (!user || user.badge !== "owner") return <AccessDenied section="Settings" />;
-  if (hasAccess === false) return <AccessDenied section="Settings" />;
-
   const [admin, setAdmin] = useState({ email: "", display_name: "" });
   const [password, setPassword] = useState({ current: "", new_password: "", confirm: "" });
   const [siteSettings, setSiteSettings] = useState({
@@ -153,6 +149,10 @@ export default function SettingsPage() {
     loadSocialLinks();
     loadGaId();
   }, []);
+
+  // Only Owner badge can access settings
+  if (!user || user.badge !== "owner") return <AccessDenied section="Settings" />;
+  if (hasAccess === false) return <AccessDenied section="Settings" />;
 
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);

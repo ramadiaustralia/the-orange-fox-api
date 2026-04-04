@@ -30,8 +30,6 @@ const statusStyles: Record<string, string> = {
 
 export default function OrdersPage() {
   const { hasAccess, isOwner } = usePermission("orders");
-  if (hasAccess === false) return <AccessDenied section="Orders" />;
-
   const supabase = getSupabase();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,6 +48,9 @@ export default function OrdersPage() {
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
+
+  if (hasAccess === false) return <AccessDenied section="Orders" />;
+
 
   async function updateStatus(orderId: string, newStatus: string) {
     await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);

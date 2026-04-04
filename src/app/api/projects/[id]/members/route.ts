@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { verifyToken } from "@/lib/auth";
+import { authenticateRequest } from "@/lib/auth";
 
-async function authenticate(req: NextRequest) {
-  const token = req.cookies.get("fox_admin_token")?.value;
-  if (!token) return null;
-  return verifyToken(token);
-}
 
 async function getProjectLeader(projectId: string): Promise<string | null> {
   const { data } = await getSupabaseAdmin()
@@ -22,7 +17,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const admin = await authenticate(req);
+  const admin = await authenticateRequest(req);
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const badge = admin.badge || "staff";
@@ -91,7 +86,7 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const admin = await authenticate(req);
+  const admin = await authenticateRequest(req);
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const badge = admin.badge || "staff";
@@ -141,7 +136,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const admin = await authenticate(req);
+  const admin = await authenticateRequest(req);
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const badge = admin.badge || "staff";

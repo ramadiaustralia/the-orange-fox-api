@@ -27,8 +27,6 @@ interface Message {
 
 export default function MessagesPage() {
   const { hasAccess, isOwner } = usePermission("messages");
-  if (hasAccess === false) return <AccessDenied section="Customer Project Request" />;
-
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -54,6 +52,9 @@ export default function MessagesPage() {
   }, [filter]);
 
   useEffect(() => { loadMessages(); }, [loadMessages]);
+
+  if (hasAccess === false) return <AccessDenied section="Customer Project Request" />;
+
 
   const toggleExpand = async (msg: Message) => {
     if (expandedId === msg.id) { setExpandedId(null); return; }

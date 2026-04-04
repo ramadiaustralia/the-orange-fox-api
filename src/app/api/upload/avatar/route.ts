@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { verifyToken } from "@/lib/auth";
+import { authenticateRequest } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
-    const token = req.cookies.get("fox_admin_token")?.value;
-    if (!token) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-
-    const payload = await verifyToken(token);
-    if (!payload) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    const payload = await authenticateRequest(req);
+    if (!payload) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
     const formData = await req.formData();
     const file = formData.get("file") as File;

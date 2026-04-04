@@ -141,6 +141,8 @@ export default function MessagingDropdown({ currentUser }: MessagingDropdownProp
   const prevUnreadRef = useRef(0);
   const lastTypingSentRef = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isInitialLoadRef = useRef(true);
+  const userSentMessageRef = useRef(false);
 
   // Close on outside click
   useEffect(() => {
@@ -224,6 +226,7 @@ export default function MessagingDropdown({ currentUser }: MessagingDropdownProp
       const interval = setInterval(fetchMessages, 3000);
       return () => clearInterval(interval);
     } else {
+      isInitialLoadRef.current = true;
       setMessages([]);
     }
   }, [activeChat, fetchMessages]);
@@ -267,9 +270,20 @@ export default function MessagingDropdown({ currentUser }: MessagingDropdownProp
     }).catch(() => {});
   }, [activeChat]);
 
-  // Auto-scroll to bottom
+  // Smart auto-scroll: only on initial load, when user sends a message, or when near bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (!messagesEndRef.current) return;
+    
+    const container = messagesEndRef.current.parentElement;
+    if (!container) return;
+    
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
+    
+    if (isInitialLoadRef.current || userSentMessageRef.current || isNearBottom) {
+      messagesEndRef.current.scrollIntoView({ behavior: isInitialLoadRef.current ? "instant" : "smooth" });
+      isInitialLoadRef.current = false;
+      userSentMessageRef.current = false;
+    }
   }, [messages, partnerTyping]);
 
   const handleSend = async () => {
@@ -297,6 +311,7 @@ export default function MessagingDropdown({ currentUser }: MessagingDropdownProp
         }
       }
 
+      userSentMessageRef.current = true;
       const res = await fetch("/api/internal-messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

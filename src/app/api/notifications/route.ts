@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { verifyToken } from "@/lib/auth";
+import { authenticateRequest } from "@/lib/auth";
 
-async function authenticate(req: NextRequest) {
-  const token = req.cookies.get("fox_admin_token")?.value;
-  if (!token) return null;
-  return verifyToken(token);
-}
 
 export async function GET(req: NextRequest) {
-  const admin = await authenticate(req);
+  const admin = await authenticateRequest(req);
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { data: notifications, error } = await getSupabaseAdmin()
@@ -28,7 +23,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const admin = await authenticate(req);
+  const admin = await authenticateRequest(req);
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {

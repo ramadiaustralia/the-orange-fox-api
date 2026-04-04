@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify } from "jose";
+import { getSupabaseAdmin } from "@/lib/supabase";
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "the-orange-fox-cms-secret-key-2026"
@@ -28,6 +29,25 @@ export async function verifyToken(token: string): Promise<AdminPayload | null> {
   } catch {
     return null;
   }
+}
+
+export async function authenticateRequest(req: { cookies: { get: (name: string) => { value: string } | undefined } }): Promise<AdminPayload | null> {
+  const token = (req.cookies as any).get?.("fox_admin_token")?.value;
+  if (!token) return null;
+  const payload = await verifyToken(token);
+  if (!payload) return null;
+  
+  // If badge is missing (old JWT token), look it up from DB
+  if (!payload.badge) {
+    const { data } = await getSupabaseAdmin()
+      .from("admin_users")
+      .select("badge")
+      .eq("id", payload.sub)
+      .single();
+    payload.badge = data?.badge || "staff";
+  }
+  
+  return payload;
 }
 
 export function hashPassword(password: string): string {

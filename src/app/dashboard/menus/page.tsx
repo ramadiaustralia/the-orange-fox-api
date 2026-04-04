@@ -25,8 +25,6 @@ const LOCATIONS = [
 
 export default function MenusPage() {
   const { hasAccess, isOwner } = usePermission("menus");
-  if (hasAccess === false) return <AccessDenied section="Menus" />;
-
   const [activeLocation, setActiveLocation] = useState("header");
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,6 +48,9 @@ export default function MenusPage() {
   }, [activeLocation]);
 
   useEffect(() => { loadMenus(); }, [loadMenus]);
+
+  if (hasAccess === false) return <AccessDenied section="Menus" />;
+
 
   const addItem = async () => {
     if (!newForm.label || !newForm.href) return;

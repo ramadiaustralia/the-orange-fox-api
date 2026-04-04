@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { verifyToken } from "@/lib/auth";
+import { authenticateRequest } from "@/lib/auth";
 
-async function authenticate(req: NextRequest) {
-  const token = req.cookies.get("fox_admin_token")?.value;
-  if (!token) return null;
-  return verifyToken(token);
-}
 
 /* ── Check if the 'status' column exists on the posts table ── */
 let statusColumnExists: boolean | null = null;
@@ -26,7 +21,7 @@ async function hasStatusColumn(): Promise<boolean> {
 }
 
 export async function GET(req: NextRequest) {
-  const admin = await authenticate(req);
+  const admin = await authenticateRequest(req);
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const db = getSupabaseAdmin();
@@ -94,6 +89,8 @@ export async function GET(req: NextRequest) {
         if (pendingError) return NextResponse.json({ error: pendingError.message }, { status: 500 });
 
         posts = [...(approvedPosts || []), ...(myPendingPosts || [])];
+        // Sort merged results by created_at descending
+        posts.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       } else {
         // Owner/Board/Manager see approved posts by default
         const { data, error } = await db
@@ -144,7 +141,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const admin = await authenticate(req);
+  const admin = await authenticateRequest(req);
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {

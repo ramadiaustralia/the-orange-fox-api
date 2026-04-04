@@ -22,8 +22,6 @@ interface ContentItem {
 
 export default function ContentPage() {
   const { hasAccess, isOwner } = usePermission("content");
-  if (hasAccess === false) return <AccessDenied section="Content Editor" />;
-
   const [activePage, setActivePage] = useState("home");
   const [items, setItems] = useState<ContentItem[]>([]);
   const [allCounts, setAllCounts] = useState<Record<string, number>>({});
@@ -71,6 +69,9 @@ export default function ContentPage() {
       setAllCounts((prev) => ({ ...prev, [activePage]: items.length }));
     }
   }, [items, activePage, loading]);
+
+  if (hasAccess === false) return <AccessDenied section="Content Editor" />;
+
 
   const pageInfo = PAGE_INFO[activePage];
 
