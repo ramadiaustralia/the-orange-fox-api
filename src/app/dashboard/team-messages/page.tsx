@@ -808,21 +808,24 @@ export default function TeamMessagesPage() {
                                   showEmojiPickerFor === msg.id ? null : msg.id
                                 )
                               }
+                              onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); setShowEmojiPickerFor(showEmojiPickerFor === msg.id ? null : msg.id); }}
                               title="React"
-                              className="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-yellow-500 transition-colors"
+                              className="p-1.5 rounded-md hover:bg-gray-100 active:bg-gray-200 text-gray-400 hover:text-yellow-500 transition-colors"
                             >
-                              <SmilePlus size={14} />
+                              <SmilePlus size={16} />
                             </button>
                             {/* Reply */}
                             <button
                               onClick={() => {
                                 setReplyingTo(msg);
                                 setShowEmojiPickerFor(null);
+                                setActiveMessageActions(null);
                               }}
+                              onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); setReplyingTo(msg); setShowEmojiPickerFor(null); setActiveMessageActions(null); }}
                               title="Reply"
-                              className="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-blue-500 transition-colors"
+                              className="p-1.5 rounded-md hover:bg-gray-100 active:bg-gray-200 text-gray-400 hover:text-blue-500 transition-colors"
                             >
-                              <Reply size={14} />
+                              <Reply size={16} />
                             </button>
                             {/* Forward */}
                             <button
@@ -832,10 +835,11 @@ export default function TeamMessagesPage() {
                                 );
                                 setShowEmojiPickerFor(null);
                               }}
+                              onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); setForwardingMessage(forwardingMessage?.id === msg.id ? null : msg); setShowEmojiPickerFor(null); }}
                               title="Forward"
-                              className="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-green-500 transition-colors"
+                              className="p-1.5 rounded-md hover:bg-gray-100 active:bg-gray-200 text-gray-400 hover:text-green-500 transition-colors"
                             >
-                              <Share2 size={14} />
+                              <Share2 size={16} />
                             </button>
                             {/* Sent-only actions */}
                             {isSent && (
@@ -843,22 +847,25 @@ export default function TeamMessagesPage() {
                                 <div className="w-px h-4 bg-gray-200 mx-0.5" />
                                 <button
                                   onClick={() => startEditing(msg)}
+                                  onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); startEditing(msg); setActiveMessageActions(null); }}
                                   title="Edit"
-                                  className="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-blue-500 transition-colors"
+                                  className="p-1.5 rounded-md hover:bg-gray-100 active:bg-gray-200 text-gray-400 hover:text-blue-500 transition-colors"
                                 >
-                                  <Pencil size={14} />
+                                  <Pencil size={16} />
                                 </button>
                                 <button
                                   onClick={() => handleUnsend(msg.id)}
+                                  onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); handleUnsend(msg.id); setActiveMessageActions(null); }}
                                   title="Unsend"
-                                  className="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-orange-500 transition-colors"
+                                  className="p-1.5 rounded-md hover:bg-gray-100 active:bg-gray-200 text-gray-400 hover:text-orange-500 transition-colors"
                                 >
-                                  <RotateCcw size={14} />
+                                  <RotateCcw size={16} />
                                 </button>
                                 <button
                                   onClick={() => handleDeleteMessage(msg.id)}
+                                  onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteMessage(msg.id); setActiveMessageActions(null); }}
                                   title="Delete"
-                                  className="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors"
+                                  className="p-1.5 rounded-md hover:bg-gray-100 active:bg-gray-200 text-gray-400 hover:text-red-500 transition-colors"
                                 >
                                   <Trash2 size={14} />
                                 </button>
@@ -874,12 +881,14 @@ export default function TeamMessagesPage() {
                             className={`absolute z-20 ${
                               isSent ? "right-0" : "left-0"
                             } bottom-full mb-1 bg-white border border-[#e8e4e0] rounded-xl shadow-lg px-2 py-1.5 flex items-center gap-1`}
+                            onTouchStart={(e) => e.stopPropagation()}
                           >
                             {EMOJI_OPTIONS.map((emoji) => (
                               <button
                                 key={emoji}
                                 onClick={() => handleToggleReaction(msg.id, emoji)}
-                                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#f5f2ef] transition-colors text-lg"
+                                onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); handleToggleReaction(msg.id, emoji); }}
+                                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#f5f2ef] active:scale-125 transition-all text-lg"
                               >
                                 {emoji}
                               </button>
@@ -894,6 +903,7 @@ export default function TeamMessagesPage() {
                             className={`absolute z-20 ${
                               isSent ? "right-0" : "left-0"
                             } bottom-full mb-1 bg-white border border-[#e8e4e0] rounded-xl shadow-lg p-2 min-w-[180px] sm:min-w-[200px] max-h-[200px] overflow-y-auto`}
+                            onTouchStart={(e) => e.stopPropagation()}
                           >
                             <p className="text-[10px] font-semibold text-[#999] uppercase tracking-wide px-2 py-1">
                               Forward to...
@@ -904,7 +914,8 @@ export default function TeamMessagesPage() {
                                 <button
                                   key={member.id}
                                   onClick={() => handleForward(member, msg)}
-                                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[#f5f2ef] transition-colors text-left"
+                                  onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); handleForward(member, msg); }}
+                                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[#f5f2ef] active:bg-[#ebe7e3] transition-colors text-left"
                                 >
                                   <Avatar user={member} size={24} />
                                   <span className="text-xs text-[#1a1a1a] truncate">
@@ -1157,8 +1168,9 @@ export default function TeamMessagesPage() {
                               <button
                                 key={r.emoji}
                                 onClick={() => handleToggleReaction(msg.id, r.emoji)}
+                                onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); handleToggleReaction(msg.id, r.emoji); }}
                                 title={r.users.map((u) => u.display_name).join(", ")}
-                                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs border transition-colors ${
+                                className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs border transition-colors active:scale-110 ${
                                   r.reacted
                                     ? "bg-[#D4692A]/10 border-[#D4692A]/30 text-[#D4692A]"
                                     : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"

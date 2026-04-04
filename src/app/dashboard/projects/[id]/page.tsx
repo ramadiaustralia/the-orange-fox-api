@@ -2754,33 +2754,37 @@ export default function ProjectDetailPage() {
                         >
                           {/* Hover actions: Edit + Reply */}
                           {!isEditingMsg && (
-                            <div data-chat-actions className={`${activeMessageActions === msg.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"} transition-opacity absolute bottom-full mb-1 ${isMine ? "right-0 sm:-left-16 sm:right-auto" : "left-0 sm:-right-16 sm:left-auto"} sm:bottom-auto sm:mb-0 sm:top-1/2 sm:-translate-y-1/2 flex items-center gap-0.5 z-20`}>
+                            <div data-chat-actions className={`${activeMessageActions === msg.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"} transition-opacity absolute top-full mt-1 ${isMine ? "right-0 sm:-left-16 sm:right-auto" : "left-0 sm:-right-16 sm:left-auto"} sm:top-1/2 sm:mt-0 sm:-translate-y-1/2 flex items-center gap-0.5 bg-white border border-[#e8e4e0] rounded-lg shadow-md px-0.5 py-0.5 z-20`}>
                               <button
                                 onClick={() => setShowEmojiPickerFor(showEmojiPickerFor === msg.id ? null : msg.id)}
+                                onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); setShowEmojiPickerFor(showEmojiPickerFor === msg.id ? null : msg.id); }}
                                 title="React"
-                                className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-yellow-500 transition-colors"
+                                className="p-1.5 rounded-lg hover:bg-gray-100 active:bg-gray-200 text-gray-400 hover:text-yellow-500 transition-colors"
                               >
-                                <SmilePlus size={13} />
+                                <SmilePlus size={15} />
                               </button>
                               <button
-                                onClick={() => setReplyingTo(msg)}
+                                onClick={() => { setReplyingTo(msg); setActiveMessageActions(null); }}
+                                onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); setReplyingTo(msg); setActiveMessageActions(null); }}
                                 title="Reply"
-                                className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-[#D4692A] transition-colors"
+                                className="p-1.5 rounded-lg hover:bg-gray-100 active:bg-gray-200 text-gray-400 hover:text-[#D4692A] transition-colors"
                               >
-                                <Reply size={13} />
+                                <Reply size={15} />
                               </button>
                               {isMine && (
                                 <>
                                   <button
-                                    onClick={() => startEditing(msg)}
+                                    onClick={() => { startEditing(msg); setActiveMessageActions(null); }}
+                                    onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); startEditing(msg); setActiveMessageActions(null); }}
                                     title="Edit"
-                                    className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-blue-500 transition-colors"
+                                    className="p-1.5 rounded-lg hover:bg-gray-100 active:bg-gray-200 text-gray-400 hover:text-blue-500 transition-colors"
                                   >
-                                    <Pencil size={13} />
+                                    <Pencil size={15} />
                                   </button>
                                   <button
                                     onClick={async () => {
                                       if (!confirm("Delete this message?")) return;
+                                      setActiveMessageActions(null);
                                       try {
                                         const res = await fetch(`/api/projects/${projectId}/messages`, {
                                           method: "DELETE",
@@ -2790,10 +2794,11 @@ export default function ProjectDetailPage() {
                                         if (res.ok) fetchMessages();
                                       } catch { /* ignore */ }
                                     }}
+                                    onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); }}
                                     title="Delete"
-                                    className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors"
+                                    className="p-1.5 rounded-lg hover:bg-gray-100 active:bg-gray-200 text-gray-400 hover:text-red-500 transition-colors"
                                   >
-                                    <Trash2 size={13} />
+                                    <Trash2 size={15} />
                                   </button>
                                 </>
                               )}
@@ -2921,7 +2926,7 @@ export default function ProjectDetailPage() {
                               )}
                               {/* Read receipts popup */}
                               {showReadReceiptsFor === msg.id && readReceipts[msg.id] && readReceipts[msg.id].length > 0 && (
-                                <div data-read-receipt className="absolute bottom-full right-0 mb-1 bg-white border border-gray-200 rounded-xl shadow-lg p-3 z-40 min-w-[180px]">
+                                <div data-read-receipt className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg p-3 z-40 min-w-[180px]">
                                   <p className="text-[10px] font-semibold text-[#999] uppercase tracking-wider mb-2">Read by</p>
                                   <div className="space-y-2">
                                     {readReceipts[msg.id].map((r) => (
@@ -2946,7 +2951,7 @@ export default function ProjectDetailPage() {
                           {showEmojiPickerFor === msg.id && (
                             <div
                               data-emoji-picker
-                              className={`absolute ${isMine ? "right-0" : "left-0"} bottom-full mb-1 z-40 bg-white border border-gray-200 rounded-xl shadow-lg p-1.5 flex gap-0.5`}
+                              className={`absolute ${isMine ? "right-0" : "left-0"} top-full mt-1 z-40 bg-white border border-gray-200 rounded-xl shadow-lg p-1.5 flex gap-0.5`}
                               onTouchStart={(e) => e.stopPropagation()}
                             >
                               {QUICK_EMOJIS.map((emoji) => (
