@@ -4,11 +4,7 @@ import { authenticateRequest } from "@/lib/auth";
 
 
 async function isProjectMemberOrOwner(projectId: string, userId: string, badge: string): Promise<boolean> {
-  // Owner badge: always has access
   if (badge === "owner") return true;
-  // Board badge: always has access (observation)
-  if (badge === "board") return true;
-  // Others: must be a member
   const { data } = await getSupabaseAdmin()
     .from("project_members")
     .select("id")
@@ -16,20 +12,6 @@ async function isProjectMemberOrOwner(projectId: string, userId: string, badge: 
     .eq("user_id", userId)
     .single();
   return !!data;
-}
-
-async function isProjectLeaderOrOwner(projectId: string, userId: string, badge: string): Promise<boolean> {
-  // Owner badge: always can manage
-  if (badge === "owner") return true;
-  // Board badge: can observe but CANNOT manage/intervene
-  // Leader role in project: can manage
-  const { data } = await getSupabaseAdmin()
-    .from("project_members")
-    .select("id, role")
-    .eq("project_id", projectId)
-    .eq("user_id", userId)
-    .single();
-  return data?.role === "leader";
 }
 
 export async function GET(
@@ -41,11 +23,9 @@ export async function GET(
 
   const { id } = await params;
   const db = getSupabaseAdmin();
-  const badge = admin.badge || "staff";
 
   try {
-    // Check access
-    const hasAccess = await isProjectMemberOrOwner(id, admin.sub, badge);
+    const hasAccess = await isProjectMemberOrOwner(id, admin.sub, admin.badge || "staff");
     if (!hasAccess) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
@@ -101,72 +81,15 @@ export async function PATCH(
   const admin = await authenticateRequest(req);
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  // Only owner can update projects
+  if (admin.badge !== "owner") {
+    return NextResponse.json({ error: "Only the owner can update projects" }, { status: 403 });
+  }
+
   const { id } = await params;
-  const badge = admin.badge || "staff";
 
   try {
     const body = await req.json();
-
-    // Handle take_over_leadership action — owner badge only
-    if (body.action === "take_over_leadership") {
-      if (badge !== "owner") {
-        return NextResponse.json({ error: "Only owner badge can take over leadership" }, { status: 403 });
-      }
-
-      const db = getSupabaseAdmin();
-      const targetUserId = body.userId || admin.sub;
-
-      // Find the current leader
-      const { data: currentLeader } = await db
-        .from("project_members")
-        .select("id, user_id")
-        .eq("project_id", id)
-        .eq("role", "leader")
-        .single();
-
-      if (currentLeader) {
-        // Demote current leader to member
-        await db
-          .from("project_members")
-          .update({ role: "member" })
-          .eq("id", currentLeader.id);
-      }
-
-      // Check if target user is already a member
-      const { data: targetMember } = await db
-        .from("project_members")
-        .select("id")
-        .eq("project_id", id)
-        .eq("user_id", targetUserId)
-        .single();
-
-      if (targetMember) {
-        // Update existing membership to leader
-        await db
-          .from("project_members")
-          .update({ role: "leader" })
-          .eq("id", targetMember.id);
-      } else {
-        // Add as new leader
-        await db
-          .from("project_members")
-          .insert({ project_id: id, user_id: targetUserId, role: "leader" });
-      }
-
-      return NextResponse.json({ success: true, message: "Leadership transferred" });
-    }
-
-    // Regular project update
-    // Owner badge can always update; project leader can update; Board CANNOT update (read-only)
-    if (badge === "board") {
-      return NextResponse.json({ error: "Board members have read-only access to projects" }, { status: 403 });
-    }
-
-    const hasAccess = await isProjectLeaderOrOwner(id, admin.sub, badge);
-    if (!hasAccess) {
-      return NextResponse.json({ error: "Only owner or project leader can update" }, { status: 403 });
-    }
-
     const updates: Record<string, string> = {};
 
     if (body.name !== undefined) updates.name = body.name.trim();
@@ -206,10 +129,8 @@ export async function DELETE(
   const admin = await authenticateRequest(req);
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const badge = admin.badge || "staff";
-
-  // Only Owner badge can delete projects
-  if (badge !== "owner") {
+  // Only owner can delete projects
+  if (admin.badge !== "owner") {
     return NextResponse.json({ error: "Only the owner can delete projects" }, { status: 403 });
   }
 
@@ -217,11 +138,8 @@ export async function DELETE(
   const db = getSupabaseAdmin();
 
   try {
-    // Delete messages first (foreign key constraint)
     await db.from("project_messages").delete().eq("project_id", id);
-    // Delete members
     await db.from("project_members").delete().eq("project_id", id);
-    // Delete project
     const { error } = await db.from("projects").delete().eq("id", id);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });

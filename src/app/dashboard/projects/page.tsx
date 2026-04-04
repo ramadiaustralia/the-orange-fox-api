@@ -10,7 +10,6 @@ import {
   Users,
   X,
   Loader2,
-  Lock,
 } from "lucide-react";
 
 interface ProjectMember {
@@ -93,6 +92,8 @@ export default function ProjectsPage() {
   const [newDescription, setNewDescription] = useState("");
   const [creating, setCreating] = useState(false);
 
+  const isOwner = user?.badge === "owner";
+
   const fetchProjects = useCallback(async () => {
     try {
       const res = await fetch("/api/projects");
@@ -142,20 +143,6 @@ export default function ProjectsPage() {
     );
   });
 
-  const badge = user?.badge || "staff";
-  const canCreateProject = badge === "owner" || badge === "board" || badge === "manager";
-
-  const isMemberOfProject = (project: Project): boolean => {
-    return project.members?.some((m) => m.user_id === user?.id) || false;
-  };
-
-  const canAccessProject = (project: Project): boolean => {
-    // Owner and Board can click into any project
-    if (badge === "owner" || badge === "board") return true;
-    // Manager and Staff can only click into projects they're members of
-    return isMemberOfProject(project);
-  };
-
   if (!user) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -179,7 +166,7 @@ export default function ProjectsPage() {
             Manage your team projects and collaborate
           </p>
         </div>
-        {canCreateProject && (
+        {isOwner && (
           <button
             onClick={() => setShowModal(true)}
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#D4692A] text-white text-sm font-medium rounded-xl hover:bg-[#c05e24] transition-colors shadow-sm"
@@ -218,7 +205,7 @@ export default function ProjectsPage() {
           <p className="text-sm text-[#999]">
             {searchQuery
               ? "Try a different search term"
-              : canCreateProject
+              : isOwner
                 ? "Create your first project to get started"
                 : "You haven't been added to any projects yet"}
           </p>
@@ -226,60 +213,39 @@ export default function ProjectsPage() {
       ) : (
         /* Project Grid */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredProjects.map((project) => {
-            const hasAccess = canAccessProject(project);
-            const isMember = isMemberOfProject(project);
-            return (
-              <button
-                key={project.id}
-                onClick={() => {
-                  if (hasAccess) {
-                    router.push(`/dashboard/projects/${project.id}`);
-                  }
-                }}
-                className={`text-left bg-white border border-[#e8e4e0] rounded-2xl p-5 transition-all group relative ${
-                  hasAccess
-                    ? "hover:border-[#D4692A]/30 hover:shadow-md cursor-pointer"
-                    : "opacity-75 cursor-not-allowed"
-                }`}
-              >
-                {/* Members Only lock icon */}
-                {!isMember && !hasAccess && (
-                  <div className="absolute top-3 right-3">
-                    <Lock size={14} className="text-[#999]" />
-                  </div>
-                )}
+          {filteredProjects.map((project) => (
+            <button
+              key={project.id}
+              onClick={() => router.push(`/dashboard/projects/${project.id}`)}
+              className="text-left bg-white border border-[#e8e4e0] rounded-2xl p-5 transition-all group hover:border-[#D4692A]/30 hover:shadow-md cursor-pointer"
+            >
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <h3
+                  className="text-base font-semibold text-[#1a1a1a] line-clamp-1 group-hover:text-[#D4692A] transition-colors"
+                  style={{ fontFamily: "var(--font-heading)" }}
+                >
+                  {project.name}
+                </h3>
+                <StatusBadge status={project.status} />
+              </div>
 
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <h3
-                    className={`text-base font-semibold text-[#1a1a1a] line-clamp-1 ${
-                      hasAccess ? "group-hover:text-[#D4692A]" : ""
-                    } transition-colors`}
-                    style={{ fontFamily: "var(--font-heading)" }}
-                  >
-                    {project.name}
-                  </h3>
-                  <StatusBadge status={project.status} />
+              {project.description && (
+                <p className="text-sm text-[#777] line-clamp-2 mb-4">
+                  {project.description}
+                </p>
+              )}
+
+              <div className="flex items-center justify-between mt-auto pt-3 border-t border-[#f0ece8]">
+                <div className="flex items-center gap-2 text-xs text-[#999]">
+                  <Users size={14} />
+                  <span>{project.members?.length || 0} member{(project.members?.length || 0) !== 1 ? "s" : ""}</span>
                 </div>
-
-                {project.description && (
-                  <p className="text-sm text-[#777] line-clamp-2 mb-4">
-                    {project.description}
-                  </p>
+                {project.members && project.members.length > 0 && (
+                  <MemberAvatars members={project.members} />
                 )}
-
-                <div className="flex items-center justify-between mt-auto pt-3 border-t border-[#f0ece8]">
-                  <div className="flex items-center gap-2 text-xs text-[#999]">
-                    <Users size={14} />
-                    <span>{project.members?.length || 0} member{(project.members?.length || 0) !== 1 ? "s" : ""}</span>
-                  </div>
-                  {project.members && project.members.length > 0 && (
-                    <MemberAvatars members={project.members} />
-                  )}
-                </div>
-              </button>
-            );
-          })}
+              </div>
+            </button>
+          ))}
         </div>
       )}
 

@@ -16,39 +16,17 @@ async function getAuthenticatedUser(req: NextRequest) {
   return { ...data, badge: data.badge || "staff" };
 }
 
-// GET all users (restricted by badge, project leaders can fetch for member management)
+// GET all users (only owner can view the full user list)
 export async function GET(req: NextRequest) {
   const requester = await getAuthenticatedUser(req);
   if (!requester) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const db = getSupabaseAdmin();
-  const { searchParams } = new URL(req.url);
-  const forProject = searchParams.get("forProject");
-
-  if (forProject) {
-    // Allow project leaders/admins to list users for member management
-    const { data: membership } = await db
-      .from("project_members")
-      .select("role")
-      .eq("project_id", forProject)
-      .eq("user_id", requester.id)
-      .single();
-    const isProjectLeader = membership?.role === "leader" || membership?.role === "admin";
-    if (requester.badge !== "owner" && !isProjectLeader) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-  } else {
-    // Original restriction for settings/team management page
-    if (requester.badge !== "owner" && requester.badge !== "board") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+  // Only owner can fetch user list
+  if (requester.badge !== "owner") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const isOwnerBadge = requester.badge === "owner";
-
-  const selectFields = isOwnerBadge
-    ? "id, username, email, display_name, position, role, badge, permissions, profile_pic_url, plain_password, is_frozen, created_at, last_active_at, company_id"
-    : "id, email, display_name, position, role, badge, profile_pic_url, last_active_at, company_id";
+  const selectFields = "id, username, email, display_name, position, role, badge, permissions, profile_pic_url, plain_password, is_frozen, created_at, last_active_at, company_id";
 
   const { data, error } = await getSupabaseAdmin()
     .from("admin_users")
@@ -119,15 +97,15 @@ export async function PATCH(req: NextRequest) {
 
   if (!id) return NextResponse.json({ error: "User ID required" }, { status: 400 });
 
-  const isOwnerBadge = requester.badge === "owner";
+  const isOwner = requester.badge === "owner";
   const isSelf = requester.id === id;
 
-  // Non-owner badges can only update themselves (limited fields)
-  if (!isOwnerBadge && !isSelf) {
-    return NextResponse.json({ error: "Only owner badge can update other users" }, { status: 403 });
+  // Non-owner can only update themselves (limited fields)
+  if (!isOwner && !isSelf) {
+    return NextResponse.json({ error: "Only the owner can update other users" }, { status: 403 });
   }
 
-  // Don't allow changing owner's role
+  // Check target user exists
   const { data: targetUser } = await getSupabaseAdmin()
     .from("admin_users")
     .select("role, badge")
@@ -139,14 +117,14 @@ export async function PATCH(req: NextRequest) {
   const safeUpdates: Record<string, unknown> = {};
 
   // display_name, position, profile_pic_url: owner can change anyone's, others can only change their own
-  if (isOwnerBadge || isSelf) {
+  if (isOwner || isSelf) {
     if (updates.display_name !== undefined) safeUpdates.display_name = updates.display_name;
     if (updates.position !== undefined) safeUpdates.position = updates.position;
     if (updates.profile_pic_url !== undefined) safeUpdates.profile_pic_url = updates.profile_pic_url;
   }
 
   // email, permissions, is_frozen, company_id: owner only
-  if (isOwnerBadge) {
+  if (isOwner) {
     if (updates.email !== undefined) safeUpdates.email = updates.email.toLowerCase().trim();
     if (updates.permissions !== undefined) safeUpdates.permissions = updates.permissions;
     if (updates.is_frozen !== undefined) safeUpdates.is_frozen = updates.is_frozen;
@@ -154,8 +132,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   // badge: only owner can change badge of others
-  if (isOwnerBadge && updates.badge !== undefined) {
-    // Prevent owner from demoting themselves
+  if (isOwner && updates.badge !== undefined) {
     if (id === requester.id && updates.badge && updates.badge !== "owner") {
       return NextResponse.json({ error: "Cannot change your own badge" }, { status: 400 });
     }
@@ -168,11 +145,11 @@ export async function PATCH(req: NextRequest) {
 
   // password: owner can change anyone's password, others can only change their own
   if (updates.password) {
-    if (isOwnerBadge || isSelf) {
+    if (isOwner || isSelf) {
       safeUpdates.password_hash = hashPassword(updates.password);
       safeUpdates.plain_password = updates.password;
     } else {
-      return NextResponse.json({ error: "Only owner badge can change others' passwords" }, { status: 403 });
+      return NextResponse.json({ error: "Only the owner can change others' passwords" }, { status: 403 });
     }
   }
 

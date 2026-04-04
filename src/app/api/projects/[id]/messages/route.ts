@@ -4,11 +4,7 @@ import { authenticateRequest } from "@/lib/auth";
 
 
 async function isProjectMemberOrOwner(projectId: string, userId: string, badge: string): Promise<boolean> {
-  // Owner badge can send/read messages in any project
   if (badge === "owner") return true;
-  // Board badge can send/read messages in any project (for discussion)
-  if (badge === "board") return true;
-  // Others: must be a member
   const { data } = await getSupabaseAdmin()
     .from("project_members")
     .select("id")
@@ -26,10 +22,9 @@ export async function GET(
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const badge = admin.badge || "staff";
 
   try {
-    const hasAccess = await isProjectMemberOrOwner(id, admin.sub, badge);
+    const hasAccess = await isProjectMemberOrOwner(id, admin.sub, admin.badge || "staff");
     if (!hasAccess) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
@@ -57,10 +52,9 @@ export async function POST(
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const badge = admin.badge || "staff";
 
   try {
-    const hasAccess = await isProjectMemberOrOwner(id, admin.sub, badge);
+    const hasAccess = await isProjectMemberOrOwner(id, admin.sub, admin.badge || "staff");
     if (!hasAccess) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
@@ -102,10 +96,9 @@ export async function PATCH(
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const badge = admin.badge || "staff";
 
   try {
-    const hasAccess = await isProjectMemberOrOwner(id, admin.sub, badge);
+    const hasAccess = await isProjectMemberOrOwner(id, admin.sub, admin.badge || "staff");
     if (!hasAccess) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }

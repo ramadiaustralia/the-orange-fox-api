@@ -8,11 +8,11 @@ export async function GET(req: NextRequest) {
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const db = getSupabaseAdmin();
-  const badge = admin.badge || "staff";
+  const isOwner = admin.badge === "owner";
 
   try {
-    if (badge === "owner" || badge === "board") {
-      // Owner and Board see ALL projects
+    if (isOwner) {
+      // Owner sees ALL projects
       const { data, error } = await db
         .from("projects")
         .select("*, members:project_members(*, user:admin_users(id, display_name, position, profile_pic_url))")
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       return NextResponse.json({ projects: data || [] });
     } else {
-      // Manager/Staff sees only projects they are a member of
+      // Non-owner sees only projects they are a member of
       const { data: memberRows, error: memberError } = await db
         .from("project_members")
         .select("project_id")
@@ -54,11 +54,9 @@ export async function POST(req: NextRequest) {
   const admin = await authenticateRequest(req);
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const badge = admin.badge || "staff";
-
-  // Owner, Board, AND Manager badges can create projects
-  if (!["owner", "board", "manager"].includes(badge)) {
-    return NextResponse.json({ error: "Only owner, board, and manager can create projects" }, { status: 403 });
+  // Only owner can create projects
+  if (admin.badge !== "owner") {
+    return NextResponse.json({ error: "Only the owner can create projects" }, { status: 403 });
   }
 
   try {
@@ -83,13 +81,13 @@ export async function POST(req: NextRequest) {
 
     if (projectError) return NextResponse.json({ error: projectError.message }, { status: 500 });
 
-    // Auto-add the creator as leader member
+    // Auto-add the owner as a member
     const { error: memberError } = await db
       .from("project_members")
       .insert({
         project_id: project.id,
         user_id: admin.sub,
-        role: "leader",
+        role: "member",
       });
 
     if (memberError) {

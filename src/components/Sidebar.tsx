@@ -171,24 +171,19 @@ export default function Sidebar({ collapsed, onToggle, mobile, onClose }: Sideba
               {section.items.filter((item) => {
                 if (!user) return true;
 
-                const badge = user.badge;
-
                 // Owner sees everything
-                if (badge === "owner") return true;
+                if (user.badge === "owner") return true;
 
                 // Always-visible items for all badges
                 if (alwaysVisibleHrefs.has(item.href)) return true;
 
                 const perm = hrefToPermission[item.href];
 
-                // Settings: ONLY visible to Owner badge
+                // Settings: ONLY visible to Owner
                 if (perm === "settings") return false;
 
-                // Board: show everything except Settings (already handled above)
-                if (badge === "board") return true;
-
-                // Manager/Staff: show based on can_edit permissions
-                if (!perm) return true; // No permission mapping = always visible
+                // Others: show based on can_edit permissions
+                if (!perm) return true;
                 return user.permissions?.can_edit?.includes(perm);
               }).map((item) => {
                 const Icon = item.icon;

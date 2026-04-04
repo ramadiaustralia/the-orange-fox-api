@@ -17,10 +17,6 @@ import {
   MessageSquare,
   Check,
   ChevronDown,
-  Eye,
-  ArrowRightLeft,
-  Crown,
-  Shield,
 } from "lucide-react";
 
 interface MemberUser {
@@ -79,29 +75,6 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider ${c.bg} ${c.text}`}>
       {c.label}
-    </span>
-  );
-}
-
-function RoleBadge({ role }: { role: string }) {
-  if (role === "leader") {
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-[#D4692A]/10 text-[#D4692A]">
-        <Crown size={10} /> Leader
-      </span>
-    );
-  }
-  if (role === "admin") {
-    // Legacy support — treat as leader
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-[#D4692A]/10 text-[#D4692A]">
-        <Crown size={10} /> Leader
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-gray-100 text-gray-500">
-      Member
     </span>
   );
 }
@@ -173,10 +146,6 @@ export default function ProjectDetailPage() {
   const [addingMember, setAddingMember] = useState(false);
   const [addMemberError, setAddMemberError] = useState("");
 
-  // Transfer leadership
-  const [showTransferModal, setShowTransferModal] = useState(false);
-  const [transferring, setTransferring] = useState(false);
-
   // Edit project
   const [editingProject, setEditingProject] = useState(false);
   const [editName, setEditName] = useState("");
@@ -190,20 +159,8 @@ export default function ProjectDetailPage() {
   const shouldAutoScroll = useRef(true);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  const badge = user?.badge || "staff";
-  const isOwnerBadge = badge === "owner";
-  const isBoardBadge = badge === "board";
-
-  // Find current user's membership
-  const myMembership = members.find((m) => m.user_id === user?.id);
-  const isLeader = myMembership?.role === "leader" || myMembership?.role === "admin";
-  const isMember = !!myMembership;
-
-  // Permission checks
-  const canManageProject = isLeader || isOwnerBadge; // Leader + Owner can edit project settings
-  const canManageMembers = isLeader || isOwnerBadge; // Leader + Owner can add/remove members
-  const canChangeStatus = isLeader || isOwnerBadge; // Leader + Owner can change status
-  const canTransferLeadership = isLeader || isOwnerBadge;
+  // Simple permission: only owner can manage
+  const isOwner = user?.badge === "owner";
 
   // Fetch project data
   const fetchProject = useCallback(async () => {
@@ -248,7 +205,7 @@ export default function ProjectDetailPage() {
     return () => clearInterval(interval);
   }, [project, fetchMessages]);
 
-  // Auto-scroll: only scroll the chat container, never the page
+  // Auto-scroll
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (container && shouldAutoScroll.current) {
@@ -272,8 +229,6 @@ export default function ProjectDetailPage() {
       if (res.ok) {
         const data = await res.json();
         setAllUsers(data.users || []);
-      } else if (res.status === 403) {
-        setAddMemberError("You don't have permission to view the user list.");
       } else {
         setAddMemberError("Failed to load users. Please try again.");
       }
@@ -321,49 +276,6 @@ export default function ProjectDetailPage() {
       }
     } catch {
       alert("Failed to remove member. Please try again.");
-    }
-  };
-
-  // Owner intervene — take over leadership
-  const [takingOver, setTakingOver] = useState(false);
-
-  const handleTakeOverLeadership = async () => {
-    if (!confirm("Take over as project leader? The current leader will be demoted to member.")) return;
-    setTakingOver(true);
-    try {
-      const res = await fetch(`/api/projects/${projectId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "take_over_leadership" }),
-      });
-      if (res.ok) {
-        await fetchProject();
-      }
-    } catch {
-      /* ignore */
-    } finally {
-      setTakingOver(false);
-    }
-  };
-
-  // Transfer leadership
-  const handleTransferLeadership = async (newLeaderId: string) => {
-    if (!confirm("Transfer project leadership to this member?")) return;
-    setTransferring(true);
-    try {
-      const res = await fetch(`/api/projects/${projectId}/members`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "transfer_leadership", newLeaderId }),
-      });
-      if (res.ok) {
-        await fetchProject();
-        setShowTransferModal(false);
-      }
-    } catch {
-      /* ignore */
-    } finally {
-      setTransferring(false);
     }
   };
 
@@ -497,7 +409,7 @@ export default function ProjectDetailPage() {
 
   const handleStatusChange = async (newStatus: string) => {
     setShowStatusDropdown(false);
-    if (!canChangeStatus) return;
+    if (!isOwner) return;
     try {
       const res = await fetch(`/api/projects/${projectId}`, {
         method: "PATCH",
@@ -522,11 +434,6 @@ export default function ProjectDetailPage() {
   // Get users not already in the project
   const availableUsers = allUsers.filter(
     (u) => !members.some((m) => m.user_id === u.id)
-  );
-
-  // Members eligible for leadership transfer (not the current leader)
-  const transferCandidates = members.filter(
-    (m) => m.role !== "leader" && m.role !== "admin"
   );
 
   if (!user || loading) {
@@ -625,7 +532,7 @@ export default function ProjectDetailPage() {
                 >
                   {project.name}
                 </h1>
-                {canChangeStatus ? (
+                {isOwner ? (
                   <div className="relative">
                     <button
                       onClick={() => setShowStatusDropdown(!showStatusDropdown)}
@@ -660,41 +567,13 @@ export default function ProjectDetailPage() {
                 ) : (
                   <StatusBadge status={project.status} />
                 )}
-                {/* Board observer indicator */}
-                {isBoardBadge && !isLeader && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-purple-500/10 text-purple-600 border border-purple-500/20">
-                    <Eye size={10} /> Observer
-                  </span>
-                )}
               </div>
               {project.description && (
                 <p className="text-sm text-[#777] mt-1">{project.description}</p>
               )}
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              {/* Owner Intervene button — take over leadership when not already leader */}
-              {isOwnerBadge && !isLeader && (
-                <button
-                  onClick={handleTakeOverLeadership}
-                  disabled={takingOver}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm text-white bg-[#D4692A] hover:bg-[#c05e24] disabled:opacity-50 rounded-xl transition-colors font-medium"
-                  title="Take over as Project Leader"
-                >
-                  {takingOver ? <Loader2 size={14} className="animate-spin" /> : <Shield size={14} />}
-                  Intervene
-                </button>
-              )}
-              {canTransferLeadership && transferCandidates.length > 0 && (
-                <button
-                  onClick={() => setShowTransferModal(true)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm text-[#999] hover:text-[#1a1a1a] hover:bg-gray-100 rounded-xl transition-colors"
-                  title="Transfer Leadership"
-                >
-                  <ArrowRightLeft size={14} />
-                  Transfer
-                </button>
-              )}
-              {canManageProject && (
+              {isOwner && (
                 <button
                   onClick={startEditingProject}
                   className="inline-flex items-center gap-1.5 px-4 py-2 text-sm text-[#999] hover:text-[#1a1a1a] hover:bg-gray-100 rounded-xl transition-colors"
@@ -720,7 +599,7 @@ export default function ProjectDetailPage() {
               >
                 Members ({members.length})
               </h2>
-              {canManageMembers && (
+              {isOwner && (
                 <button
                   onClick={handleOpenAddMember}
                   className="p-1.5 rounded-lg hover:bg-[#D4692A]/10 text-[#D4692A] transition-colors"
@@ -739,17 +618,14 @@ export default function ProjectDetailPage() {
                 >
                   <Avatar user={member.user} size={36} />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-[#1a1a1a] truncate">
-                        {member.user.display_name}
-                      </span>
-                      <RoleBadge role={member.role} />
-                    </div>
+                    <span className="text-sm font-medium text-[#1a1a1a] truncate block">
+                      {member.user.display_name}
+                    </span>
                     {member.user.position && (
                       <p className="text-xs text-[#999] truncate">{member.user.position}</p>
                     )}
                   </div>
-                  {canManageMembers && member.user_id !== user?.id && member.role !== "leader" && member.role !== "admin" && (
+                  {isOwner && member.user_id !== user?.id && (
                     <button
                       onClick={() => handleRemoveMember(member.user_id)}
                       className="p-1.5 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors flex-shrink-0"
@@ -816,58 +692,6 @@ export default function ProjectDetailPage() {
                           )}
                         </div>
                         <UserPlus size={16} className="text-[#D4692A] flex-shrink-0" />
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Transfer Leadership Modal */}
-          {showTransferModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowTransferModal(false)} />
-              <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-5 z-10 max-h-[70vh] flex flex-col">
-                <div className="flex items-center justify-between mb-4">
-                  <h3
-                    className="text-base font-bold text-[#1a1a1a]"
-                    style={{ fontFamily: "var(--font-heading)" }}
-                  >
-                    Transfer Leadership
-                  </h3>
-                  <button
-                    onClick={() => setShowTransferModal(false)}
-                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-                <p className="text-xs text-[#999] mb-4">Select a member to become the new project leader.</p>
-
-                <div className="flex-1 overflow-y-auto space-y-1">
-                  {transferCandidates.length === 0 ? (
-                    <p className="text-sm text-[#999] text-center py-6">
-                      No eligible members to transfer leadership to
-                    </p>
-                  ) : (
-                    transferCandidates.map((m) => (
-                      <button
-                        key={m.id}
-                        onClick={() => handleTransferLeadership(m.user_id)}
-                        disabled={transferring}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#faf8f6] transition-colors text-left disabled:opacity-50"
-                      >
-                        <Avatar user={m.user} size={36} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-[#1a1a1a] truncate">
-                            {m.user.display_name}
-                          </p>
-                          {m.user.position && (
-                            <p className="text-xs text-[#999] truncate">{m.user.position}</p>
-                          )}
-                        </div>
-                        <Crown size={16} className="text-[#D4692A] flex-shrink-0" />
                       </button>
                     ))
                   )}
@@ -979,11 +803,7 @@ export default function ProjectDetailPage() {
                           {msg.attachment_url && (
                             <div className="mb-2 min-w-[200px]">
                               {isImageAttachment(msg.attachment_type) ? (
-                                <a
-                                  href={msg.attachment_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
+                                <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer">
                                   <img
                                     src={msg.attachment_url}
                                     alt={msg.attachment_name || "Image"}
@@ -1003,35 +823,19 @@ export default function ProjectDetailPage() {
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className={`flex items-center gap-2 p-2.5 rounded-lg ${
-                                    isMine
-                                      ? "bg-white/10"
-                                      : "bg-gray-50 border border-gray-100"
+                                    isMine ? "bg-white/10" : "bg-gray-50 border border-gray-100"
                                   }`}
                                 >
-                                  <FileText
-                                    size={18}
-                                    className={isMine ? "text-white/70" : "text-gray-400"}
-                                  />
+                                  <FileText size={18} className={isMine ? "text-white/70" : "text-gray-400"} />
                                   <div className="min-w-0 flex-1">
-                                    <p
-                                      className={`text-xs font-medium truncate ${
-                                        isMine ? "text-white" : "text-gray-700"
-                                      }`}
-                                    >
+                                    <p className={`text-xs font-medium truncate ${isMine ? "text-white" : "text-gray-700"}`}>
                                       {msg.attachment_name || "File"}
                                     </p>
-                                    <p
-                                      className={`text-[10px] ${
-                                        isMine ? "text-white/50" : "text-gray-400"
-                                      }`}
-                                    >
+                                    <p className={`text-[10px] ${isMine ? "text-white/50" : "text-gray-400"}`}>
                                       {formatFileSize(msg.attachment_size)}
                                     </p>
                                   </div>
-                                  <Download
-                                    size={14}
-                                    className={isMine ? "text-white/60" : "text-gray-400"}
-                                  />
+                                  <Download size={14} className={isMine ? "text-white/60" : "text-gray-400"} />
                                 </a>
                               )}
                             </div>
@@ -1040,24 +844,12 @@ export default function ProjectDetailPage() {
                           {msg.content && (
                             <p className="whitespace-pre-wrap break-words">{msg.content}</p>
                           )}
-                          <div
-                            className={`flex items-center gap-1.5 mt-1.5 ${
-                              isMine ? "justify-end" : ""
-                            }`}
-                          >
-                            <p
-                              className={`text-[10px] ${
-                                isMine ? "text-white/50" : "text-[#999]"
-                              }`}
-                            >
+                          <div className={`flex items-center gap-1.5 mt-1.5 ${isMine ? "justify-end" : ""}`}>
+                            <p className={`text-[10px] ${isMine ? "text-white/50" : "text-[#999]"}`}>
                               {formatMessageTime(msg.created_at)}
                             </p>
                             {isEdited && (
-                              <span
-                                className={`text-[10px] italic ${
-                                  isMine ? "text-white/40" : "text-[#aaa]"
-                                }`}
-                              >
+                              <span className={`text-[10px] italic ${isMine ? "text-white/40" : "text-[#aaa]"}`}>
                                 (edited)
                               </span>
                             )}
