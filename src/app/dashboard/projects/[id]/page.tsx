@@ -345,7 +345,7 @@ function renderRichText(text: string): React.ReactNode {
 
 // --- Chat Content Renderer with @Mentions ---
 
-function renderChatContent(content: string, projectMembers: ProjectMember[]): React.ReactNode {
+function renderChatContent(content: string, projectMembers: ProjectMember[], isMine?: boolean): React.ReactNode {
   if (!content) return null;
   const names = projectMembers.map((m) => m.user.display_name);
   names.sort((a, b) => b.length - a.length);
@@ -356,7 +356,7 @@ function renderChatContent(content: string, projectMembers: ProjectMember[]): Re
   return parts.map((part, idx) => {
     if (part.startsWith("@") && names.some((n) => part === `@${n}`)) {
       return (
-        <span key={idx} className="text-[#D4692A] font-semibold">
+        <span key={idx} className={isMine ? "text-white font-bold underline decoration-white/50" : "text-[#D4692A] font-semibold"}>
           {part}
         </span>
       );
@@ -2464,7 +2464,7 @@ export default function ProjectDetailPage() {
                               )}
 
                               {msg.content && (
-                                <p className="whitespace-pre-wrap break-words">{renderChatContent(msg.content, members)}</p>
+                                <p className="whitespace-pre-wrap break-words">{renderChatContent(msg.content, members, isMine)}</p>
                               )}
                               <div className={`flex items-center gap-1.5 mt-1.5 ${isMine ? "justify-end" : ""}`}>
                                 <p className={`text-[10px] ${isMine ? "text-white/50" : "text-[#999]"}`}>{formatMessageTime(msg.created_at)}</p>
