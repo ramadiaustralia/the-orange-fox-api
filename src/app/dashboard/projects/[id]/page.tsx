@@ -428,7 +428,7 @@ export default function ProjectDetailPage() {
   const [myRole, setMyRole] = useState<string>("member");
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<"tasks" | "board" | "chat" | "activity">("tasks");
+  const [activeTab, setActiveTab] = useState<"tasks" | "board" | "chat" | "activity">("chat");
 
   // Chat state
   const [newMessage, setNewMessage] = useState("");
@@ -1702,9 +1702,9 @@ export default function ProjectDetailPage() {
           {/* Tab Headers */}
           <div className="flex border-b border-[#f0ece8] bg-white flex-shrink-0 overflow-x-auto">
             {([
+              { key: "chat" as const, label: "Chat", icon: <MessageSquare size={16} />, count: undefined },
               { key: "tasks" as const, label: "Tasks", icon: <ListTodo size={16} />, count: tasks.length },
               { key: "board" as const, label: "Board", icon: <Columns size={16} />, count: undefined },
-              { key: "chat" as const, label: "Chat", icon: <MessageSquare size={16} />, count: undefined },
               { key: "activity" as const, label: "Activity", icon: <Activity size={16} />, count: undefined },
             ]).map((tab) => (
               <button
