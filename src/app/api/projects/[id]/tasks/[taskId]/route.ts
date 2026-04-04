@@ -89,12 +89,6 @@ export async function PATCH(
 
   const { id, taskId } = await params;
 
-  // Only commissioner/leader/owner can update tasks
-  const myRole = await getProjectRole(id, admin.sub);
-  if (myRole !== "commissioner" && myRole !== "leader" && admin.badge !== "owner") {
-    return NextResponse.json({ error: "Only the commissioner or leader can update tasks" }, { status: 403 });
-  }
-
   try {
     const { title, description, priority, status, assigneeIds, deadline, status_change_permission } = await req.json();
 
@@ -110,6 +104,32 @@ export async function PATCH(
 
     if (!currentTask) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    }
+
+    // Check if user is commissioner/leader/owner
+    const myRole = await getProjectRole(id, admin.sub);
+    const isPrivileged = myRole === "commissioner" || myRole === "leader" || admin.badge === "owner";
+    const isCreator = currentTask.created_by === admin.sub;
+
+    // If user is not privileged, check if they are the creator editing only the deadline
+    if (!isPrivileged) {
+      if (!isCreator) {
+        return NextResponse.json({ error: "Only the commissioner or leader can update tasks" }, { status: 403 });
+      }
+
+      // Creator can only edit deadline - check if they're trying to change other fields
+      const nonDeadlineFields = { title, description, priority, status, assigneeIds, status_change_permission };
+      const hasNonDeadlineChanges = Object.entries(nonDeadlineFields).some(
+        ([, value]) => value !== undefined
+      );
+
+      if (hasNonDeadlineChanges) {
+        return NextResponse.json({ error: "As the task creator, you can only edit the deadline" }, { status: 403 });
+      }
+
+      if (deadline === undefined) {
+        return NextResponse.json({ error: "No changes provided" }, { status: 400 });
+      }
     }
 
     // Enforce status_change_permission when changing status

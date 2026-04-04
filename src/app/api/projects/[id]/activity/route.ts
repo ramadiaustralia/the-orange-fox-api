@@ -57,3 +57,41 @@ export async function GET(
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+
+// DELETE: Delete an activity log (Commissioner or Owner only)
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const admin = await authenticateRequest(req);
+  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id } = await params;
+  const { searchParams } = new URL(req.url);
+  const activityId = searchParams.get("activityId");
+
+  if (!activityId) {
+    return NextResponse.json({ error: "activityId query param is required" }, { status: 400 });
+  }
+
+  try {
+    // Only commissioner or owner can delete activity logs
+    const myRole = await getProjectRole(id, admin.sub);
+    if (myRole !== "commissioner" && admin.badge !== "owner") {
+      return NextResponse.json({ error: "Only the commissioner can delete activity logs" }, { status: 403 });
+    }
+
+    const { error } = await getSupabaseAdmin()
+      .from("activity_logs")
+      .delete()
+      .eq("id", activityId)
+      .eq("project_id", id);
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    return NextResponse.json({ success: true });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Server error";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}

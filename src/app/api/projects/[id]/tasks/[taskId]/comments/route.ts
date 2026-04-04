@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { authenticateRequest } from "@/lib/auth";
-import { createNotificationBulk } from "@/lib/notifications";
+import { createNotification, createNotificationBulk } from "@/lib/notifications";
 import { logActivity } from "@/lib/activity";
 
 
@@ -199,6 +199,35 @@ export async function POST(
         }));
 
         await createNotificationBulk(mentionNotifications);
+      }
+    }
+
+    // Send reply notification to original comment author
+    if (reply_to_id) {
+      const { data: originalComment } = await db
+        .from("project_task_comments")
+        .select("user_id")
+        .eq("id", reply_to_id)
+        .single();
+
+      if (originalComment && originalComment.user_id !== admin.sub) {
+        // Don't double-notify if already notified as an assignee or mentioned user
+        const assigneeIds = new Set((assignees || []).map((a: { user_id: string }) => a.user_id));
+        const mentionIds = new Set(
+          mentions && Array.isArray(mentions) ? mentions : []
+        );
+
+        if (!assigneeIds.has(originalComment.user_id) && !mentionIds.has(originalComment.user_id)) {
+          await createNotification({
+            userId: originalComment.user_id,
+            actorId: admin.sub,
+            type: "comment_reply",
+            projectId: id,
+            taskId: taskId,
+            title: task.title,
+            message: `${admin.display_name} replied to your comment on task "${task.title}"`,
+          });
+        }
       }
     }
 
