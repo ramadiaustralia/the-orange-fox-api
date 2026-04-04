@@ -16,10 +16,33 @@ async function getAuthenticatedUser(req: NextRequest) {
   return { ...data, badge: data.badge || "staff" };
 }
 
-// GET all users (all authenticated users can list, only owner badge sees sensitive fields)
+// GET all users (restricted by badge, project leaders can fetch for member management)
 export async function GET(req: NextRequest) {
   const requester = await getAuthenticatedUser(req);
   if (!requester) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const db = getSupabaseAdmin();
+  const { searchParams } = new URL(req.url);
+  const forProject = searchParams.get("forProject");
+
+  if (forProject) {
+    // Allow project leaders/admins to list users for member management
+    const { data: membership } = await db
+      .from("project_members")
+      .select("role")
+      .eq("project_id", forProject)
+      .eq("user_id", requester.id)
+      .single();
+    const isProjectLeader = membership?.role === "leader" || membership?.role === "admin";
+    if (requester.badge !== "owner" && !isProjectLeader) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  } else {
+    // Original restriction for settings/team management page
+    if (requester.badge !== "owner" && requester.badge !== "board") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
 
   const isOwnerBadge = requester.badge === "owner";
 
@@ -132,6 +155,14 @@ export async function PATCH(req: NextRequest) {
 
   // badge: only owner can change badge of others
   if (isOwnerBadge && updates.badge !== undefined) {
+    // Prevent owner from demoting themselves
+    if (id === requester.id && updates.badge && updates.badge !== "owner") {
+      return NextResponse.json({ error: "Cannot change your own badge" }, { status: 400 });
+    }
+    const VALID_BADGES = ["owner", "board", "manager", "staff"];
+    if (updates.badge && !VALID_BADGES.includes(updates.badge)) {
+      return NextResponse.json({ error: "Invalid badge value" }, { status: 400 });
+    }
     safeUpdates.badge = updates.badge;
   }
 

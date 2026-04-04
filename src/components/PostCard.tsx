@@ -415,15 +415,17 @@ export default function PostCard({
         </div>
 
         {/* Edit & Delete */}
-        {isAuthor && (
+        {(isAuthor || currentUserBadge === "owner") && (
           <div className="flex items-center gap-1">
-            <button
-              onClick={handleEditStart}
-              className="p-1.5 rounded-lg text-text-muted hover:text-[#D4692A] hover:bg-[#D4692A]/5 transition-all duration-200"
-              title="Edit post"
-            >
-              <Pencil size={16} />
-            </button>
+            {isAuthor && (
+              <button
+                onClick={handleEditStart}
+                className="p-1.5 rounded-lg text-text-muted hover:text-[#D4692A] hover:bg-[#D4692A]/5 transition-all duration-200"
+                title="Edit post"
+              >
+                <Pencil size={16} />
+              </button>
+            )}
             <button
               onClick={handleDelete}
               className="p-1.5 rounded-lg text-text-muted hover:text-red-500 hover:bg-red-50 transition-all duration-200"

@@ -59,6 +59,11 @@ export async function POST(req: NextRequest) {
   const admin = await verifyToken(token);
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const badge = admin.badge || "staff";
+  if (badge === "staff") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const { text, from, to } = await req.json();
   if (!text || !from || !to) {
     return NextResponse.json({ error: "text, from, and to are required" }, { status: 400 });

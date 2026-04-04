@@ -22,7 +22,15 @@ export async function POST(req: NextRequest) {
   const admin = await authenticateRequest(req);
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const badge = admin.badge || "staff";
   const body = await req.json();
+  const section = body.section;
+
+  // Only owner can modify site settings
+  if (section === "site_settings" && badge !== "owner") {
+    return NextResponse.json({ error: "Only the owner can modify site settings" }, { status: 403 });
+  }
+
   const { data, error } = await getSupabaseAdmin()
     .from("site_content")
     .upsert(

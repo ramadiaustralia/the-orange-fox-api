@@ -37,15 +37,13 @@ export async function authenticateRequest(req: { cookies: { get: (name: string) 
   const payload = await verifyToken(token);
   if (!payload) return null;
   
-  // If badge is missing (old JWT token), look it up from DB
-  if (!payload.badge) {
-    const { data } = await getSupabaseAdmin()
-      .from("admin_users")
-      .select("badge")
-      .eq("id", payload.sub)
-      .single();
-    payload.badge = data?.badge || "staff";
-  }
+  // Always fetch fresh badge from DB to handle badge changes without re-login
+  const { data: badgeData } = await getSupabaseAdmin()
+    .from("admin_users")
+    .select("badge")
+    .eq("id", payload.sub)
+    .single();
+  payload.badge = badgeData?.badge || payload.badge || "staff";
   
   return payload;
 }

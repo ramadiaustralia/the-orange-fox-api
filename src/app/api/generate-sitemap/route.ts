@@ -1,8 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { authenticateRequest } from "@/lib/auth";
 
 const PAGES = ["home", "about", "services", "process", "pricing", "contact", "faq"];
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const admin = await authenticateRequest(req);
+  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const badge = admin.badge || "staff";
+  if (badge === "staff") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   try {
     const baseUrl = "https://the-orange-fox-web.vercel.app";
     const entries: { loc: string; lastmod: string; priority: string; changefreq: string }[] = [];

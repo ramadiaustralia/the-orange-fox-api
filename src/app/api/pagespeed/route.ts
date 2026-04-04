@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { authenticateRequest } from "@/lib/auth";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -7,6 +8,14 @@ const supabase = createClient(
 );
 
 export async function GET(req: NextRequest) {
+  const admin = await authenticateRequest(req);
+  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const badge = admin.badge || "staff";
+  if (badge === "staff") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const url = req.nextUrl.searchParams.get("url") || "https://the-orange-fox-web.vercel.app";
   const strategy = req.nextUrl.searchParams.get("strategy") || "mobile";
   

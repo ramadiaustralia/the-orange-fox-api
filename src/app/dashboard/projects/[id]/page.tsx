@@ -171,6 +171,7 @@ export default function ProjectDetailPage() {
   const [showAddMember, setShowAddMember] = useState(false);
   const [allUsers, setAllUsers] = useState<AdminUser[]>([]);
   const [addingMember, setAddingMember] = useState(false);
+  const [addMemberError, setAddMemberError] = useState("");
 
   // Transfer leadership
   const [showTransferModal, setShowTransferModal] = useState(false);
@@ -264,16 +265,21 @@ export default function ProjectDetailPage() {
 
   // Fetch all users for adding members
   const fetchUsers = useCallback(async () => {
+    setAddMemberError("");
     try {
-      const res = await fetch("/api/auth/users");
+      const res = await fetch(`/api/auth/users?forProject=${projectId}`);
       if (res.ok) {
         const data = await res.json();
         setAllUsers(data.users || []);
+      } else if (res.status === 403) {
+        setAddMemberError("You don't have permission to view the user list.");
+      } else {
+        setAddMemberError("Failed to load users. Please try again.");
       }
     } catch {
-      /* ignore */
+      setAddMemberError("Network error. Please try again.");
     }
-  }, []);
+  }, [projectId]);
 
   const handleOpenAddMember = () => {
     fetchUsers();
@@ -282,6 +288,7 @@ export default function ProjectDetailPage() {
 
   const handleAddMember = async (userId: string) => {
     setAddingMember(true);
+    setAddMemberError("");
     try {
       const res = await fetch(`/api/projects/${projectId}/members`, {
         method: "POST",
@@ -291,9 +298,12 @@ export default function ProjectDetailPage() {
       if (res.ok) {
         await fetchProject();
         setShowAddMember(false);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setAddMemberError(data.error || "Failed to add member.");
       }
     } catch {
-      /* ignore */
+      setAddMemberError("Failed to add member. Please try again.");
     } finally {
       setAddingMember(false);
     }
@@ -309,7 +319,7 @@ export default function ProjectDetailPage() {
         await fetchProject();
       }
     } catch {
-      /* ignore */
+      alert("Failed to remove member. Please try again.");
     }
   };
 
@@ -675,7 +685,7 @@ export default function ProjectDetailPage() {
               )}
               {canTransferLeadership && transferCandidates.length > 0 && (
                 <button
-                  onClick={() => { fetchUsers(); setShowTransferModal(true); }}
+                  onClick={() => setShowTransferModal(true)}
                   className="inline-flex items-center gap-1.5 px-4 py-2 text-sm text-[#999] hover:text-[#1a1a1a] hover:bg-gray-100 rounded-xl transition-colors"
                   title="Transfer Leadership"
                 >
@@ -779,7 +789,11 @@ export default function ProjectDetailPage() {
                 </div>
 
                 <div className="flex-1 overflow-y-auto space-y-1">
-                  {availableUsers.length === 0 ? (
+                  {addMemberError ? (
+                    <p className="text-sm text-red-500 text-center py-6">
+                      {addMemberError}
+                    </p>
+                  ) : availableUsers.length === 0 ? (
                     <p className="text-sm text-[#999] text-center py-6">
                       All team members are already in this project
                     </p>
