@@ -1,7 +1,8 @@
 "use client";
 
-import { X, Mail, Briefcase } from "lucide-react";
+import { X, MessageCircle, Briefcase } from "lucide-react";
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 interface ProfileUser {
   id: string;
@@ -105,16 +106,17 @@ export default function ProfilePopup({ user, onClose }: ProfilePopupProps) {
             </div>
           )}
 
-          {/* Email */}
-          <div className="flex items-center justify-center gap-2 text-sm text-text-secondary mt-2">
-            <Mail size={14} className="text-text-muted" />
-            <a
-              href={`mailto:${user.email}`}
-              className="hover:text-[#D4692A] transition-colors"
-            >
-              {user.email}
-            </a>
-          </div>
+          {/* Chat button */}
+          <button
+            onClick={() => {
+              onClose();
+              window.location.href = `/dashboard/team-messages?user=${user.id}`;
+            }}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 mt-2 rounded-lg bg-[#D4692A] text-white text-sm font-medium hover:bg-[#B5551F] transition-colors"
+          >
+            <MessageCircle size={14} />
+            Send Message
+          </button>
         </div>
       </div>
     </div>
