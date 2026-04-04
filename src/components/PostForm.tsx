@@ -7,7 +7,7 @@ import type { UserProfile } from "@/context/AuthContext";
 interface PostFormProps {
   user: UserProfile;
   onPostCreated: () => void;
-  isOwner?: boolean; // Now means "is owner OR board badge" for auto-approval display
+  isOwner?: boolean;
 }
 
 interface AttachedFile {
@@ -15,10 +15,58 @@ interface AttachedFile {
   preview?: string;
 }
 
+/**
+ * Upload a file directly to Supabase Storage via signed URL.
+ * This bypasses the Vercel 4.5MB payload limit — essential for videos.
+ */
+async function uploadFileDirect(file: File): Promise<{ url: string; fileName: string; fileType: string; fileSize: number } | null> {
+  try {
+    // Step 1: Get signed upload URL from our API
+    const signedRes = await fetch("/api/upload/signed-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fileName: file.name, fileType: file.type }),
+    });
+
+    if (!signedRes.ok) {
+      console.error("Failed to get signed URL:", await signedRes.text());
+      return null;
+    }
+
+    const { signedUrl, token, publicUrl } = await signedRes.json();
+
+    // Step 2: Upload directly to Supabase Storage using the signed URL
+    const uploadRes = await fetch(signedUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": file.type,
+        ...(token ? { "x-upsert": "true" } : {}),
+      },
+      body: file,
+    });
+
+    if (!uploadRes.ok) {
+      console.error("Direct upload failed:", await uploadRes.text());
+      return null;
+    }
+
+    return {
+      url: publicUrl,
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size,
+    };
+  } catch (err) {
+    console.error("Upload error:", err);
+    return null;
+  }
+}
+
 export default function PostForm({ user, onPostCreated, isOwner }: PostFormProps) {
   const [content, setContent] = useState("");
   const [files, setFiles] = useState<AttachedFile[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState("");
   const [pendingNote, setPendingNote] = useState(false);
   const [migrationWarning, setMigrationWarning] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -38,7 +86,6 @@ export default function PostForm({ user, onPostCreated, isOwner }: PostFormProps
   const handleTextChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       setContent(e.target.value);
-      // Auto-expand
       const ta = e.target;
       ta.style.height = "auto";
       ta.style.height = ta.scrollHeight + "px";
@@ -72,6 +119,7 @@ export default function PostForm({ user, onPostCreated, isOwner }: PostFormProps
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setSubmitting(true);
+    setUploadProgress("");
 
     try {
       // 1. Create post
@@ -85,38 +133,39 @@ export default function PostForm({ user, onPostCreated, isOwner }: PostFormProps
       const postData = await postRes.json();
       const postId = postData.post?.id;
 
-      // 2. Upload files and attach
+      // 2. Upload files directly to Supabase and attach to post
       if (postId && files.length > 0) {
-        for (const { file } of files) {
-          const formData = new FormData();
-          formData.append("file", file);
+        const attachments: { file_url: string; file_name: string; file_type: string; file_size: number }[] = [];
 
-          const uploadRes = await fetch("/api/upload", {
-            method: "POST",
-            body: formData,
-          });
+        for (let i = 0; i < files.length; i++) {
+          const { file } = files[i];
+          setUploadProgress(`Uploading ${i + 1}/${files.length}: ${file.name}`);
 
-          if (uploadRes.ok) {
-            const uploadData = await uploadRes.json();
-            await fetch(`/api/posts/${postId}/attachments`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                attachments: [{
-                  file_url: uploadData.data?.url || uploadData.url,
-                  file_name: file.name,
-                  file_type: file.type,
-                  file_size: file.size,
-                }],
-              }),
+          const result = await uploadFileDirect(file);
+          if (result) {
+            attachments.push({
+              file_url: result.url,
+              file_name: result.fileName,
+              file_type: result.fileType,
+              file_size: result.fileSize,
             });
           }
+        }
+
+        // Attach all uploaded files to post
+        if (attachments.length > 0) {
+          await fetch(`/api/posts/${postId}/attachments`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ attachments }),
+          });
         }
       }
 
       // 3. Reset form
       setContent("");
       setFiles([]);
+      setUploadProgress("");
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto";
       }
@@ -124,7 +173,6 @@ export default function PostForm({ user, onPostCreated, isOwner }: PostFormProps
         setMigrationWarning(true);
         setTimeout(() => setMigrationWarning(false), 8000);
       } else if (!isOwner && postData.status === "pending") {
-        // isOwner here means owner or board badge — they don't see pending notice
         setPendingNote(true);
         setTimeout(() => setPendingNote(false), 5000);
       }
@@ -133,6 +181,7 @@ export default function PostForm({ user, onPostCreated, isOwner }: PostFormProps
       console.error("Failed to create post:", err);
     } finally {
       setSubmitting(false);
+      setUploadProgress("");
     }
   };
 
@@ -300,7 +349,7 @@ export default function PostForm({ user, onPostCreated, isOwner }: PostFormProps
               {submitting ? (
                 <>
                   <Loader2 size={14} className="animate-spin" />
-                  Posting…
+                  {uploadProgress || "Posting…"}
                 </>
               ) : (
                 <>
