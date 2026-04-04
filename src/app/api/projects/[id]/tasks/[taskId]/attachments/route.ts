@@ -65,7 +65,13 @@ export async function GET(
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    return NextResponse.json({ attachments: data || [] });
+    // Transform field names
+    const attachments = (data || []).map(({ uploaded_by_user, ...att }: any) => ({
+      ...att,
+      uploader: uploaded_by_user,
+    }));
+
+    return NextResponse.json({ attachments });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Server error";
     return NextResponse.json({ error: message }, { status: 500 });
@@ -134,7 +140,9 @@ export async function POST(
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    return NextResponse.json({ attachment: data });
+    // Transform field names
+    const { uploaded_by_user, ...attFields } = data as any;
+    return NextResponse.json({ attachment: { ...attFields, uploader: uploaded_by_user } });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Server error";
     return NextResponse.json({ error: message }, { status: 500 });

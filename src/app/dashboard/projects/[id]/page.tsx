@@ -1476,9 +1476,9 @@ export default function ProjectDetailPage() {
 
                       {/* Created by / Completed by */}
                       <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-[#999]">
-                        <span>Created by <strong className="text-[#777]">{selectedTaskDetail.creator.display_name}</strong></span>
+                        <span>Created by <strong className="text-[#777]">{selectedTaskDetail.creator?.display_name || "Unknown"}</strong></span>
                         {selectedTaskDetail.completer && (
-                          <span>Completed by <strong className="text-[#777]">{selectedTaskDetail.completer.display_name}</strong></span>
+                          <span>Completed by <strong className="text-[#777]">{selectedTaskDetail.completer?.display_name || "Unknown"}</strong></span>
                         )}
                         <span>{formatMessageTime(selectedTaskDetail.created_at)}</span>
                       </div>
@@ -1676,7 +1676,7 @@ export default function ProjectDetailPage() {
                                     </span>
                                   )}
                                   <span className="text-[11px] text-[#999]">
-                                    Created by {task.creator.display_name}
+                                    Created by {task.creator?.display_name || "Unknown"}
                                   </span>
                                 </div>
                               </div>

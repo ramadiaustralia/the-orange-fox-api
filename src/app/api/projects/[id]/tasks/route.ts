@@ -37,11 +37,11 @@ export async function GET(
         *,
         assignees:project_task_assignees(
           id,
+          user_id,
           user:admin_users(id, display_name, position, profile_pic_url)
         ),
         created_by_user:admin_users!created_by(id, display_name, position, profile_pic_url),
-        completed_by_user:admin_users!completed_by(id, display_name, position, profile_pic_url),
-        attachments:project_task_attachments(count)
+        completed_by_user:admin_users!completed_by(id, display_name, position, profile_pic_url)
       `)
       .eq("project_id", id)
       .order("completed_at", { ascending: true, nullsFirst: true })
@@ -49,10 +49,27 @@ export async function GET(
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    // Transform attachment count from [{count: N}] to a flat number
-    const tasks = (data || []).map(({ attachments, ...task }: any) => ({
+    // Get attachment counts separately
+    const taskIds = (data || []).map((t: any) => t.id);
+    let attachCounts: Record<string, number> = {};
+    if (taskIds.length > 0) {
+      const { data: attachData } = await getSupabaseAdmin()
+        .from("project_task_attachments")
+        .select("task_id")
+        .in("task_id", taskIds);
+      if (attachData) {
+        for (const row of attachData) {
+          attachCounts[row.task_id] = (attachCounts[row.task_id] || 0) + 1;
+        }
+      }
+    }
+
+    // Transform field names to match frontend expectations
+    const tasks = (data || []).map(({ created_by_user, completed_by_user, ...task }: any) => ({
       ...task,
-      attachment_count: attachments?.[0]?.count || 0,
+      creator: created_by_user,
+      completer: completed_by_user,
+      attachment_count: attachCounts[task.id] || 0,
     }));
 
     return NextResponse.json({ tasks });
@@ -125,6 +142,7 @@ export async function POST(
         *,
         assignees:project_task_assignees(
           id,
+          user_id,
           user:admin_users(id, display_name, position, profile_pic_url)
         ),
         created_by_user:admin_users!created_by(id, display_name, position, profile_pic_url)
@@ -134,7 +152,9 @@ export async function POST(
 
     if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 500 });
 
-    return NextResponse.json({ task: fullTask });
+    // Transform field names
+    const { created_by_user, ...taskFields } = fullTask as any;
+    return NextResponse.json({ task: { ...taskFields, creator: created_by_user, completer: null, attachment_count: 0 } });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Server error";
     return NextResponse.json({ error: message }, { status: 500 });

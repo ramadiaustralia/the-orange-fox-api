@@ -37,6 +37,7 @@ export async function GET(
         *,
         assignees:project_task_assignees(
           id,
+          user_id,
           user:admin_users(id, display_name, position, profile_pic_url)
         ),
         created_by_user:admin_users!created_by(id, display_name, position, profile_pic_url),
@@ -57,7 +58,19 @@ export async function GET(
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ task: data });
+    // Transform field names to match frontend expectations
+    const { created_by_user, completed_by_user, attachments, ...taskFields } = data as any;
+    const transformedTask = {
+      ...taskFields,
+      creator: created_by_user,
+      completer: completed_by_user,
+      attachments: (attachments || []).map(({ uploaded_by_user, ...att }: any) => ({
+        ...att,
+        uploader: uploaded_by_user,
+      })),
+    };
+
+    return NextResponse.json({ task: transformedTask });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Server error";
     return NextResponse.json({ error: message }, { status: 500 });
@@ -155,6 +168,7 @@ export async function PATCH(
         *,
         assignees:project_task_assignees(
           id,
+          user_id,
           user:admin_users(id, display_name, position, profile_pic_url)
         ),
         created_by_user:admin_users!created_by(id, display_name, position, profile_pic_url),
@@ -165,7 +179,9 @@ export async function PATCH(
 
     if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 500 });
 
-    return NextResponse.json({ task: updatedTask });
+    // Transform field names
+    const { created_by_user: cbu, completed_by_user: cobu, ...tFields } = updatedTask as any;
+    return NextResponse.json({ task: { ...tFields, creator: cbu, completer: cobu } });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Server error";
     return NextResponse.json({ error: message }, { status: 500 });
