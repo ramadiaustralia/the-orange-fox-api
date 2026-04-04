@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { authenticateRequest } from "@/lib/auth";
+import { createNotificationBulk } from "@/lib/notifications";
 
 
 async function isProjectMemberOrOwner(projectId: string, userId: string, badge: string): Promise<boolean> {
@@ -29,7 +30,10 @@ export async function GET(
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
-    const { data, error } = await getSupabaseAdmin()
+    const db = getSupabaseAdmin();
+
+    // Fetch all messages with sender details
+    const { data, error } = await db
       .from("project_messages")
       .select("*, sender:admin_users!sender_id(id, display_name, position, profile_pic_url)")
       .eq("project_id", id)
@@ -37,7 +41,41 @@ export async function GET(
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    return NextResponse.json({ messages: data || [] });
+    const messages = data || [];
+
+    // Collect reply_to_ids that need fetching
+    const replyToIds = messages
+      .filter((m: any) => m.reply_to_id)
+      .map((m: any) => m.reply_to_id);
+
+    let replyMap: Record<string, any> = {};
+
+    if (replyToIds.length > 0) {
+      // Fetch reply messages with their sender info
+      const { data: replyMessages } = await db
+        .from("project_messages")
+        .select("id, content, sender_id, sender:admin_users!sender_id(id, display_name)")
+        .in("id", replyToIds);
+
+      if (replyMessages) {
+        for (const rm of replyMessages) {
+          replyMap[rm.id] = {
+            id: rm.id,
+            content: rm.content,
+            sender_id: rm.sender_id,
+            sender: rm.sender,
+          };
+        }
+      }
+    }
+
+    // Attach reply_to data to messages
+    const enrichedMessages = messages.map((msg: any) => ({
+      ...msg,
+      reply_to: msg.reply_to_id ? replyMap[msg.reply_to_id] || null : null,
+    }));
+
+    return NextResponse.json({ messages: enrichedMessages });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Server error";
     return NextResponse.json({ error: message }, { status: 500 });
@@ -59,13 +97,15 @@ export async function POST(
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
-    const { content, attachmentUrl, attachmentName, attachmentType, attachmentSize } = await req.json();
+    const { content, attachmentUrl, attachmentName, attachmentType, attachmentSize, reply_to_id, mentions } = await req.json();
 
     if (!content?.trim() && !attachmentUrl) {
       return NextResponse.json({ error: "Content or attachment is required" }, { status: 400 });
     }
 
-    const { data, error } = await getSupabaseAdmin()
+    const db = getSupabaseAdmin();
+
+    const { data, error } = await db
       .from("project_messages")
       .insert({
         project_id: id,
@@ -75,13 +115,57 @@ export async function POST(
         attachment_name: attachmentName || null,
         attachment_type: attachmentType || null,
         attachment_size: attachmentSize || null,
+        reply_to_id: reply_to_id || null,
+        mentions: mentions && Array.isArray(mentions) && mentions.length > 0 ? mentions : null,
       })
       .select("*, sender:admin_users!sender_id(id, display_name, position, profile_pic_url)")
       .single();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    return NextResponse.json({ message: data });
+    // If mentions exist, create notifications for mentioned users
+    if (mentions && Array.isArray(mentions) && mentions.length > 0) {
+      // Fetch project name for notification
+      const { data: project } = await db
+        .from("projects")
+        .select("name")
+        .eq("id", id)
+        .single();
+
+      const projectName = project?.name || "a project";
+
+      const mentionNotifications = mentions.map((userId: string) => ({
+        userId,
+        actorId: admin.sub,
+        type: "mention",
+        projectId: id,
+        title: projectName,
+        message: `${admin.display_name} mentioned you in project "${projectName}"`,
+      }));
+
+      await createNotificationBulk(mentionNotifications);
+    }
+
+    // Add reply_to data if present
+    let reply_to = null;
+    if (reply_to_id) {
+      const { data: replyMsg } = await db
+        .from("project_messages")
+        .select("id, content, sender_id, sender:admin_users!sender_id(id, display_name)")
+        .eq("id", reply_to_id)
+        .single();
+
+      if (replyMsg) {
+        reply_to = {
+          id: replyMsg.id,
+          content: replyMsg.content,
+          sender_id: replyMsg.sender_id,
+          sender: replyMsg.sender,
+        };
+      }
+    }
+
+    return NextResponse.json({ message: { ...data, reply_to } });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Server error";
     return NextResponse.json({ error: message }, { status: 500 });

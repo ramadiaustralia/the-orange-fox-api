@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { authenticateRequest } from "@/lib/auth";
+import { logActivity } from "@/lib/activity";
 
 
 // Get user's role in a project: 'commissioner' | 'leader' | 'member' | null
@@ -102,16 +103,35 @@ export async function PATCH(
 
   try {
     const body = await req.json();
-    const updates: Record<string, string> = {};
+    const updates: Record<string, unknown> = {};
+    const changedFields: string[] = [];
 
-    if (body.name !== undefined) updates.name = body.name.trim();
-    if (body.description !== undefined) updates.description = body.description?.trim() || null;
+    if (body.name !== undefined) {
+      updates.name = body.name.trim();
+      changedFields.push("name");
+    }
+    if (body.description !== undefined) {
+      updates.description = body.description?.trim() || null;
+      changedFields.push("description");
+    }
     if (body.status !== undefined) {
       const validStatuses = ["in_progress", "completed", "on_hold"];
       if (!validStatuses.includes(body.status)) {
         return NextResponse.json({ error: "Invalid status" }, { status: 400 });
       }
       updates.status = body.status;
+      changedFields.push("status");
+    }
+    if (body.target_date !== undefined) {
+      if (body.target_date === null || body.target_date === "") {
+        updates.target_date = null;
+      } else {
+        if (isNaN(Date.parse(body.target_date))) {
+          return NextResponse.json({ error: "Invalid target_date format" }, { status: 400 });
+        }
+        updates.target_date = body.target_date;
+      }
+      changedFields.push("target_date");
     }
 
     if (Object.keys(updates).length === 0) {
@@ -126,6 +146,14 @@ export async function PATCH(
       .single();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    // Log activity
+    await logActivity({
+      projectId: id,
+      userId: admin.sub,
+      action: "project_updated",
+      details: { fields: changedFields, changes: updates },
+    });
 
     return NextResponse.json({ project: data });
   } catch (err: unknown) {

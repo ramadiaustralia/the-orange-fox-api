@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { authenticateRequest } from "@/lib/auth";
 import { createNotificationBulk } from "@/lib/notifications";
+import { logActivity } from "@/lib/activity";
 
 
 // Get user's role in a project: 'commissioner' | 'leader' | 'member' | null
@@ -175,6 +176,15 @@ export async function POST(
       message: `You have been assigned a new task: "${title.trim()}" in project`,
     }));
     await createNotificationBulk(taskAssignedNotifications);
+
+    // Log activity
+    await logActivity({
+      projectId: id,
+      taskId: task.id,
+      userId: admin.sub,
+      action: "task_created",
+      details: { title: title.trim() },
+    });
 
     // Transform field names
     const { created_by_user, ...taskFields } = fullTask as any;

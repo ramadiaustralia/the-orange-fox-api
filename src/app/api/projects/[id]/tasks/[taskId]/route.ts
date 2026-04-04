@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { authenticateRequest } from "@/lib/auth";
 import { createNotificationBulk } from "@/lib/notifications";
+import { logActivity } from "@/lib/activity";
 
 
 // Get user's role in a project: 'commissioner' | 'leader' | 'member' | null
@@ -150,14 +151,16 @@ export async function PATCH(
 
     // Build update object
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    const changedFields: string[] = [];
 
-    if (title !== undefined) updates.title = title.trim();
-    if (description !== undefined) updates.description = description.trim();
-    if (priority !== undefined) updates.priority = priority;
-    if (deadline !== undefined) updates.deadline = deadline || null;
-    if (status_change_permission !== undefined) updates.status_change_permission = status_change_permission;
+    if (title !== undefined) { updates.title = title.trim(); changedFields.push("title"); }
+    if (description !== undefined) { updates.description = description.trim(); changedFields.push("description"); }
+    if (priority !== undefined) { updates.priority = priority; changedFields.push("priority"); }
+    if (deadline !== undefined) { updates.deadline = deadline || null; changedFields.push("deadline"); }
+    if (status_change_permission !== undefined) { updates.status_change_permission = status_change_permission; changedFields.push("status_change_permission"); }
     if (status !== undefined) {
       updates.status = status;
+      changedFields.push("status");
       // If status changed to 'completed': set completed_by and completed_at
       if (status === "completed" && currentTask.status !== "completed") {
         updates.completed_by = admin.sub;
@@ -222,6 +225,36 @@ export async function PATCH(
           await createNotificationBulk(notifications);
         }
       }
+
+      changedFields.push("assignees");
+    }
+
+    // Log activity
+    const taskTitle = title !== undefined ? title.trim() : currentTask.title;
+    if (status !== undefined && status === "completed" && currentTask.status !== "completed") {
+      await logActivity({
+        projectId: id,
+        taskId: taskId,
+        userId: admin.sub,
+        action: "task_completed",
+        details: { title: taskTitle },
+      });
+    } else if (status !== undefined && status !== "completed" && currentTask.status === "completed") {
+      await logActivity({
+        projectId: id,
+        taskId: taskId,
+        userId: admin.sub,
+        action: "task_reopened",
+        details: { title: taskTitle },
+      });
+    } else if (changedFields.length > 0) {
+      await logActivity({
+        projectId: id,
+        taskId: taskId,
+        userId: admin.sub,
+        action: "task_updated",
+        details: { fields: changedFields, changes: updates },
+      });
     }
 
     // Fetch updated task with full details
@@ -268,13 +301,34 @@ export async function DELETE(
   }
 
   try {
-    const { error } = await getSupabaseAdmin()
+    const db = getSupabaseAdmin();
+
+    // Fetch task title for activity log before deleting
+    const { data: task } = await db
+      .from("project_tasks")
+      .select("title")
+      .eq("id", taskId)
+      .eq("project_id", id)
+      .single();
+
+    const taskTitle = task?.title || "Unknown task";
+
+    const { error } = await db
       .from("project_tasks")
       .delete()
       .eq("id", taskId)
       .eq("project_id", id);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    // Log activity
+    await logActivity({
+      projectId: id,
+      taskId: taskId,
+      userId: admin.sub,
+      action: "task_deleted",
+      details: { title: taskTitle },
+    });
 
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
