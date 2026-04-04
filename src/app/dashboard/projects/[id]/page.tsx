@@ -718,31 +718,7 @@ export default function ProjectDetailPage() {
     }
   }, [activeTab, project, fetchActivities]);
 
-  // Reactions useEffects
-  useEffect(() => {
-    if (messages.length > 0 && activeTab === "chat") {
-      fetchReactions("message", messages.map((m) => m.id));
-    }
-  }, [messages, activeTab, fetchReactions]);
 
-  useEffect(() => {
-    if (taskComments.length > 0 && selectedTaskId) {
-      fetchReactions("comment", taskComments.map((c) => c.id));
-    }
-  }, [taskComments, selectedTaskId, fetchReactions]);
-
-  // Read Receipts useEffects
-  useEffect(() => {
-    if (messages.length > 0 && activeTab === "chat") {
-      fetchReadReceipts(messages.map((m) => m.id));
-    }
-  }, [messages, activeTab, fetchReadReceipts]);
-
-  useEffect(() => {
-    if (activeTab === "chat" && messages.length > 0) {
-      markMessagesAsRead();
-    }
-  }, [activeTab, messages.length, markMessagesAsRead]);
 
   const handleScroll = () => {
     const container = messagesContainerRef.current;
@@ -1462,6 +1438,32 @@ export default function ProjectDetailPage() {
       await fetchReadReceipts(messages.map((m) => m.id));
     } catch { /* ignore */ }
   }, [user?.id, messages, readReceipts, projectId, fetchReadReceipts]);
+
+  // Reactions useEffects
+  useEffect(() => {
+    if (messages.length > 0 && activeTab === "chat") {
+      fetchReactions("message", messages.map((m) => m.id));
+    }
+  }, [messages, activeTab, fetchReactions]);
+
+  useEffect(() => {
+    if (taskComments.length > 0 && selectedTaskId) {
+      fetchReactions("comment", taskComments.map((c) => c.id));
+    }
+  }, [taskComments, selectedTaskId, fetchReactions]);
+
+  // Read Receipts useEffects
+  useEffect(() => {
+    if (messages.length > 0 && activeTab === "chat") {
+      fetchReadReceipts(messages.map((m) => m.id));
+    }
+  }, [messages, activeTab, fetchReadReceipts]);
+
+  useEffect(() => {
+    if (activeTab === "chat" && messages.length > 0) {
+      markMessagesAsRead();
+    }
+  }, [activeTab, messages.length, markMessagesAsRead]);
 
   // --- Subtask Functions (Feature 4) ---
 
