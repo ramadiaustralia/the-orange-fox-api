@@ -94,6 +94,8 @@ export interface Post {
   like_count: number;
   comment_count: number;
   liked_by_me: boolean;
+  mentions?: string[];
+  tagged_users?: string[];
 }
 
 interface TeamMember {
@@ -667,6 +669,53 @@ export default function PostCard({
     }, 300);
   }, []);
 
+  /* ── Touch-based long-press for reaction picker (mobile) ── */
+  const touchTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const touchMovedRef = useRef(false);
+
+  const handleReactionTouchStart = useCallback((e: React.TouchEvent) => {
+    touchMovedRef.current = false;
+    touchTimerRef.current = setTimeout(() => {
+      e.preventDefault();
+      setShowReactionPicker(true);
+    }, 500);
+  }, []);
+
+  const handleReactionTouchMove = useCallback(() => {
+    touchMovedRef.current = true;
+    if (touchTimerRef.current) {
+      clearTimeout(touchTimerRef.current);
+      touchTimerRef.current = null;
+    }
+  }, []);
+
+  const handleReactionTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchTimerRef.current) {
+      clearTimeout(touchTimerRef.current);
+      touchTimerRef.current = null;
+    }
+    // If reaction picker is open, prevent quick click through
+    if (showReactionPicker) {
+      e.preventDefault();
+    }
+  }, [showReactionPicker]);
+
+  /* ── Touch long-press for comment reactions (mobile) ── */
+  const commentTouchTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleCommentReactionTouchStart = useCallback((commentId: string) => {
+    commentTouchTimerRef.current = setTimeout(() => {
+      setCommentReactionPicker(commentId);
+    }, 500);
+  }, []);
+
+  const handleCommentReactionTouchEnd = useCallback(() => {
+    if (commentTouchTimerRef.current) {
+      clearTimeout(commentTouchTimerRef.current);
+      commentTouchTimerRef.current = null;
+    }
+  }, []);
+
   /* ── Review post ── */
   const handleReview = useCallback(
     async (status: "approved" | "rejected") => {
@@ -700,7 +749,33 @@ export default function PostCard({
       try {
         const res = await fetch(`/api/posts/${post.id}/comments`);
         const json = await res.json();
-        setComments(json.comments || []);
+        const loadedComments: Comment[] = json.comments || [];
+        setComments(loadedComments);
+
+        // Fetch reactions for all comments
+        if (loadedComments.length > 0) {
+          const commentIds = loadedComments.map((c) => c.id);
+          try {
+            const reactionsRes = await fetch(
+              `/api/posts/${post.id}/reactions?target_type=comment&target_ids=${commentIds.join(",")}`
+            );
+            const reactionsJson = await reactionsRes.json();
+            const reactionsMap = reactionsJson.reactions || {};
+            setComments((prev) =>
+              prev.map((c) => {
+                const groups: ReactionGroup[] = reactionsMap[c.id] || [];
+                const myR = groups.find((g) => g.reacted);
+                return {
+                  ...c,
+                  reactions: groups,
+                  my_reaction: myR ? myR.reaction_type : null,
+                };
+              })
+            );
+          } catch {
+            // Reactions fetch failed silently — comments still show
+          }
+        }
       } catch {
         console.error("Failed to load comments");
       } finally {
@@ -927,6 +1002,18 @@ export default function PostCard({
     setReplyTo(null);
   }, []);
 
+  /* ── Close reaction picker on outside tap (mobile) ── */
+  useEffect(() => {
+    if (!showReactionPicker) return;
+    const handleOutsideTouch = (e: TouchEvent) => {
+      if (reactionBtnRef.current && !reactionBtnRef.current.contains(e.target as Node)) {
+        setShowReactionPicker(false);
+      }
+    };
+    document.addEventListener("touchstart", handleOutsideTouch);
+    return () => document.removeEventListener("touchstart", handleOutsideTouch);
+  }, [showReactionPicker]);
+
   /* ── Total reaction count for display ── */
   const totalReactionCount = useMemo(
     () => postReactions.reduce((acc, r) => acc + r.count, 0),
@@ -1048,10 +1135,33 @@ export default function PostCard({
       ) : displayContent ? (
         <div className="px-5 pt-3">
           <p className="text-sm text-text-primary leading-relaxed whitespace-pre-wrap">
-            {displayContent}
+            {renderContentWithMentions(
+              displayContent,
+              post.mentions,
+              teamMembers
+            )}
           </p>
         </div>
       ) : null}
+
+      {/* ── Tagged Users ── */}
+      {post.tagged_users && post.tagged_users.length > 0 && (
+        <div className="px-5 pt-1.5 flex items-center gap-1.5 flex-wrap">
+          <span className="text-xs text-text-muted">With</span>
+          {post.tagged_users.map((uid, i) => {
+            const member = teamMembers.find((m) => m.id === uid);
+            return member ? (
+              <span key={uid} className="inline-flex items-center gap-1 text-xs font-semibold text-[#D4692A]">
+                {member.profile_pic_url ? (
+                  <img src={member.profile_pic_url} alt="" className="w-4 h-4 rounded-full object-cover" />
+                ) : null}
+                {member.display_name}
+                {i < (post.tagged_users || []).length - 1 ? "," : ""}
+              </span>
+            ) : null;
+          })}
+        </div>
+      )}
 
       {/* ── Image Attachments ── */}
       {imageAttachments.length > 0 && (
@@ -1181,12 +1291,17 @@ export default function PostCard({
 
         {/* Buttons */}
         <div className="flex items-center gap-1 border-b border-border-light pb-2">
-          {/* Reaction button with hover picker */}
+          {/* Reaction button with hover picker + touch long-press */}
           <div
             ref={reactionBtnRef}
             className="flex-1 relative"
+            style={{ WebkitUserSelect: "none", userSelect: "none", WebkitTouchCallout: "none" } as React.CSSProperties}
             onMouseEnter={handleReactionMouseEnter}
             onMouseLeave={handleReactionMouseLeave}
+            onTouchStart={handleReactionTouchStart}
+            onTouchMove={handleReactionTouchMove}
+            onTouchEnd={handleReactionTouchEnd}
+            onContextMenu={(e) => e.preventDefault()}
           >
             <ReactionPicker
               visible={showReactionPicker}
@@ -1334,9 +1449,10 @@ export default function PostCard({
                         {timeAgo(comment.created_at)}
                       </span>
 
-                      {/* Comment reaction button */}
+                      {/* Comment reaction button (hover + touch long-press) */}
                       <div
                         className="relative"
+                        style={{ WebkitUserSelect: "none", userSelect: "none", WebkitTouchCallout: "none" } as React.CSSProperties}
                         onMouseEnter={() => {
                           if (commentReactionTimeout.current)
                             clearTimeout(commentReactionTimeout.current);
@@ -1353,6 +1469,9 @@ export default function PostCard({
                             300
                           );
                         }}
+                        onTouchStart={() => handleCommentReactionTouchStart(comment.id)}
+                        onTouchEnd={handleCommentReactionTouchEnd}
+                        onContextMenu={(e) => e.preventDefault()}
                       >
                         {commentReactionPicker === comment.id && (
                           <div

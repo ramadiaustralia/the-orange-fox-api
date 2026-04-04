@@ -162,6 +162,11 @@ export default function TeamMessagesPage() {
   const [messageReactions, setMessageReactions] = useState<Record<string, Reaction[]>>({});
   const [forwardingMessage, setForwardingMessage] = useState<Message | null>(null);
 
+  // Mobile: active message actions (shown via long-press)
+  const [activeMessageActions, setActiveMessageActions] = useState<string | null>(null);
+  const msgTouchTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const msgTouchMovedRef = useRef(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastTypingSentRef = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -171,9 +176,9 @@ export default function TeamMessagesPage() {
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const forwardModalRef = useRef<HTMLDivElement>(null);
 
-  // Close emoji picker and forward modal when clicking outside
+  // Close emoji picker, forward modal, and mobile actions when clicking/tapping outside
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
       if (
         showEmojiPickerFor &&
         emojiPickerRef.current &&
@@ -189,9 +194,19 @@ export default function TeamMessagesPage() {
         setForwardingMessage(null);
       }
     };
+    const handleTouchOutside = (e: TouchEvent) => {
+      if (activeMessageActions) {
+        setActiveMessageActions(null);
+      }
+      handleClickOutside(e);
+    };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showEmojiPickerFor, forwardingMessage]);
+    document.addEventListener("touchstart", handleTouchOutside, { passive: true });
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleTouchOutside);
+    };
+  }, [showEmojiPickerFor, forwardingMessage, activeMessageActions]);
 
   // Fetch team members and conversations
   const fetchData = useCallback(async () => {
@@ -733,15 +748,47 @@ export default function TeamMessagesPage() {
                           <Avatar user={activeChat} size={28} />
                         </div>
                       )}
-                      <div className="relative group w-fit max-w-[80%] sm:max-w-[65%]">
-                        {/* Hover Actions */}
+                      <div
+                        className="relative group w-fit max-w-[80%] sm:max-w-[65%]"
+                        style={{ WebkitUserSelect: "none", userSelect: "none", WebkitTouchCallout: "none" } as React.CSSProperties}
+                        onTouchStart={(e) => {
+                          if (isUnsent || isEditing) return;
+                          msgTouchMovedRef.current = false;
+                          msgTouchTimerRef.current = setTimeout(() => {
+                            if (!msgTouchMovedRef.current) {
+                              e.preventDefault();
+                              setActiveMessageActions(activeMessageActions === msg.id ? null : msg.id);
+                            }
+                          }, 500);
+                        }}
+                        onTouchMove={() => {
+                          msgTouchMovedRef.current = true;
+                          if (msgTouchTimerRef.current) {
+                            clearTimeout(msgTouchTimerRef.current);
+                            msgTouchTimerRef.current = null;
+                          }
+                        }}
+                        onTouchEnd={() => {
+                          if (msgTouchTimerRef.current) {
+                            clearTimeout(msgTouchTimerRef.current);
+                            msgTouchTimerRef.current = null;
+                          }
+                        }}
+                        onContextMenu={(e) => e.preventDefault()}
+                      >
+                        {/* Hover Actions (desktop) + Long-press Actions (mobile) */}
                         {!isUnsent && !isEditing && (
                           <div
-                            className={`opacity-0 group-hover:opacity-100 transition-opacity absolute z-10 ${
+                            className={`${
+                              activeMessageActions === msg.id
+                                ? "opacity-100"
+                                : "opacity-0 group-hover:opacity-100"
+                            } transition-opacity absolute z-10 ${
                               isSent
                                 ? "-left-[120px] top-1/2 -translate-y-1/2"
                                 : "-right-[80px] top-1/2 -translate-y-1/2"
                             } flex items-center gap-0.5 bg-white border border-[#e8e4e0] rounded-lg shadow-sm px-1 py-0.5`}
+                            onTouchStart={(e) => e.stopPropagation()}
                           >
                             {/* React */}
                             <button

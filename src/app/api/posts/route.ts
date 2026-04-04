@@ -156,6 +156,8 @@ export async function GET(req: NextRequest) {
       like_count: likes.length,
       comment_count: comments.length,
       liked_by_me: likes.some((l) => l.user_id === admin.sub),
+      mentions: post.mentions || [],
+      tagged_users: post.tagged_users || [],
     };
   });
 
@@ -167,7 +169,7 @@ export async function POST(req: NextRequest) {
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const { content } = await req.json();
+    const { content, mentions, tagged_users } = await req.json();
     if (!content || !content.trim()) {
       return NextResponse.json({ error: "Content is required" }, { status: 400 });
     }
@@ -175,13 +177,27 @@ export async function POST(req: NextRequest) {
     const hasColumn = await hasStatusColumn();
     const badge = admin.badge || "staff";
 
+    const insertData: Record<string, unknown> = {
+      author_id: admin.sub,
+      content: content.trim(),
+    };
+
+    // Add mentions & tagged_users if provided
+    if (Array.isArray(mentions) && mentions.length > 0) {
+      insertData.mentions = mentions;
+    }
+    if (Array.isArray(tagged_users) && tagged_users.length > 0) {
+      insertData.tagged_users = tagged_users;
+    }
+
     if (hasColumn) {
       // Owner + Board → auto-approved; Manager + Staff → pending
       const postStatus = (badge === "owner" || badge === "board") ? "approved" : "pending";
+      insertData.status = postStatus;
 
       const { data: post, error } = await getSupabaseAdmin()
         .from("posts")
-        .insert({ author_id: admin.sub, content: content.trim(), status: postStatus })
+        .insert(insertData)
         .select()
         .single();
 
@@ -190,7 +206,7 @@ export async function POST(req: NextRequest) {
     } else {
       const { data: post, error } = await getSupabaseAdmin()
         .from("posts")
-        .insert({ author_id: admin.sub, content: content.trim() })
+        .insert(insertData)
         .select()
         .single();
 

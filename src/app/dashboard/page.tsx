@@ -136,7 +136,7 @@ export default function DashboardPage() {
 
   /* ── Fetch team members for mentions ── */
   useEffect(() => {
-    fetch("/api/admin-users")
+    fetch("/api/auth/users")
       .then((r) => r.json())
       .then((d) => setTeamMembers(d.users || []))
       .catch(() => {});
@@ -312,7 +312,7 @@ ALTER TABLE internal_messages ADD COLUMN IF NOT EXISTS is_unsent BOOLEAN DEFAULT
       {/* ─── Post Form ─── */}
       {user && (
         <Reveal delay={0.1}>
-          <PostForm user={user} onPostCreated={handlePostCreated} isOwner={user.badge === "owner" || user.badge === "board"} />
+          <PostForm user={user} onPostCreated={handlePostCreated} isOwner={user.badge === "owner" || user.badge === "board"} teamMembers={teamMembers} />
         </Reveal>
       )}
 
