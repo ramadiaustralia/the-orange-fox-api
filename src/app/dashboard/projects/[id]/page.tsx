@@ -248,10 +248,11 @@ export default function ProjectDetailPage() {
     return () => clearInterval(interval);
   }, [project, fetchMessages]);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll: only scroll the chat container, never the page
   useEffect(() => {
-    if (shouldAutoScroll.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = messagesContainerRef.current;
+    if (container && shouldAutoScroll.current) {
+      container.scrollTop = container.scrollHeight;
     }
   }, [messages]);
 

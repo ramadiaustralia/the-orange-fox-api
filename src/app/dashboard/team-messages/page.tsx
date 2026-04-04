@@ -247,7 +247,7 @@ export default function TeamMessagesPage() {
     }).catch(() => {});
   }, [activeChat]);
 
-  // Smart auto-scroll: only on initial load, when user sends a message, or when near bottom
+  // Smart auto-scroll: only scroll the chat container, never the page
   useEffect(() => {
     if (!messagesEndRef.current) return;
     
@@ -257,7 +257,7 @@ export default function TeamMessagesPage() {
     const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
     
     if (isInitialLoadRef.current || userSentMessageRef.current || isNearBottom) {
-      messagesEndRef.current.scrollIntoView({ behavior: isInitialLoadRef.current ? "instant" : "smooth" });
+      container.scrollTop = container.scrollHeight;
       isInitialLoadRef.current = false;
       userSentMessageRef.current = false;
     }
