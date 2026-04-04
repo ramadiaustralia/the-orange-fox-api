@@ -164,6 +164,8 @@ export default function TeamMessagesPage() {
 
   // Mobile: active message actions (shown via long-press)
   const [activeMessageActions, setActiveMessageActions] = useState<string | null>(null);
+  // Read receipt popup
+  const [readReceiptPopup, setReadReceiptPopup] = useState<string | null>(null);
   const msgTouchTimerRef = useRef<NodeJS.Timeout | null>(null);
   const msgTouchMovedRef = useRef(false);
 
@@ -198,15 +200,24 @@ export default function TeamMessagesPage() {
       if (activeMessageActions) {
         setActiveMessageActions(null);
       }
+      if (readReceiptPopup) {
+        setReadReceiptPopup(null);
+      }
       handleClickOutside(e);
     };
-    document.addEventListener("mousedown", handleClickOutside);
+    const handleMouseOutside = (e: MouseEvent) => {
+      if (readReceiptPopup) {
+        setReadReceiptPopup(null);
+      }
+      handleClickOutside(e);
+    };
+    document.addEventListener("mousedown", handleMouseOutside);
     document.addEventListener("touchstart", handleTouchOutside, { passive: true });
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("mousedown", handleMouseOutside);
       document.removeEventListener("touchstart", handleTouchOutside);
     };
-  }, [showEmojiPickerFor, forwardingMessage, activeMessageActions]);
+  }, [showEmojiPickerFor, forwardingMessage, activeMessageActions, readReceiptPopup]);
 
   // Fetch team members and conversations
   const fetchData = useCallback(async () => {
@@ -783,11 +794,11 @@ export default function TeamMessagesPage() {
                               activeMessageActions === msg.id
                                 ? "opacity-100"
                                 : "opacity-0 group-hover:opacity-100"
-                            } transition-opacity absolute z-10 ${
-                              isSent
-                                ? "-left-[120px] top-1/2 -translate-y-1/2"
-                                : "-right-[80px] top-1/2 -translate-y-1/2"
-                            } flex items-center gap-0.5 bg-white border border-[#e8e4e0] rounded-lg shadow-sm px-1 py-0.5`}
+                            } transition-opacity absolute z-10
+                            ${isSent
+                              ? "bottom-full mb-1 right-0 sm:-left-[120px] sm:top-1/2 sm:bottom-auto sm:mb-0 sm:-translate-y-1/2 sm:right-auto"
+                              : "bottom-full mb-1 left-0 sm:-right-[80px] sm:top-1/2 sm:bottom-auto sm:mb-0 sm:-translate-y-1/2 sm:left-auto"
+                            } flex items-center gap-0.5 bg-white border border-[#e8e4e0] rounded-lg shadow-md px-1 py-0.5`}
                             onTouchStart={(e) => e.stopPropagation()}
                           >
                             {/* React */}
@@ -862,7 +873,7 @@ export default function TeamMessagesPage() {
                             ref={emojiPickerRef}
                             className={`absolute z-20 ${
                               isSent ? "right-0" : "left-0"
-                            } -top-12 bg-white border border-[#e8e4e0] rounded-xl shadow-lg px-2 py-1.5 flex items-center gap-1`}
+                            } bottom-full mb-1 bg-white border border-[#e8e4e0] rounded-xl shadow-lg px-2 py-1.5 flex items-center gap-1`}
                           >
                             {EMOJI_OPTIONS.map((emoji) => (
                               <button
@@ -882,7 +893,7 @@ export default function TeamMessagesPage() {
                             ref={forwardModalRef}
                             className={`absolute z-20 ${
                               isSent ? "right-0" : "left-0"
-                            } -top-2 -translate-y-full bg-white border border-[#e8e4e0] rounded-xl shadow-lg p-2 min-w-[200px] max-h-[200px] overflow-y-auto`}
+                            } bottom-full mb-1 bg-white border border-[#e8e4e0] rounded-xl shadow-lg p-2 min-w-[180px] sm:min-w-[200px] max-h-[200px] overflow-y-auto`}
                           >
                             <p className="text-[10px] font-semibold text-[#999] uppercase tracking-wide px-2 py-1">
                               Forward to...
@@ -1075,13 +1086,66 @@ export default function TeamMessagesPage() {
                               )}
                             </div>
                             {isSent && !isUnsent && (
-                              <span
-                                className={`text-[9px] ${
-                                  msg.is_read ? "text-blue-200" : "text-white/40"
-                                }`}
-                              >
-                                {msg.is_read ? "✓✓ Read" : "✓ Sent"}
-                              </span>
+                              <div className="relative">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (msg.is_read) {
+                                      setReadReceiptPopup(readReceiptPopup === msg.id ? null : msg.id);
+                                    }
+                                  }}
+                                  className={`text-[9px] flex items-center gap-1 ${
+                                    msg.is_read ? "text-blue-200 cursor-pointer active:opacity-70" : "text-white/40 cursor-default"
+                                  }`}
+                                >
+                                  {msg.is_read ? (
+                                    <>
+                                      <span>✓✓</span>
+                                      <div className="w-3.5 h-3.5 rounded-full overflow-hidden border border-blue-200/50 flex-shrink-0">
+                                        {activeChat?.profile_pic_url ? (
+                                          <img
+                                            src={activeChat.profile_pic_url}
+                                            alt={activeChat.display_name}
+                                            className="w-full h-full object-cover"
+                                          />
+                                        ) : (
+                                          <div className="w-full h-full bg-blue-200/30 flex items-center justify-center text-[6px] font-bold text-blue-100">
+                                            {activeChat?.display_name?.charAt(0)?.toUpperCase() || "?"}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <span>✓ Sent</span>
+                                  )}
+                                </button>
+                                {/* Read receipt popup */}
+                                {readReceiptPopup === msg.id && (
+                                  <div
+                                    className="absolute bottom-full mb-1 right-0 z-30 bg-white border border-[#e8e4e0] rounded-xl shadow-lg px-3 py-2 flex items-center gap-2 whitespace-nowrap"
+                                    onClick={(e) => e.stopPropagation()}
+                                    onTouchStart={(e) => e.stopPropagation()}
+                                  >
+                                    <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0">
+                                      {activeChat?.profile_pic_url ? (
+                                        <img
+                                          src={activeChat.profile_pic_url}
+                                          alt={activeChat.display_name}
+                                          className="w-full h-full object-cover"
+                                        />
+                                      ) : (
+                                        <div className="w-full h-full bg-[#D4692A]/10 flex items-center justify-center text-[#D4692A] text-[10px] font-bold rounded-full">
+                                          {activeChat?.display_name?.charAt(0)?.toUpperCase() || "?"}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div>
+                                      <p className="text-[11px] font-medium text-[#1a1a1a]">{activeChat?.display_name}</p>
+                                      <p className="text-[9px] text-[#999]">Read</p>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             )}
                           </div>
                         )}
