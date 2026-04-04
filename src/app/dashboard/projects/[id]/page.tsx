@@ -36,6 +36,7 @@ import {
   CornerDownRight,
   Clock,
   Hash,
+  SmilePlus,
 } from "lucide-react";
 
 // --- Interfaces ---
@@ -132,6 +133,13 @@ interface TaskComment {
   created_at: string;
   edited_at: string | null;
   user: MemberUser;
+  reply_to_id?: string;
+  mentions?: string[];
+  reply_to?: {
+    id: string;
+    content: string;
+    user: { id: string; display_name: string };
+  };
 }
 
 interface SubTask {
@@ -159,6 +167,30 @@ interface ActivityItem {
   details: Record<string, unknown> | null;
   created_at: string;
   user: MemberUser;
+}
+
+// --- Reaction & Read Receipt Interfaces ---
+
+interface ReactionGroup {
+  emoji: string;
+  count: number;
+  users: { id: string; display_name: string }[];
+  reacted: boolean;
+}
+
+interface ReactionsMap {
+  [targetId: string]: ReactionGroup[];
+}
+
+interface ReadReceipt {
+  user_id: string;
+  display_name: string;
+  profile_pic_url: string | null;
+  read_at: string;
+}
+
+interface ReadReceiptsMap {
+  [messageId: string]: ReadReceipt[];
 }
 
 // --- Shared Components ---
@@ -503,6 +535,23 @@ export default function ProjectDetailPage() {
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editCommentContent, setEditCommentContent] = useState("");
 
+  // Comment Reply + Mention
+  const [commentReplyTo, setCommentReplyTo] = useState<TaskComment | null>(null);
+  const [commentMentionSearch, setCommentMentionSearch] = useState("");
+  const [showCommentMentionDropdown, setShowCommentMentionDropdown] = useState(false);
+  const [commentSelectedMentions, setCommentSelectedMentions] = useState<string[]>([]);
+  const commentInputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Reactions (Feature: Emoji React)
+  const [chatReactions, setChatReactions] = useState<ReactionsMap>({});
+  const [commentReactions, setCommentReactions] = useState<ReactionsMap>({});
+  const [showEmojiPickerFor, setShowEmojiPickerFor] = useState<string | null>(null);
+  const QUICK_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🔥", "🎉", "👏"];
+
+  // Read Receipts
+  const [readReceipts, setReadReceipts] = useState<ReadReceiptsMap>({});
+  const [showReadReceiptsFor, setShowReadReceiptsFor] = useState<string | null>(null);
+
   // Subtasks (Feature 4)
   const [subtasks, setSubtasks] = useState<SubTask[]>([]);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
@@ -668,6 +717,32 @@ export default function ProjectDetailPage() {
       fetchActivities();
     }
   }, [activeTab, project, fetchActivities]);
+
+  // Reactions useEffects
+  useEffect(() => {
+    if (messages.length > 0 && activeTab === "chat") {
+      fetchReactions("message", messages.map((m) => m.id));
+    }
+  }, [messages, activeTab, fetchReactions]);
+
+  useEffect(() => {
+    if (taskComments.length > 0 && selectedTaskId) {
+      fetchReactions("comment", taskComments.map((c) => c.id));
+    }
+  }, [taskComments, selectedTaskId, fetchReactions]);
+
+  // Read Receipts useEffects
+  useEffect(() => {
+    if (messages.length > 0 && activeTab === "chat") {
+      fetchReadReceipts(messages.map((m) => m.id));
+    }
+  }, [messages, activeTab, fetchReadReceipts]);
+
+  useEffect(() => {
+    if (activeTab === "chat" && messages.length > 0) {
+      markMessagesAsRead();
+    }
+  }, [activeTab, messages.length, markMessagesAsRead]);
 
   const handleScroll = () => {
     const container = messagesContainerRef.current;
@@ -1224,21 +1299,24 @@ export default function ProjectDetailPage() {
       const res = await fetch(`/api/projects/${projectId}/tasks/${selectedTaskId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: newComment.trim() }),
+        body: JSON.stringify({
+          content: newComment.trim(),
+          reply_to_id: commentReplyTo?.id || undefined,
+          mentions: commentSelectedMentions.length > 0 ? commentSelectedMentions : undefined,
+        }),
       });
       if (res.ok) {
         setNewComment("");
+        setCommentReplyTo(null);
+        setCommentSelectedMentions([]);
         const commentsRes = await fetch(`/api/projects/${projectId}/tasks/${selectedTaskId}/comments`);
         if (commentsRes.ok) {
           const data = await commentsRes.json();
           setTaskComments(data.comments || []);
         }
       }
-    } catch {
-      /* ignore */
-    } finally {
-      setSendingComment(false);
-    }
+    } catch { /* ignore */ }
+    finally { setSendingComment(false); }
   };
 
   const handleEditComment = async (commentId: string) => {
@@ -1278,6 +1356,112 @@ export default function ProjectDetailPage() {
       /* ignore */
     }
   };
+
+  // --- Comment Mention/Reply Handlers ---
+
+  const handleCommentInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setNewComment(val);
+    const cursorPos = e.target.selectionStart || 0;
+    const textBefore = val.slice(0, cursorPos);
+    const match = textBefore.match(/@([^\s@]*)$/);
+    if (match) {
+      setCommentMentionSearch(match[1]);
+      setShowCommentMentionDropdown(true);
+    } else {
+      setShowCommentMentionDropdown(false);
+      setCommentMentionSearch("");
+    }
+  };
+
+  const handleSelectCommentMention = (memberUser: MemberUser) => {
+    if (!commentInputRef.current) return;
+    const cursorPos = commentInputRef.current.selectionStart || 0;
+    const before = newComment.slice(0, cursorPos);
+    const match = before.match(/@([^\s@]*)$/);
+    if (!match) return;
+    const start = cursorPos - match[0].length;
+    const textBefore = newComment.slice(0, start);
+    const textAfter = newComment.slice(cursorPos);
+    const mentionText = `@${memberUser.display_name} `;
+    const newText = textBefore + mentionText + textAfter;
+    const newCursorPos = start + mentionText.length;
+    setNewComment(newText);
+    if (!commentSelectedMentions.includes(memberUser.id)) {
+      setCommentSelectedMentions((prev) => [...prev, memberUser.id]);
+    }
+    setShowCommentMentionDropdown(false);
+    setCommentMentionSearch("");
+    setTimeout(() => {
+      if (commentInputRef.current) {
+        commentInputRef.current.focus();
+        commentInputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+      }
+    }, 0);
+  };
+
+  const commentMentionFilteredMembers = members.filter((m) =>
+    m.user.display_name.toLowerCase().includes(commentMentionSearch.toLowerCase())
+  );
+
+  // --- Reaction Functions ---
+
+  const fetchReactions = useCallback(async (targetType: "message" | "comment", targetIds: string[]) => {
+    if (targetIds.length === 0) return;
+    try {
+      const res = await fetch(`/api/projects/${projectId}/reactions?target_type=${targetType}&target_ids=${targetIds.join(",")}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (targetType === "message") setChatReactions(data.reactions || {});
+        else setCommentReactions(data.reactions || {});
+      }
+    } catch { /* ignore */ }
+  }, [projectId]);
+
+  const toggleReaction = async (targetType: "message" | "comment", targetId: string, emoji: string) => {
+    try {
+      const res = await fetch(`/api/projects/${projectId}/reactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ target_type: targetType, target_id: targetId, emoji }),
+      });
+      if (res.ok) {
+        const ids = targetType === "message" ? messages.map((m) => m.id) : taskComments.map((c) => c.id);
+        await fetchReactions(targetType, ids);
+      }
+    } catch { /* ignore */ }
+    setShowEmojiPickerFor(null);
+  };
+
+  // --- Read Receipt Functions ---
+
+  const fetchReadReceipts = useCallback(async (messageIds: string[]) => {
+    if (messageIds.length === 0) return;
+    try {
+      const res = await fetch(`/api/projects/${projectId}/messages/read?message_ids=${messageIds.join(",")}`);
+      if (res.ok) {
+        const data = await res.json();
+        setReadReceipts(data.receipts || {});
+      }
+    } catch { /* ignore */ }
+  }, [projectId]);
+
+  const markMessagesAsRead = useCallback(async () => {
+    if (!user?.id || messages.length === 0) return;
+    const unreadIds = messages
+      .filter((m) => m.sender_id !== user.id)
+      .filter((m) => !readReceipts[m.id]?.some((r) => r.user_id === user.id))
+      .map((m) => m.id);
+    if (unreadIds.length === 0) return;
+    try {
+      await fetch(`/api/projects/${projectId}/messages/read`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message_ids: unreadIds }),
+      });
+      await fetchReadReceipts(messages.map((m) => m.id));
+    } catch { /* ignore */ }
+  }, [user?.id, messages, readReceipts, projectId, fetchReadReceipts]);
 
   // --- Subtask Functions (Feature 4) ---
 
@@ -2110,7 +2294,7 @@ export default function ProjectDetailPage() {
                               const isOwnComment = comment.user_id === user?.id;
                               const isEditingThisComment = editingCommentId === comment.id;
                               return (
-                                <div key={comment.id} className="flex gap-3 group">
+                                <div key={comment.id} className="flex gap-3 group relative">
                                   <Avatar user={comment.user} size={28} />
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
@@ -2118,6 +2302,16 @@ export default function ProjectDetailPage() {
                                       <span className="text-[10px] text-[#999]">{formatRelativeTime(comment.created_at)}</span>
                                       {comment.edited_at && <span className="text-[10px] text-[#aaa] italic">(edited)</span>}
                                     </div>
+                                    {/* Reply preview */}
+                                    {comment.reply_to && (
+                                      <div className="text-[10px] mt-1 mb-1 px-2 py-1.5 rounded-lg border-l-2 bg-[#faf8f6] border-[#D4692A]/30 text-[#777]">
+                                        <div className="flex items-center gap-1 mb-0.5">
+                                          <CornerDownRight size={8} />
+                                          <span className="font-semibold">{comment.reply_to.user?.display_name || "Unknown"}</span>
+                                        </div>
+                                        <p className="truncate">{comment.reply_to.content?.slice(0, 80)}</p>
+                                      </div>
+                                    )}
                                     {isEditingThisComment ? (
                                       <div className="mt-1 space-y-2">
                                         <textarea
@@ -2137,12 +2331,54 @@ export default function ProjectDetailPage() {
                                         </div>
                                       </div>
                                     ) : (
-                                      <p className="text-sm text-[#1a1a1a] mt-0.5 whitespace-pre-wrap">{comment.content}</p>
+                                      <p className="text-sm text-[#1a1a1a] mt-0.5 whitespace-pre-wrap">{renderChatContent(comment.content, members)}</p>
                                     )}
-                                    {isOwnComment && !isEditingThisComment && (
-                                      <div className="flex gap-2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button onClick={() => { setEditingCommentId(comment.id); setEditCommentContent(comment.content); }} className="text-[10px] text-[#999] hover:text-[#D4692A] transition-colors">Edit</button>
-                                        <button onClick={() => handleDeleteComment(comment.id)} className="text-[10px] text-[#999] hover:text-red-500 transition-colors">Delete</button>
+                                    {/* Comment reactions display */}
+                                    {commentReactions[comment.id] && commentReactions[comment.id].length > 0 && (
+                                      <div className="flex flex-wrap gap-1 mt-1.5">
+                                        {commentReactions[comment.id].map((r) => (
+                                          <button
+                                            key={r.emoji}
+                                            onClick={() => toggleReaction("comment", comment.id, r.emoji)}
+                                            title={r.users.map((u) => u.display_name).join(", ")}
+                                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs transition-colors ${
+                                              r.reacted
+                                                ? "bg-[#D4692A]/10 text-[#D4692A] border border-[#D4692A]/30"
+                                                : "bg-gray-50 text-gray-500 border border-gray-200"
+                                            }`}
+                                          >
+                                            <span>{r.emoji}</span>
+                                            <span className="font-medium">{r.count}</span>
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+                                    {/* Comment action buttons */}
+                                    <div className="flex gap-2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <button onClick={() => setCommentReplyTo(comment)} className="text-[10px] text-[#999] hover:text-[#D4692A] transition-colors">Reply</button>
+                                      <button
+                                        onClick={() => setShowEmojiPickerFor(showEmojiPickerFor === `comment-${comment.id}` ? null : `comment-${comment.id}`)}
+                                        className="text-[10px] text-[#999] hover:text-yellow-500 transition-colors"
+                                      >React</button>
+                                      {isOwnComment && !isEditingThisComment && (
+                                        <>
+                                          <button onClick={() => { setEditingCommentId(comment.id); setEditCommentContent(comment.content); }} className="text-[10px] text-[#999] hover:text-[#D4692A] transition-colors">Edit</button>
+                                          <button onClick={() => handleDeleteComment(comment.id)} className="text-[10px] text-[#999] hover:text-red-500 transition-colors">Delete</button>
+                                        </>
+                                      )}
+                                    </div>
+                                    {/* Comment emoji picker */}
+                                    {showEmojiPickerFor === `comment-${comment.id}` && (
+                                      <div className="absolute left-0 z-40 bg-white border border-gray-200 rounded-xl shadow-lg p-1.5 flex gap-0.5 mt-1">
+                                        {QUICK_EMOJIS.map((emoji) => (
+                                          <button
+                                            key={emoji}
+                                            onClick={() => toggleReaction("comment", comment.id, emoji)}
+                                            className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-sm transition-colors"
+                                          >
+                                            {emoji}
+                                          </button>
+                                        ))}
                                       </div>
                                     )}
                                   </div>
@@ -2151,23 +2387,57 @@ export default function ProjectDetailPage() {
                             })
                           )}
                         </div>
-                        {/* Add Comment Input */}
-                        <div className="flex gap-2">
-                          <textarea
-                            value={newComment}
-                            onChange={(e) => setNewComment(e.target.value)}
-                            rows={2}
-                            placeholder="Write a comment..."
-                            className="flex-1 px-3 py-2 text-sm rounded-xl border border-[#e8e4e0] focus:outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/30 bg-white text-[#1a1a1a] resize-none placeholder:text-[#999]"
-                            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleAddComment(); } }}
-                          />
-                          <button
-                            onClick={handleAddComment}
-                            disabled={!newComment.trim() || sendingComment}
-                            className="self-end p-2.5 rounded-xl bg-[#D4692A] text-white hover:bg-[#c05e24] disabled:opacity-40 transition-colors"
-                          >
-                            {sendingComment ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                          </button>
+                        {/* Reply-to preview */}
+                        {commentReplyTo && (
+                          <div className="flex items-center gap-3 mb-2 px-3 py-2 bg-[#faf8f6] border border-[#e8e4e0] rounded-xl">
+                            <CornerDownRight size={14} className="text-[#D4692A] flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <span className="text-xs font-semibold text-[#D4692A]">Replying to {commentReplyTo.user.display_name}</span>
+                              <p className="text-xs text-[#999] truncate">{commentReplyTo.content?.slice(0, 100)}</p>
+                            </div>
+                            <button onClick={() => setCommentReplyTo(null)} className="p-1 rounded-lg hover:bg-white">
+                              <X size={14} className="text-gray-400" />
+                            </button>
+                          </div>
+                        )}
+                        {/* Comment Mention Dropdown */}
+                        <div className="relative">
+                          {showCommentMentionDropdown && commentMentionFilteredMembers.length > 0 && (
+                            <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-[#e8e4e0] rounded-xl shadow-lg z-30 max-h-48 overflow-y-auto">
+                              {commentMentionFilteredMembers.map((m) => (
+                                <button
+                                  key={m.user_id}
+                                  onClick={() => handleSelectCommentMention(m.user)}
+                                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#faf8f6] transition-colors text-left"
+                                >
+                                  <Avatar user={m.user} size={24} />
+                                  <div className="min-w-0">
+                                    <span className="text-sm font-medium text-[#1a1a1a]">{m.user.display_name}</span>
+                                    {m.user.position && <span className="text-[10px] text-[#999] ml-2">{m.user.position}</span>}
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {/* Add Comment Input */}
+                          <div className="flex gap-2">
+                            <textarea
+                              ref={commentInputRef}
+                              value={newComment}
+                              onChange={handleCommentInputChange}
+                              rows={2}
+                              placeholder="Write a comment... Use @ to mention"
+                              className="flex-1 px-3 py-2 text-sm rounded-xl border border-[#e8e4e0] focus:outline-none focus:border-[#D4692A] focus:ring-1 focus:ring-[#D4692A]/30 bg-white text-[#1a1a1a] resize-none placeholder:text-[#999]"
+                              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleAddComment(); } }}
+                            />
+                            <button
+                              onClick={handleAddComment}
+                              disabled={!newComment.trim() || sendingComment}
+                              className="self-end p-2.5 rounded-xl bg-[#D4692A] text-white hover:bg-[#c05e24] disabled:opacity-40 transition-colors"
+                            >
+                              {sendingComment ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -2378,6 +2648,13 @@ export default function ProjectDetailPage() {
                           {!isEditingMsg && (
                             <div className={`opacity-0 group-hover:opacity-100 transition-opacity absolute ${isMine ? "-left-16" : "-right-16"} top-1/2 -translate-y-1/2 flex items-center gap-0.5`}>
                               <button
+                                onClick={() => setShowEmojiPickerFor(showEmojiPickerFor === msg.id ? null : msg.id)}
+                                title="React"
+                                className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-yellow-500 transition-colors"
+                              >
+                                <SmilePlus size={13} />
+                              </button>
+                              <button
                                 onClick={() => setReplyingTo(msg)}
                                 title="Reply"
                                 className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-[#D4692A] transition-colors"
@@ -2469,7 +2746,71 @@ export default function ProjectDetailPage() {
                               <div className={`flex items-center gap-1.5 mt-1.5 ${isMine ? "justify-end" : ""}`}>
                                 <p className={`text-[10px] ${isMine ? "text-white/50" : "text-[#999]"}`}>{formatMessageTime(msg.created_at)}</p>
                                 {isEdited && <span className={`text-[10px] italic ${isMine ? "text-white/40" : "text-[#aaa]"}`}>(edited)</span>}
+                                {isMine && (
+                                  <span
+                                    className={`text-[10px] cursor-pointer ${
+                                      readReceipts[msg.id] && readReceipts[msg.id].length > 0
+                                        ? "text-blue-400"
+                                        : "text-white/40"
+                                    }`}
+                                    onClick={() => setShowReadReceiptsFor(showReadReceiptsFor === msg.id ? null : msg.id)}
+                                    title={readReceipts[msg.id]?.map((r) => r.display_name).join(", ") || "Not read yet"}
+                                  >
+                                    {readReceipts[msg.id] && readReceipts[msg.id].length > 0 ? "✓✓" : "✓"}
+                                  </span>
+                                )}
                               </div>
+                              {/* Reaction display */}
+                              {chatReactions[msg.id] && chatReactions[msg.id].length > 0 && (
+                                <div className={`flex flex-wrap gap-1 mt-1.5 ${isMine ? "justify-end" : ""}`}>
+                                  {chatReactions[msg.id].map((r) => (
+                                    <button
+                                      key={r.emoji}
+                                      onClick={() => toggleReaction("message", msg.id, r.emoji)}
+                                      title={r.users.map((u) => u.display_name).join(", ")}
+                                      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs transition-colors ${
+                                        r.reacted
+                                          ? (isMine ? "bg-white/20 text-white" : "bg-[#D4692A]/10 text-[#D4692A] border border-[#D4692A]/30")
+                                          : (isMine ? "bg-white/10 text-white/70" : "bg-gray-50 text-gray-500 border border-gray-200")
+                                      }`}
+                                    >
+                                      <span>{r.emoji}</span>
+                                      <span className="font-medium">{r.count}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                              {/* Read receipts popup */}
+                              {showReadReceiptsFor === msg.id && readReceipts[msg.id] && readReceipts[msg.id].length > 0 && (
+                                <div className="absolute bottom-full right-0 mb-1 bg-white border border-gray-200 rounded-xl shadow-lg p-3 z-40 min-w-[180px]">
+                                  <p className="text-[10px] font-semibold text-[#999] uppercase tracking-wider mb-2">Read by</p>
+                                  <div className="space-y-2">
+                                    {readReceipts[msg.id].map((r) => (
+                                      <div key={r.user_id} className="flex items-center gap-2">
+                                        <div className="w-5 h-5 rounded-full bg-[#D4692A]/10 flex items-center justify-center text-[8px] font-bold text-[#D4692A]">
+                                          {r.display_name.charAt(0)}
+                                        </div>
+                                        <span className="text-xs text-[#1a1a1a]">{r.display_name}</span>
+                                        <span className="text-[10px] text-[#999] ml-auto">{new Date(r.read_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {/* Emoji picker popup */}
+                          {showEmojiPickerFor === msg.id && (
+                            <div className={`absolute ${isMine ? "right-0" : "left-0"} -top-10 z-40 bg-white border border-gray-200 rounded-xl shadow-lg p-1.5 flex gap-0.5`}>
+                              {QUICK_EMOJIS.map((emoji) => (
+                                <button
+                                  key={emoji}
+                                  onClick={() => toggleReaction("message", msg.id, emoji)}
+                                  className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-sm transition-colors"
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
                             </div>
                           )}
                         </div>

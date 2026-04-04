@@ -53,7 +53,40 @@ export async function GET(
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    return NextResponse.json({ comments: data || [] });
+    const comments = data || [];
+
+    // Fetch reply_to data for comments that have reply_to_id
+    const replyToIds = comments
+      .filter((c: { reply_to_id?: string | null }) => c.reply_to_id)
+      .map((c: { reply_to_id: string }) => c.reply_to_id);
+
+    let replyToMap: Record<string, { id: string; content: string; user: { id: string; display_name: string } }> = {};
+
+    if (replyToIds.length > 0) {
+      const { data: replyComments } = await getSupabaseAdmin()
+        .from("project_task_comments")
+        .select("id, content, user:admin_users!user_id(id, display_name)")
+        .in("id", replyToIds);
+
+      if (replyComments) {
+        for (const rc of replyComments) {
+          const user = rc.user as unknown as { id: string; display_name: string };
+          replyToMap[rc.id] = {
+            id: rc.id,
+            content: rc.content,
+            user: { id: user.id, display_name: user.display_name },
+          };
+        }
+      }
+    }
+
+    // Attach reply_to data to comments
+    const enrichedComments = comments.map((comment: { reply_to_id?: string | null; [key: string]: unknown }) => ({
+      ...comment,
+      reply_to: comment.reply_to_id ? replyToMap[comment.reply_to_id] || null : null,
+    }));
+
+    return NextResponse.json({ comments: enrichedComments });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Server error";
     return NextResponse.json({ error: message }, { status: 500 });
@@ -77,7 +110,7 @@ export async function POST(
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
-    const { content } = await req.json();
+    const { content, reply_to_id, mentions } = await req.json();
 
     if (!content?.trim()) {
       return NextResponse.json({ error: "Content is required" }, { status: 400 });
@@ -98,13 +131,29 @@ export async function POST(
     }
 
     // Create the comment
+    const insertData: {
+      task_id: string;
+      user_id: string;
+      content: string;
+      reply_to_id?: string;
+      mentions?: string[];
+    } = {
+      task_id: taskId,
+      user_id: admin.sub,
+      content: content.trim(),
+    };
+
+    if (reply_to_id) {
+      insertData.reply_to_id = reply_to_id;
+    }
+
+    if (mentions && Array.isArray(mentions) && mentions.length > 0) {
+      insertData.mentions = mentions;
+    }
+
     const { data, error } = await db
       .from("project_task_comments")
-      .insert({
-        task_id: taskId,
-        user_id: admin.sub,
-        content: content.trim(),
-      })
+      .insert(insertData)
       .select("*, user:admin_users!user_id(id, display_name, position, profile_pic_url)")
       .single();
 
@@ -128,6 +177,29 @@ export async function POST(
       }));
 
       await createNotificationBulk(notifications);
+    }
+
+    // Notify mentioned users
+    if (mentions && Array.isArray(mentions) && mentions.length > 0) {
+      // Filter out the comment author from mentions and any already-notified assignees
+      const assigneeIds = new Set((assignees || []).map((a: { user_id: string }) => a.user_id));
+      const mentionedUserIds = mentions.filter(
+        (userId: string) => userId !== admin.sub && !assigneeIds.has(userId)
+      );
+
+      if (mentionedUserIds.length > 0) {
+        const mentionNotifications = mentionedUserIds.map((userId: string) => ({
+          userId,
+          actorId: admin.sub,
+          type: "mention",
+          projectId: id,
+          taskId: taskId,
+          title: task.title,
+          message: `${admin.display_name} mentioned you in a task comment on "${task.title}"`,
+        }));
+
+        await createNotificationBulk(mentionNotifications);
+      }
     }
 
     // Log activity
