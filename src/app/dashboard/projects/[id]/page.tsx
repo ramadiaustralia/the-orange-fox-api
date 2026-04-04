@@ -552,6 +552,10 @@ export default function ProjectDetailPage() {
   const [readReceipts, setReadReceipts] = useState<ReadReceiptsMap>({});
   const [showReadReceiptsFor, setShowReadReceiptsFor] = useState<string | null>(null);
 
+  // Mobile chat touch support
+  const [activeMessageActions, setActiveMessageActions] = useState<string | null>(null);
+  const chatTouchTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // Subtasks (Feature 4)
   const [subtasks, setSubtasks] = useState<SubTask[]>([]);
   const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
@@ -1453,6 +1457,24 @@ export default function ProjectDetailPage() {
       fetchReactions("comment", taskComments.map((c) => c.id));
     }
   }, [taskComments, selectedTaskId, fetchReactions]);
+
+  // Close chat popups on outside tap/click (mobile support)
+  useEffect(() => {
+    const handleOutsideTap = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-chat-actions]") && !target.closest("[data-emoji-picker]") && !target.closest("[data-read-receipt]")) {
+        if (showEmojiPickerFor) setShowEmojiPickerFor(null);
+        if (showReadReceiptsFor) setShowReadReceiptsFor(null);
+        if (activeMessageActions) setActiveMessageActions(null);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideTap);
+    document.addEventListener("touchstart", handleOutsideTap);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideTap);
+      document.removeEventListener("touchstart", handleOutsideTap);
+    };
+  }, [showEmojiPickerFor, showReadReceiptsFor, activeMessageActions]);
 
   // Read Receipts useEffects
   useEffect(() => {
@@ -2718,10 +2740,21 @@ export default function ProjectDetailPage() {
                             <Avatar user={msg.sender} size={28} />
                           </div>
                         )}
-                        <div className="relative group w-fit max-w-[80%] sm:max-w-[65%]">
+                        <div
+                          className="relative group w-fit max-w-[80%] sm:max-w-[65%]"
+                          onTouchStart={() => {
+                            chatTouchTimerRef.current = setTimeout(() => {
+                              setActiveMessageActions(msg.id);
+                              setShowEmojiPickerFor(null);
+                            }, 500);
+                          }}
+                          onTouchEnd={() => { if (chatTouchTimerRef.current) clearTimeout(chatTouchTimerRef.current); }}
+                          onTouchMove={() => { if (chatTouchTimerRef.current) clearTimeout(chatTouchTimerRef.current); }}
+                          onContextMenu={(e) => { if (activeMessageActions === msg.id) e.preventDefault(); }}
+                        >
                           {/* Hover actions: Edit + Reply */}
                           {!isEditingMsg && (
-                            <div className={`opacity-0 group-hover:opacity-100 transition-opacity absolute ${isMine ? "-left-16" : "-right-16"} top-1/2 -translate-y-1/2 flex items-center gap-0.5`}>
+                            <div data-chat-actions className={`${activeMessageActions === msg.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"} transition-opacity absolute bottom-full mb-1 ${isMine ? "right-0 sm:-left-16 sm:right-auto" : "left-0 sm:-right-16 sm:left-auto"} sm:bottom-auto sm:mb-0 sm:top-1/2 sm:-translate-y-1/2 flex items-center gap-0.5 z-20`}>
                               <button
                                 onClick={() => setShowEmojiPickerFor(showEmojiPickerFor === msg.id ? null : msg.id)}
                                 title="React"
@@ -2842,15 +2875,27 @@ export default function ProjectDetailPage() {
                                 {isEdited && <span className={`text-[10px] italic ${isMine ? "text-white/40" : "text-[#aaa]"}`}>(edited)</span>}
                                 {isMine && (
                                   <span
-                                    className={`text-[10px] cursor-pointer ${
+                                    data-read-receipt
+                                    className={`text-[10px] cursor-pointer inline-flex items-center gap-0.5 ${
                                       readReceipts[msg.id] && readReceipts[msg.id].length > 0
                                         ? "text-blue-400"
                                         : "text-white/40"
                                     }`}
-                                    onClick={() => setShowReadReceiptsFor(showReadReceiptsFor === msg.id ? null : msg.id)}
+                                    onClick={(e) => { e.stopPropagation(); setShowReadReceiptsFor(showReadReceiptsFor === msg.id ? null : msg.id); }}
                                     title={readReceipts[msg.id]?.map((r) => r.display_name).join(", ") || "Not read yet"}
                                   >
-                                    {readReceipts[msg.id] && readReceipts[msg.id].length > 0 ? "✓✓" : "✓"}
+                                    {readReceipts[msg.id] && readReceipts[msg.id].length > 0 ? (
+                                      <>
+                                        {readReceipts[msg.id].slice(0, 2).map((r) => (
+                                          r.profile_pic_url ? (
+                                            <img key={r.user_id} src={r.profile_pic_url} alt="" className="w-3 h-3 rounded-full object-cover inline-block" />
+                                          ) : (
+                                            <span key={r.user_id} className="w-3 h-3 rounded-full bg-blue-400 text-white text-[6px] font-bold inline-flex items-center justify-center">{r.display_name?.charAt(0)}</span>
+                                          )
+                                        ))}
+                                        <span>✓✓</span>
+                                      </>
+                                    ) : "✓"}
                                   </span>
                                 )}
                               </div>
@@ -2876,14 +2921,18 @@ export default function ProjectDetailPage() {
                               )}
                               {/* Read receipts popup */}
                               {showReadReceiptsFor === msg.id && readReceipts[msg.id] && readReceipts[msg.id].length > 0 && (
-                                <div className="absolute bottom-full right-0 mb-1 bg-white border border-gray-200 rounded-xl shadow-lg p-3 z-40 min-w-[180px]">
+                                <div data-read-receipt className="absolute bottom-full right-0 mb-1 bg-white border border-gray-200 rounded-xl shadow-lg p-3 z-40 min-w-[180px]">
                                   <p className="text-[10px] font-semibold text-[#999] uppercase tracking-wider mb-2">Read by</p>
                                   <div className="space-y-2">
                                     {readReceipts[msg.id].map((r) => (
                                       <div key={r.user_id} className="flex items-center gap-2">
-                                        <div className="w-5 h-5 rounded-full bg-[#D4692A]/10 flex items-center justify-center text-[8px] font-bold text-[#D4692A]">
-                                          {r.display_name.charAt(0)}
-                                        </div>
+                                        {r.profile_pic_url ? (
+                                          <img src={r.profile_pic_url} alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0" />
+                                        ) : (
+                                          <div className="w-5 h-5 rounded-full bg-[#D4692A]/10 flex items-center justify-center text-[8px] font-bold text-[#D4692A] flex-shrink-0">
+                                            {r.display_name.charAt(0)}
+                                          </div>
+                                        )}
                                         <span className="text-xs text-[#1a1a1a]">{r.display_name}</span>
                                         <span className="text-[10px] text-[#999] ml-auto">{new Date(r.read_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                                       </div>
@@ -2895,12 +2944,17 @@ export default function ProjectDetailPage() {
                           )}
                           {/* Emoji picker popup */}
                           {showEmojiPickerFor === msg.id && (
-                            <div className={`absolute ${isMine ? "right-0" : "left-0"} -top-10 z-40 bg-white border border-gray-200 rounded-xl shadow-lg p-1.5 flex gap-0.5`}>
+                            <div
+                              data-emoji-picker
+                              className={`absolute ${isMine ? "right-0" : "left-0"} bottom-full mb-1 z-40 bg-white border border-gray-200 rounded-xl shadow-lg p-1.5 flex gap-0.5`}
+                              onTouchStart={(e) => e.stopPropagation()}
+                            >
                               {QUICK_EMOJIS.map((emoji) => (
                                 <button
                                   key={emoji}
                                   onClick={() => toggleReaction("message", msg.id, emoji)}
-                                  className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-sm transition-colors"
+                                  onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); toggleReaction("message", msg.id, emoji); }}
+                                  className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 active:scale-125 text-sm transition-all"
                                 >
                                   {emoji}
                                 </button>
