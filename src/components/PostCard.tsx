@@ -261,6 +261,8 @@ function ReactionPicker({
     <div
       className="absolute bottom-full left-0 mb-2 flex items-center gap-1 bg-white rounded-full shadow-lg border border-border-light px-2 py-1.5 z-50"
       style={{ animation: "fadeIn 0.15s ease-out" }}
+      onTouchStart={(e) => e.stopPropagation()}
+      onTouchEnd={(e) => e.stopPropagation()}
     >
       {Object.entries(REACTION_TYPES).map(([type, { emoji, label }]) => (
         <button
@@ -269,7 +271,12 @@ function ReactionPicker({
             e.stopPropagation();
             onSelect(type as ReactionType);
           }}
-          className="text-xl hover:scale-125 transition-transform duration-150 px-1 relative group/reaction"
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onSelect(type as ReactionType);
+          }}
+          className="text-xl hover:scale-125 active:scale-150 transition-transform duration-150 px-1 relative group/reaction"
           title={label}
         >
           {emoji}
@@ -694,9 +701,10 @@ export default function PostCard({
       clearTimeout(touchTimerRef.current);
       touchTimerRef.current = null;
     }
-    // If reaction picker is open, prevent quick click through
-    if (showReactionPicker) {
-      e.preventDefault();
+    // Only prevent default on the Like button itself, not on child elements (emoji picker)
+    // The emoji picker handles its own touch events via stopPropagation
+    if (showReactionPicker && !touchMovedRef.current) {
+      // Don't close - let the emoji buttons handle their own taps
     }
   }, [showReactionPicker]);
 
